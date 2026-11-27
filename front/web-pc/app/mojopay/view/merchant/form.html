@@ -1,0 +1,26 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        {if isset($vo.public_id)}<div class="layui-form-item"><label class="layui-form-label">Public ID</label>
+        <div class="layui-input-block"><input value="{$vo.public_id}" class="layui-input mono" disabled>
+        <div class="layui-word-aux">对外资源编号，创建后不可改</div></div></div>{/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">编码</label>
+        <div class="layui-input-block"><input name="code" value="{$vo.code|default=''}" required class="layui-input mono" maxlength="48" placeholder="store_acme">
+        <div class="layui-word-aux">商户编码 code，全局唯一</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">法定名称</label>
+        <div class="layui-input-block"><input name="legal_name" value="{$vo.legal_name|default=''}" required class="layui-input" maxlength="255"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">国家</label>
+        <div class="layui-input-block"><input name="country" value="{$vo.country|default=''}" required class="layui-input mono" maxlength="2" placeholder="US">
+        <div class="layui-word-aux">ISO 3166-1 alpha-2</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">经营类别</label>
+        <div class="layui-input-block"><input name="category" value="{$vo.category|default=''}" required class="layui-input mono" maxlength="32" placeholder="FX_MERCHANT">
+        <div class="layui-word-aux">category，如 FX_MERCHANT / CRYPTO_ONRAMP</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status" lay-search>{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{elseif !isset($vo.status) && $sk==='PENDING'}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+        <div class="hr-line-dashed"></div>
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">保存</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>

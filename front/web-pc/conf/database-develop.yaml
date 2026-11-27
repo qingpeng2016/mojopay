@@ -110,6 +110,24 @@ db_arbopp:
   break_reconnect: false
   trigger_sql: true
 
+db_mojopay:
+  type: mysql
+  hostname: ''
+  database: 'mojopay'
+  username: ''
+  password: ''
+  hostport: ''
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
 db_sc_arb:
   type: mysql
   hostname: ''   # 通过 DB_HOST 环境变量设置

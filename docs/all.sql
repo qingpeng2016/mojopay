@@ -4,7 +4,7 @@
 -- 本文件用于初始化空库，可重复运行。已有表结构升级请使用独立迁移。
 -- 金额 DECIMAL(36,0) 按资产最小单位存储，DATETIME(6) 按 UTC 写入。
 -- 多行资金平衡、累计退款、结算分配、绑定有效期重叠及状态迁移由应用在事务内校验。
-SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET SESSION time_zone = '+00:00';
 
 -- 一、资产和上游渠道
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `asset` (
   UNIQUE KEY `uk_asset_code` (`code`),
   CONSTRAINT `ck_asset_kind` CHECK (`kind` IN ('FIAT', 'CRYPTO')),
   CONSTRAINT `ck_asset_decimals` CHECK (`decimals` BETWEEN 0 AND 30)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='资产字典';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资产字典';
 
 CREATE TABLE IF NOT EXISTS `asset_network` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS `asset_network` (
   UNIQUE KEY `uk_asset_network_code` (`asset_id`, `network_code`),
   UNIQUE KEY `uk_asset_network_scope` (`id`, `asset_id`),
   CONSTRAINT `fk_asset_network_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='资产支持的链网络';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资产支持的链网络';
 
 CREATE TABLE IF NOT EXISTS `provider` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `provider` (
   `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_provider_code` (`code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='上游服务商';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='上游服务商';
 
 CREATE TABLE IF NOT EXISTS `provider_account` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS `provider_account` (
   CONSTRAINT `fk_provider_account_provider` FOREIGN KEY (`provider_id`) REFERENCES `provider` (`id`),
   CONSTRAINT `fk_provider_account_parent` FOREIGN KEY (`parent_id`, `provider_id`, `environment`) REFERENCES `provider_account` (`id`, `provider_id`, `environment`),
   CONSTRAINT `ck_provider_account_env` CHECK (`environment` IN ('SANDBOX', 'PRODUCTION'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='上游主账号、机构子账号和运营账号';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='上游主账号、机构子账号和运营账号';
 
 CREATE TABLE IF NOT EXISTS `channel_capability` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS `channel_capability` (
   CONSTRAINT `fk_cap_settle_asset` FOREIGN KEY (`settlement_asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `ck_cap_version` CHECK (`version` > 0),
   CONSTRAINT `ck_cap_amount` CHECK (`min_amount` >= 0 AND `max_amount` >= `min_amount`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='上游账户的收款、退款、换汇、划转及出款权限';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='上游账户的收款、退款、换汇、划转及出款权限';
 
 -- 二、商户、授权绑定、资质与受益账户
 
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `merchant` (
   UNIQUE KEY `uk_merchant_public` (`public_id`),
   UNIQUE KEY `uk_merchant_code` (`code`),
   KEY `idx_merchant_country_status` (`country`, `status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='下游签约商户';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='下游签约商户';
 
 CREATE TABLE IF NOT EXISTS `merchant_account` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS `merchant_account` (
   KEY `idx_merchant_account_parent` (`parent_id`, `merchant_id`),
   CONSTRAINT `fk_merchant_account_merchant` FOREIGN KEY (`merchant_id`) REFERENCES `merchant` (`id`),
   CONSTRAINT `fk_merchant_account_parent` FOREIGN KEY (`parent_id`, `merchant_id`) REFERENCES `merchant_account` (`id`, `merchant_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='下游商户主账号和子账号';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='下游商户主账号和子账号';
 
 CREATE TABLE IF NOT EXISTS `merchant_user` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS `merchant_user` (
   UNIQUE KEY `uk_merchant_user_ref` (`merchant_id`, `external_user_id`),
   UNIQUE KEY `uk_merchant_user_scope` (`id`, `merchant_id`),
   CONSTRAINT `fk_merchant_user_merchant` FOREIGN KEY (`merchant_id`) REFERENCES `merchant` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户范围内识别的最终用户';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户范围内识别的最终用户';
 
 CREATE TABLE IF NOT EXISTS `merchant_api_key` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS `merchant_api_key` (
   CONSTRAINT `ck_merchant_api_key_env` CHECK (`environment` IN ('SANDBOX', 'PRODUCTION')),
   CONSTRAINT `ck_merchant_api_key_rpm` CHECK (`requests_per_minute` > 0),
   CONSTRAINT `ck_merchant_api_key_allowlist` CHECK (`ip_allowlist` IS NULL OR (JSON_TYPE(`ip_allowlist`) = 'ARRAY' AND JSON_LENGTH(`ip_allowlist`) > 0))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户 API 凭据、授权与访问策略';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户 API 凭据、授权与访问策略';
 
 CREATE TABLE IF NOT EXISTS `merchant_webhook_endpoint` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS `merchant_webhook_endpoint` (
   UNIQUE KEY `uk_webhook_endpoint_scope` (`id`, `merchant_account_id`),
   KEY `idx_webhook_endpoint_account` (`merchant_account_id`, `status`),
   CONSTRAINT `fk_webhook_endpoint_account` FOREIGN KEY (`merchant_account_id`) REFERENCES `merchant_account` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户回调地址与验签凭据引用';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户回调地址与验签凭据引用';
 
 CREATE TABLE IF NOT EXISTS `channel_binding` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS `channel_binding` (
   CONSTRAINT `fk_binding_capability` FOREIGN KEY (`capability_id`) REFERENCES `channel_capability` (`id`),
   CONSTRAINT `ck_binding_values` CHECK (`version` > 0 AND `priority` >= 0 AND `weight` >= 0),
   CONSTRAINT `ck_binding_window` CHECK (`effective_to` IS NULL OR `effective_to` > `effective_from`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户账号和上游能力的授权及路由版本';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户账号和上游能力的授权及路由版本';
 
 CREATE TABLE IF NOT EXISTS `compliance_case` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -235,7 +235,7 @@ CREATE TABLE IF NOT EXISTS `compliance_case` (
   CONSTRAINT `fk_compliance_user` FOREIGN KEY (`merchant_user_id`, `merchant_id`) REFERENCES `merchant_user` (`id`, `merchant_id`),
   CONSTRAINT `fk_compliance_capability` FOREIGN KEY (`capability_id`) REFERENCES `channel_capability` (`id`),
   CONSTRAINT `ck_compliance_subject` CHECK ((`subject_type` = 'MERCHANT' AND `merchant_user_id` IS NULL) OR (`subject_type` = 'MERCHANT_USER' AND `merchant_user_id` IS NOT NULL))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户 KYB、最终用户 KYC 与交易验证';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户 KYB、最终用户 KYC 与交易验证';
 
 CREATE TABLE IF NOT EXISTS `beneficiary` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -261,7 +261,7 @@ CREATE TABLE IF NOT EXISTS `beneficiary` (
   CONSTRAINT `fk_beneficiary_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `fk_beneficiary_network` FOREIGN KEY (`network_id`, `asset_id`) REFERENCES `asset_network` (`id`, `asset_id`),
   CONSTRAINT `ck_beneficiary_destination` CHECK ((`type` = 'BANK' AND `network_id` IS NULL) OR (`type` = 'WALLET' AND `network_id` IS NOT NULL))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='审核通过的银行账户或链上钱包';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='审核通过的银行账户或链上钱包';
 
 -- 三、报价、支付、兑换和退款
 
@@ -292,7 +292,7 @@ CREATE TABLE IF NOT EXISTS `quote` (
   CONSTRAINT `fk_quote_fee_asset` FOREIGN KEY (`fee_asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `fk_quote_provider_account` FOREIGN KEY (`provider_account_id`) REFERENCES `provider_account` (`id`),
   CONSTRAINT `ck_quote_amounts` CHECK (`rate` > 0 AND `source_amount` > 0 AND `target_amount` > 0 AND `fee` >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='价格、费用、金额和有效期快照';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='价格、费用、金额和有效期快照';
 
 CREATE TABLE IF NOT EXISTS `payment_order` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -341,7 +341,7 @@ CREATE TABLE IF NOT EXISTS `payment_order` (
       AND `checkout_issued_at` < `checkout_expires_at` AND `checkout_expires_at` <= `expires_at`
       AND (`checkout_revoked_at` IS NULL OR `checkout_revoked_at` >= `checkout_issued_at`))
   )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户支付订单及固定结算资产';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户支付订单及固定结算资产';
 
 CREATE TABLE IF NOT EXISTS `payment_attempt` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -371,7 +371,7 @@ CREATE TABLE IF NOT EXISTS `payment_attempt` (
   CONSTRAINT `fk_pay_attempt_asset` FOREIGN KEY (`payment_asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `fk_pay_attempt_network` FOREIGN KEY (`network_id`, `payment_asset_id`) REFERENCES `asset_network` (`id`, `asset_id`),
   CONSTRAINT `ck_pay_attempt_positive` CHECK (`expected_amount` > 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='渠道选择与收款指令快照';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='渠道选择与收款指令快照';
 
 CREATE TABLE IF NOT EXISTS `payment_receipt` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -399,7 +399,7 @@ CREATE TABLE IF NOT EXISTS `payment_receipt` (
   CONSTRAINT `fk_pay_receipt_asset` FOREIGN KEY (`received_asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `fk_pay_receipt_network` FOREIGN KEY (`network_id`, `received_asset_id`) REFERENCES `asset_network` (`id`, `asset_id`),
   CONSTRAINT `ck_pay_receipt_amount` CHECK (`amount` > 0 AND `fee` >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='一笔上游真实到账和确认记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='一笔上游真实到账和确认记录';
 
 CREATE TABLE IF NOT EXISTS `conversion` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -431,7 +431,7 @@ CREATE TABLE IF NOT EXISTS `conversion` (
   CONSTRAINT `fk_conversion_buy` FOREIGN KEY (`buy_asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `fk_conversion_fee` FOREIGN KEY (`fee_asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `ck_conversion_amounts` CHECK (`sell_asset_id` <> `buy_asset_id` AND `sold_amount` > 0 AND `bought_amount` > 0 AND `fee` >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='实际执行的换汇操作';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='实际执行的换汇操作';
 
 CREATE TABLE IF NOT EXISTS `refund_order` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -455,7 +455,7 @@ CREATE TABLE IF NOT EXISTS `refund_order` (
   CONSTRAINT `fk_refund_receipt` FOREIGN KEY (`payment_receipt_id`, `merchant_account_id`, `provider_account_id`) REFERENCES `payment_receipt` (`id`, `merchant_account_id`, `provider_account_id`),
   CONSTRAINT `fk_refund_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `ck_refund_positive` CHECK (`amount` > 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='原到账下的部分或全额退款';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='原到账下的部分或全额退款';
 
 CREATE TABLE IF NOT EXISTS `dispute_case` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -476,7 +476,7 @@ CREATE TABLE IF NOT EXISTS `dispute_case` (
   CONSTRAINT `fk_dispute_receipt` FOREIGN KEY (`payment_receipt_id`, `merchant_account_id`, `provider_account_id`) REFERENCES `payment_receipt` (`id`, `merchant_account_id`, `provider_account_id`),
   CONSTRAINT `fk_dispute_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `ck_dispute_positive` CHECK (`amount` > 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='渠道争议与拒付事实';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='渠道争议与拒付事实';
 
 -- 四、复式账本、结算与出款
 
@@ -495,7 +495,7 @@ CREATE TABLE IF NOT EXISTS `ledger_account` (
   UNIQUE KEY `uk_ledger_account_asset` (`id`, `asset_id`),
   CONSTRAINT `fk_ledger_account_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `ck_ledger_account_scope` CHECK (`scope_type` IN ('MERCHANT', 'PROVIDER', 'PLATFORM'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='按归属和资产划分的虚拟账本科目';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='按归属和资产划分的虚拟账本科目';
 
 CREATE TABLE IF NOT EXISTS `journal` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -511,7 +511,7 @@ CREATE TABLE IF NOT EXISTS `journal` (
   KEY `idx_journal_business` (`business_type`, `business_id`),
   CONSTRAINT `fk_journal_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `fk_journal_reversed` FOREIGN KEY (`reversed_journal_id`, `asset_id`) REFERENCES `journal` (`id`, `asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='单资产记账凭证及冲正引用';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='单资产记账凭证及冲正引用';
 
 CREATE TABLE IF NOT EXISTS `journal_entry` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -528,7 +528,7 @@ CREATE TABLE IF NOT EXISTS `journal_entry` (
   CONSTRAINT `fk_journal_entry_journal` FOREIGN KEY (`journal_id`, `asset_id`) REFERENCES `journal` (`id`, `asset_id`),
   CONSTRAINT `fk_journal_entry_account` FOREIGN KEY (`ledger_account_id`, `asset_id`) REFERENCES `ledger_account` (`id`, `asset_id`),
   CONSTRAINT `ck_journal_entry_value` CHECK (`line_no` > 0 AND `amount` > 0 AND `direction` IN ('D', 'C'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='只追加的借贷分录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='只追加的借贷分录';
 
 CREATE TABLE IF NOT EXISTS `settlement_batch` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -554,7 +554,7 @@ CREATE TABLE IF NOT EXISTS `settlement_batch` (
   CONSTRAINT `fk_settlement_batch_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `ck_settlement_batch_window` CHECK (`window_start` < `window_end`),
   CONSTRAINT `ck_settlement_batch_charges` CHECK (`fee` >= 0 AND `reserve` >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户子账号按结算周期和资产生成的结算单';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户子账号按结算周期和资产生成的结算单';
 
 CREATE TABLE IF NOT EXISTS `settlement_item` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -575,7 +575,7 @@ CREATE TABLE IF NOT EXISTS `settlement_item` (
   CONSTRAINT `fk_settlement_item_batch` FOREIGN KEY (`settlement_batch_id`, `merchant_account_id`, `asset_id`) REFERENCES `settlement_batch` (`id`, `merchant_account_id`, `asset_id`),
   CONSTRAINT `fk_settlement_item_source` FOREIGN KEY (`source_journal_id`, `source_line_no`, `asset_id`) REFERENCES `journal_entry` (`journal_id`, `line_no`, `asset_id`),
   CONSTRAINT `fk_settlement_item_provider` FOREIGN KEY (`provider_account_id`) REFERENCES `provider_account` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='关联结算批次和原始分录行的结算明细';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='关联结算批次和原始分录行的结算明细';
 
 CREATE TABLE IF NOT EXISTS `payout_order` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -604,7 +604,7 @@ CREATE TABLE IF NOT EXISTS `payout_order` (
   CONSTRAINT `ck_payout_amounts` CHECK (`requested_amount` > 0 AND `fee` >= 0),
   CONSTRAINT `ck_payout_type` CHECK (`type` IN ('WITHDRAWAL', 'DISBURSEMENT')),
   CONSTRAINT `ck_payout_fee_mode` CHECK (`fee_mode` IN ('DEDUCT', 'ADD_ON'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户提现或获授权的代付申请';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户提现或获授权的代付申请';
 
 CREATE TABLE IF NOT EXISTS `payout_funding` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -623,7 +623,7 @@ CREATE TABLE IF NOT EXISTS `payout_funding` (
   CONSTRAINT `fk_payout_funding_order` FOREIGN KEY (`payout_id`, `merchant_account_id`, `asset_id`) REFERENCES `payout_order` (`id`, `merchant_account_id`, `asset_id`),
   CONSTRAINT `fk_payout_funding_item` FOREIGN KEY (`settlement_item_id`, `merchant_account_id`, `asset_id`, `provider_account_id`) REFERENCES `settlement_item` (`id`, `merchant_account_id`, `asset_id`, `provider_account_id`),
   CONSTRAINT `ck_payout_funding_positive` CHECK (`amount` > 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='将出款金额分配到实际商户结算明细和上游资金位置';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='将出款金额分配到实际商户结算明细和上游资金位置';
 
 CREATE TABLE IF NOT EXISTS `payout_attempt` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -644,7 +644,7 @@ CREATE TABLE IF NOT EXISTS `payout_attempt` (
   CONSTRAINT `fk_payout_attempt_order` FOREIGN KEY (`payout_id`) REFERENCES `payout_order` (`id`),
   CONSTRAINT `fk_payout_attempt_provider` FOREIGN KEY (`provider_account_id`) REFERENCES `provider_account` (`id`),
   CONSTRAINT `ck_payout_attempt_amount` CHECK (`amount` > 0 AND `actual_fee` >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='真实上游出款指令及结果';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='真实上游出款指令及结果';
 
 CREATE TABLE IF NOT EXISTS `transfer_order` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -663,7 +663,7 @@ CREATE TABLE IF NOT EXISTS `transfer_order` (
   CONSTRAINT `fk_transfer_to` FOREIGN KEY (`to_provider_account_id`) REFERENCES `provider_account` (`id`),
   CONSTRAINT `fk_transfer_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `ck_transfer_value` CHECK (`amount` > 0 AND `from_provider_account_id` <> `to_provider_account_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='上游主账号与子账号间划拨指令';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='上游主账号与子账号间划拨指令';
 
 -- 五、幂等、事件、调度任务、审批与对账
 
@@ -683,7 +683,7 @@ CREATE TABLE IF NOT EXISTS `api_idempotency` (
   UNIQUE KEY `uk_api_idempotency_scope` (`merchant_account_id`, `operation`, `idem_key`),
   KEY `idx_api_idem_expiry` (`expires_at`),
   CONSTRAINT `fk_api_idem_merchant` FOREIGN KEY (`merchant_account_id`) REFERENCES `merchant_account` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户 API 写请求幂等与重复提交校验';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户 API 写请求幂等与重复提交校验';
 
 CREATE TABLE IF NOT EXISTS `provider_event_inbox` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -699,7 +699,7 @@ CREATE TABLE IF NOT EXISTS `provider_event_inbox` (
   UNIQUE KEY `uk_inbox_dedup` (`provider_account_id`, `dedup_key`),
   KEY `idx_inbox_status` (`status`, `received_at`),
   CONSTRAINT `fk_inbox_provider_account` FOREIGN KEY (`provider_account_id`) REFERENCES `provider_account` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='已验签的上游回调接收记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='已验签的上游回调接收记录';
 
 CREATE TABLE IF NOT EXISTS `merchant_event_outbox` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -720,7 +720,7 @@ CREATE TABLE IF NOT EXISTS `merchant_event_outbox` (
   KEY `idx_outbox_next_attempt` (`status`, `next_attempt_at`, `id`),
   KEY `idx_outbox_account_event` (`merchant_account_id`, `event_id`),
   CONSTRAINT `fk_outbox_endpoint` FOREIGN KEY (`endpoint_id`, `merchant_account_id`) REFERENCES `merchant_webhook_endpoint` (`id`, `merchant_account_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='按收件地址投递的商户出站事件';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='按收件地址投递的商户出站事件';
 
 CREATE TABLE IF NOT EXISTS `async_job` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -738,7 +738,7 @@ CREATE TABLE IF NOT EXISTS `async_job` (
   UNIQUE KEY `uk_async_job_type_key` (`job_type`, `job_key`),
   KEY `idx_async_job_next` (`status`, `next_run_at`, `lease_until`),
   CONSTRAINT `ck_async_job_lease_pair` CHECK ((`lease_owner` IS NULL) = (`lease_until` IS NULL))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='可恢复的查单、账单、对账及结算任务';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='可恢复的查单、账单、对账及结算任务';
 
 CREATE TABLE IF NOT EXISTS `provider_statement_item` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -757,7 +757,7 @@ CREATE TABLE IF NOT EXISTS `provider_statement_item` (
   KEY `idx_statement_billing` (`provider_account_id`, `asset_id`, `bill_date`),
   CONSTRAINT `fk_statement_provider_account` FOREIGN KEY (`provider_account_id`) REFERENCES `provider_account` (`id`),
   CONSTRAINT `fk_statement_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='归档的上游真实账单流水';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='归档的上游真实账单流水';
 
 CREATE TABLE IF NOT EXISTS `recon_item` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -777,7 +777,7 @@ CREATE TABLE IF NOT EXISTS `recon_item` (
   CONSTRAINT `fk_recon_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `fk_recon_statement` FOREIGN KEY (`statement_item_id`, `provider_account_id`, `asset_id`) REFERENCES `provider_statement_item` (`id`, `provider_account_id`, `asset_id`),
   CONSTRAINT `fk_recon_journal` FOREIGN KEY (`journal_id`, `asset_id`) REFERENCES `journal` (`id`, `asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='账单与内部账本核对及差异处理';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='账单与内部账本核对及差异处理';
 
 CREATE TABLE IF NOT EXISTS `approval_case` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -795,7 +795,7 @@ CREATE TABLE IF NOT EXISTS `approval_case` (
   KEY `idx_approval_business` (`business_type`, `business_id`, `status`),
   KEY `idx_approval_merchant` (`merchant_account_id`, `status`),
   CONSTRAINT `fk_approval_merchant` FOREIGN KEY (`merchant_account_id`) REFERENCES `merchant_account` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='大额订单、提现和资金调整审批';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='大额订单、提现和资金调整审批';
 
 -- 六、现有 Bot 的调度配置
 
@@ -839,7 +839,7 @@ CREATE TABLE IF NOT EXISTS `openapi_operation` (
   UNIQUE KEY `uk_openapi_operation_route` (`api_version`, `http_method`, `path_template`),
   CONSTRAINT `ck_openapi_idempotency_required` CHECK (`idempotency_required` IN (0, 1)),
   CONSTRAINT `ck_openapi_operation_status` CHECK (`status` IN ('DRAFT', 'ACTIVE', 'DISABLED'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='下游 OpenAPI 接口目录和授权要求';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='下游 OpenAPI 接口目录和授权要求';
 
 CREATE TABLE IF NOT EXISTS `openapi_request_nonce` (
   `api_key_id` BIGINT UNSIGNED NOT NULL COMMENT '商户 API 凭据主键',
@@ -850,7 +850,7 @@ CREATE TABLE IF NOT EXISTS `openapi_request_nonce` (
   KEY `idx_openapi_nonce_expiry` (`expires_at`),
   CONSTRAINT `fk_openapi_nonce_key` FOREIGN KEY (`api_key_id`) REFERENCES `merchant_api_key` (`id`),
   CONSTRAINT `ck_openapi_nonce_expiry` CHECK (`expires_at` > `accepted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户 API 请求签名防重放';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户 API 请求签名防重放';
 
 CREATE TABLE IF NOT EXISTS `openapi_request_log` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -868,7 +868,7 @@ CREATE TABLE IF NOT EXISTS `openapi_request_log` (
   CONSTRAINT `fk_openapi_request_key` FOREIGN KEY (`api_key_id`) REFERENCES `merchant_api_key` (`id`),
   CONSTRAINT `fk_openapi_request_operation` FOREIGN KEY (`operation_id`) REFERENCES `openapi_operation` (`id`),
   CONSTRAINT `ck_openapi_request_http_status` CHECK (`http_status` BETWEEN 100 AND 599)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='脱敏的商户 API 请求审计';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='脱敏的商户 API 请求审计';
 
 CREATE TABLE IF NOT EXISTS `merchant_webhook_delivery_attempt` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -886,7 +886,7 @@ CREATE TABLE IF NOT EXISTS `merchant_webhook_delivery_attempt` (
   CONSTRAINT `ck_webhook_delivery_attempt_no` CHECK (`attempt_no` > 0),
   CONSTRAINT `ck_webhook_delivery_http_status` CHECK (`http_status` IS NULL OR `http_status` BETWEEN 100 AND 599),
   CONSTRAINT `ck_webhook_delivery_time` CHECK (`finished_at` IS NULL OR `finished_at` >= `attempted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户 Webhook 逐次投递记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户 Webhook 逐次投递记录';
 
 -- 八、基础字典数据
 

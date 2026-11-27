@@ -207,6 +207,20 @@ if ($currentEnv !== 'local' && isset($connections['mysql']) && isset($connection
             : ($dbPassword ?: '');
     }
 
+    if (isset($connections['db_mojopay'])) {
+        $connections['db_mojopay']['hostname'] = $dbHost ?: '';
+        $connections['db_mojopay']['hostport'] = $dbPort ?: '';
+        $connections['db_mojopay']['database'] = getenv('DB_DATABASE_MOJOPAY') ?: 'mojopay';
+        $dbMojopayUser = getenv('DB_USERNAME_MOJOPAY');
+        $dbMojopayPwd  = getenv('DB_PASSWORD_MOJOPAY');
+        $connections['db_mojopay']['username'] = ($dbMojopayUser !== false && $dbMojopayUser !== '')
+            ? $dbMojopayUser
+            : ($dbUsername ?: '');
+        $connections['db_mojopay']['password'] = ($dbMojopayPwd !== false && $dbMojopayPwd !== '')
+            ? $dbMojopayPwd
+            : ($dbPassword ?: '');
+    }
+
     if (isset($connections['db_arbopp'])) {
         $connections['db_arbopp']['hostname'] = "54.151.158.221";
         $connections['db_arbopp']['hostport'] = $dbPort ?: '';

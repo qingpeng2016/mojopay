@@ -113,6 +113,24 @@ db_arbopp:
   trigger_sql: true
 
 # SC 套利策略库（mojo-strategy-sc-arb）
+db_mojopay:
+  type: mysql
+  hostname: 172.16.39.253
+  database: mojopay
+  username: mm
+  password: '2kHjniEMBGh7rRWz'
+  hostport: 3306
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
 db_sc_arb:
   type: mysql
   hostname: 172.16.39.253

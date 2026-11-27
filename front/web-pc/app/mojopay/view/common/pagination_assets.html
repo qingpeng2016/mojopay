@@ -1,0 +1,48 @@
+<style>
+.layui-card-body .pagination,
+.think-box-shadow .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    padding: 0;
+    list-style: none;
+}
+.layui-card-body .pagination li,
+.think-box-shadow .pagination li {
+    display: inline-block;
+    margin: 0 2px;
+}
+.layui-card-body .pagination li a,
+.layui-card-body .pagination li span,
+.think-box-shadow .pagination li a,
+.think-box-shadow .pagination li span {
+    display: inline-block;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #666;
+    text-decoration: none;
+    border-radius: 2px;
+    min-width: 36px;
+    text-align: center;
+}
+.layui-card-body .pagination li.active span,
+.think-box-shadow .pagination li.active span {
+    background: #009688 !important;
+    color: #fff !important;
+    border-color: #009688 !important;
+}
+</style>
+<script>
+$(document).ready(function () {
+    $('.think-box-shadow .pagination li a').on('click', function (e) {
+        e.preventDefault();
+        var href = $(this).attr('href');
+        if (href && href !== '#') {
+            window.location.href = href;
+        }
+    });
+});
+</script>

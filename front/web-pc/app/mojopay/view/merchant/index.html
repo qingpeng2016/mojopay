@@ -1,0 +1,38 @@
+{extend name="../../admin/view/main"}
+{block name="button"}
+<a class="layui-btn layui-btn-sm" data-modal="{:url('add')}" data-title="新增商户"><i class="layui-icon">&#xe654;</i> 新增</a>
+{/block}
+{block name="content"}
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">ID</label><div class="layui-input-inline" style="width:90px;"><input name="id" value="{$get.id|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">编码</label><div class="layui-input-inline" style="width:120px;"><input name="code" value="{$get.code|default=''}" class="layui-input mono"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">法定名称</label><div class="layui-input-inline" style="width:160px;"><input name="legal_name" value="{$get.legal_name|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">国家</label><div class="layui-input-inline" style="width:70px;"><input name="country" value="{$get.country|default=''}" class="layui-input mono" maxlength="2" placeholder="US"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">状态</label><div class="layui-input-inline" style="width:110px;"><select name="status"><option value="">全部</option>{foreach $statuses as $sk=>$sv}<option value="{$sk}" {if isset($get.status) && $get.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr>
+<th>ID</th><th>Public ID</th><th>编码</th><th>法定名称</th><th>国家</th><th>类别</th><th>状态</th><th>创建</th><th>更新</th><th>操作</th>
+</tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.id}</td>
+<td class="mono">{$vo.public_id}</td>
+<td class="mono">{$vo.code}</td>
+<td>{$vo.legal_name}</td>
+<td class="mono">{$vo.country}</td>
+<td class="mono">{$vo.category}</td>
+<td><span class="layui-badge {if $vo.status==='ACTIVE'}layui-bg-green{elseif $vo.status==='REJECTED' || $vo.status==='SUSPENDED'}layui-bg-gray{else}{/if}">{$vo.status}</span> {$vo.status_text}</td>
+<td>{$vo.created_at}</td>
+<td>{$vo.updated_at}</td>
+<td>
+<a class="layui-btn layui-btn-xs layui-btn-primary" data-modal='{:url("edit")}?id={$vo.id}' data-title="修改商户">修改</a>
+<a class="layui-btn layui-btn-xs layui-btn-danger" data-confirm="确定删除该商户？若已有关联账号将失败。" data-action="{:url('remove')}" data-value="id#{$vo.id}">删除</a>
+</td>
+</tr>{/foreach}{if empty($list)}<tr><td colspan="10" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>
+{/block}
+{block name="script"}{include file="common/pagination_assets"}<script>layui.use('form',function(){layui.form.render('select');});</script>{/block}
