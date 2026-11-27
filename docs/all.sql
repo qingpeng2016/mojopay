@@ -1,7 +1,10 @@
 -- MojoPay 全量初始化 · MySQL 8.0.16+
--- 产品范围见 docs/mojopay-product-features.md。
--- 执行前选中目标数据库。例如 mysql --default-character-set=utf8mb4 -u USER -p DB < docs/all.sql
--- 本文件用于初始化空库，可重复运行。已有表结构升级请使用独立迁移。
+-- 产品范围见 docs/mojopay-product-features.md（V1）。
+-- V1 保留 32 张业务表；未纳入本 DDL 的能力用运营/人工或后续迁移补充：
+--   拒付(dispute)、结算明细行(settlement_item)、出款资金来源分摊(payout_funding)、
+--   上游划转(transfer_order)、自动对账(statement/recon)、审批工单(approval_case)、
+--   旧 Bot 调度(bot_schedule_config)、可配置 OpenAPI 目录(openapi_operation)。
+-- 执行前选中目标库：mysql --default-character-set=utf8mb4 -u USER -p DB < docs/all.sql
 -- 金额 DECIMAL(36,0) 按资产最小单位存储，DATETIME(6) 按 UTC 写入。
 -- 多行资金平衡、累计退款、结算分配、绑定有效期重叠及状态迁移由应用在事务内校验。
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -457,27 +460,6 @@ CREATE TABLE IF NOT EXISTS `refund_order` (
   CONSTRAINT `ck_refund_positive` CHECK (`amount` > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='原到账下的部分或全额退款';
 
-CREATE TABLE IF NOT EXISTS `dispute_case` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `public_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '对外资源编号',
-  `payment_receipt_id` BIGINT UNSIGNED NOT NULL COMMENT '原支付到账记录主键',
-  `merchant_account_id` BIGINT UNSIGNED NOT NULL COMMENT '商户账号主键',
-  `provider_account_id` BIGINT UNSIGNED NOT NULL COMMENT '上游账号主键',
-  `asset_id` BIGINT UNSIGNED NOT NULL COMMENT '资产主键',
-  `external_dispute_id` VARCHAR(128) COLLATE utf8mb4_bin NOT NULL COMMENT '上游争议单号',
-  `amount` DECIMAL(36,0) NOT NULL COMMENT '争议涉及金额',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'OPEN' COMMENT '争议处理状态',
-  `evidence_ref` VARCHAR(255) NULL COMMENT '证明材料存储引用',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_dispute_case_public` (`public_id`),
-  UNIQUE KEY `uk_dispute_provider` (`provider_account_id`, `external_dispute_id`),
-  CONSTRAINT `fk_dispute_receipt` FOREIGN KEY (`payment_receipt_id`, `merchant_account_id`, `provider_account_id`) REFERENCES `payment_receipt` (`id`, `merchant_account_id`, `provider_account_id`),
-  CONSTRAINT `fk_dispute_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
-  CONSTRAINT `ck_dispute_positive` CHECK (`amount` > 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='渠道争议与拒付事实';
-
 -- 四、复式账本、结算与出款
 
 CREATE TABLE IF NOT EXISTS `ledger_account` (
@@ -556,27 +538,6 @@ CREATE TABLE IF NOT EXISTS `settlement_batch` (
   CONSTRAINT `ck_settlement_batch_charges` CHECK (`fee` >= 0 AND `reserve` >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户子账号按结算周期和资产生成的结算单';
 
-CREATE TABLE IF NOT EXISTS `settlement_item` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `settlement_batch_id` BIGINT UNSIGNED NOT NULL COMMENT '结算批次主键',
-  `merchant_account_id` BIGINT UNSIGNED NOT NULL COMMENT '商户账号主键',
-  `asset_id` BIGINT UNSIGNED NOT NULL COMMENT '资产主键',
-  `source_journal_id` BIGINT UNSIGNED NOT NULL COMMENT '结算来源凭证主键',
-  `source_line_no` SMALLINT UNSIGNED NOT NULL COMMENT '结算来源分录行号',
-  `provider_account_id` BIGINT UNSIGNED NOT NULL COMMENT '上游账号主键',
-  `net` DECIMAL(36,0) NOT NULL COMMENT '净结算金额',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'PENDING' COMMENT '结算明细状态',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_settlement_item_source` (`source_journal_id`, `source_line_no`),
-  UNIQUE KEY `uk_settlement_item_scope` (`id`, `merchant_account_id`, `asset_id`, `provider_account_id`),
-  KEY `idx_settlement_item_batch` (`settlement_batch_id`, `status`),
-  CONSTRAINT `fk_settlement_item_batch` FOREIGN KEY (`settlement_batch_id`, `merchant_account_id`, `asset_id`) REFERENCES `settlement_batch` (`id`, `merchant_account_id`, `asset_id`),
-  CONSTRAINT `fk_settlement_item_source` FOREIGN KEY (`source_journal_id`, `source_line_no`, `asset_id`) REFERENCES `journal_entry` (`journal_id`, `line_no`, `asset_id`),
-  CONSTRAINT `fk_settlement_item_provider` FOREIGN KEY (`provider_account_id`) REFERENCES `provider_account` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='关联结算批次和原始分录行的结算明细';
-
 CREATE TABLE IF NOT EXISTS `payout_order` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
   `public_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '对外资源编号',
@@ -602,28 +563,9 @@ CREATE TABLE IF NOT EXISTS `payout_order` (
   CONSTRAINT `fk_payout_network` FOREIGN KEY (`network_id`, `asset_id`) REFERENCES `asset_network` (`id`, `asset_id`),
   CONSTRAINT `fk_payout_freeze` FOREIGN KEY (`freeze_journal_id`, `asset_id`) REFERENCES `journal` (`id`, `asset_id`),
   CONSTRAINT `ck_payout_amounts` CHECK (`requested_amount` > 0 AND `fee` >= 0),
-  CONSTRAINT `ck_payout_type` CHECK (`type` IN ('WITHDRAWAL', 'DISBURSEMENT')),
+  CONSTRAINT `ck_payout_type` CHECK (`type` IN ('WITHDRAWAL')),
   CONSTRAINT `ck_payout_fee_mode` CHECK (`fee_mode` IN ('DEDUCT', 'ADD_ON'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户提现或获授权的代付申请';
-
-CREATE TABLE IF NOT EXISTS `payout_funding` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `payout_id` BIGINT UNSIGNED NOT NULL COMMENT '出款申请主键',
-  `settlement_item_id` BIGINT UNSIGNED NOT NULL COMMENT '结算明细主键',
-  `merchant_account_id` BIGINT UNSIGNED NOT NULL COMMENT '商户账号主键',
-  `asset_id` BIGINT UNSIGNED NOT NULL COMMENT '资产主键',
-  `provider_account_id` BIGINT UNSIGNED NOT NULL COMMENT '上游账号主键',
-  `amount` DECIMAL(36,0) NOT NULL COMMENT '已预留的资金来源金额',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'RESERVED' COMMENT '出款资金预留状态',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_payout_funding_source` (`payout_id`, `settlement_item_id`),
-  KEY `idx_payout_funding_item` (`settlement_item_id`, `status`),
-  CONSTRAINT `fk_payout_funding_order` FOREIGN KEY (`payout_id`, `merchant_account_id`, `asset_id`) REFERENCES `payout_order` (`id`, `merchant_account_id`, `asset_id`),
-  CONSTRAINT `fk_payout_funding_item` FOREIGN KEY (`settlement_item_id`, `merchant_account_id`, `asset_id`, `provider_account_id`) REFERENCES `settlement_item` (`id`, `merchant_account_id`, `asset_id`, `provider_account_id`),
-  CONSTRAINT `ck_payout_funding_positive` CHECK (`amount` > 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='将出款金额分配到实际商户结算明细和上游资金位置';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户提现申请';
 
 CREATE TABLE IF NOT EXISTS `payout_attempt` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -646,26 +588,7 @@ CREATE TABLE IF NOT EXISTS `payout_attempt` (
   CONSTRAINT `ck_payout_attempt_amount` CHECK (`amount` > 0 AND `actual_fee` >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='真实上游出款指令及结果';
 
-CREATE TABLE IF NOT EXISTS `transfer_order` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `from_provider_account_id` BIGINT UNSIGNED NOT NULL COMMENT '转出上游账号主键',
-  `to_provider_account_id` BIGINT UNSIGNED NOT NULL COMMENT '转入上游账号主键',
-  `asset_id` BIGINT UNSIGNED NOT NULL COMMENT '资产主键',
-  `provider_request_no` VARCHAR(128) COLLATE utf8mb4_bin NOT NULL COMMENT '提交上游的幂等请求号',
-  `provider_transfer_id` VARCHAR(128) COLLATE utf8mb4_bin NULL COMMENT '上游划转单号',
-  `amount` DECIMAL(36,0) NOT NULL COMMENT '申请划转金额',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'CREATED' COMMENT '划转处理状态',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_transfer_request` (`from_provider_account_id`, `provider_request_no`),
-  CONSTRAINT `fk_transfer_from` FOREIGN KEY (`from_provider_account_id`) REFERENCES `provider_account` (`id`),
-  CONSTRAINT `fk_transfer_to` FOREIGN KEY (`to_provider_account_id`) REFERENCES `provider_account` (`id`),
-  CONSTRAINT `fk_transfer_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
-  CONSTRAINT `ck_transfer_value` CHECK (`amount` > 0 AND `from_provider_account_id` <> `to_provider_account_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='上游主账号与子账号间划拨指令';
-
--- 五、幂等、事件、调度任务、审批与对账
+-- 五、幂等、事件与后台任务
 
 CREATE TABLE IF NOT EXISTS `api_idempotency` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -740,106 +663,7 @@ CREATE TABLE IF NOT EXISTS `async_job` (
   CONSTRAINT `ck_async_job_lease_pair` CHECK ((`lease_owner` IS NULL) = (`lease_until` IS NULL))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='可恢复的查单、账单、对账及结算任务';
 
-CREATE TABLE IF NOT EXISTS `provider_statement_item` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `provider_account_id` BIGINT UNSIGNED NOT NULL COMMENT '上游账号主键',
-  `asset_id` BIGINT UNSIGNED NOT NULL COMMENT '资产主键',
-  `bill_date` DATE NOT NULL COMMENT '渠道账单日期',
-  `external_entry_key` VARCHAR(180) COLLATE utf8mb4_bin NOT NULL COMMENT '上游账单流水标识',
-  `net_amount` DECIMAL(36,0) NOT NULL COMMENT '上游流水净额',
-  `booked_at` DATETIME(6) NOT NULL COMMENT '渠道入账时间',
-  `evidence_ref` VARCHAR(255) NULL COMMENT '上游账单原文存储引用',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_statement_external` (`provider_account_id`, `external_entry_key`),
-  UNIQUE KEY `uk_statement_scope` (`id`, `provider_account_id`, `asset_id`),
-  KEY `idx_statement_billing` (`provider_account_id`, `asset_id`, `bill_date`),
-  CONSTRAINT `fk_statement_provider_account` FOREIGN KEY (`provider_account_id`) REFERENCES `provider_account` (`id`),
-  CONSTRAINT `fk_statement_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='归档的上游真实账单流水';
-
-CREATE TABLE IF NOT EXISTS `recon_item` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `provider_account_id` BIGINT UNSIGNED NOT NULL COMMENT '上游账号主键',
-  `statement_item_id` BIGINT UNSIGNED NULL COMMENT '上游账单流水主键',
-  `journal_id` BIGINT UNSIGNED NULL COMMENT '记账凭证主键',
-  `asset_id` BIGINT UNSIGNED NOT NULL COMMENT '资产主键',
-  `bill_date` DATE NOT NULL COMMENT '渠道账单日期',
-  `difference` DECIMAL(36,0) NOT NULL DEFAULT 0 COMMENT '对账差额',
-  `reason` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '对账差异原因编码',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'OPEN' COMMENT '对账差异处理状态',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_recon_worklist` (`provider_account_id`, `bill_date`, `status`),
-  CONSTRAINT `fk_recon_provider` FOREIGN KEY (`provider_account_id`) REFERENCES `provider_account` (`id`),
-  CONSTRAINT `fk_recon_asset` FOREIGN KEY (`asset_id`) REFERENCES `asset` (`id`),
-  CONSTRAINT `fk_recon_statement` FOREIGN KEY (`statement_item_id`, `provider_account_id`, `asset_id`) REFERENCES `provider_statement_item` (`id`, `provider_account_id`, `asset_id`),
-  CONSTRAINT `fk_recon_journal` FOREIGN KEY (`journal_id`, `asset_id`) REFERENCES `journal` (`id`, `asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='账单与内部账本核对及差异处理';
-
-CREATE TABLE IF NOT EXISTS `approval_case` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `public_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '对外资源编号',
-  `merchant_account_id` BIGINT UNSIGNED NULL COMMENT '商户账号主键',
-  `business_id` BIGINT UNSIGNED NOT NULL COMMENT '业务记录主键',
-  `business_type` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '关联业务类型',
-  `initiator_id` BIGINT UNSIGNED NOT NULL COMMENT '审批发起人主键',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'PENDING' COMMENT '人工审批状态',
-  `decision_log` JSON NULL COMMENT '审批记录',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_approval_case_public` (`public_id`),
-  KEY `idx_approval_business` (`business_type`, `business_id`, `status`),
-  KEY `idx_approval_merchant` (`merchant_account_id`, `status`),
-  CONSTRAINT `fk_approval_merchant` FOREIGN KEY (`merchant_account_id`) REFERENCES `merchant_account` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='大额订单、提现和资金调整审批';
-
--- 六、现有 Bot 的调度配置
-
-CREATE TABLE IF NOT EXISTS `bot_schedule_config` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '任务 ID',
-  `module` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模块名',
-  `task_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务名',
-  `interval_seconds` float NOT NULL DEFAULT '60' COMMENT '执行间隔（秒）',
-  `exe_sort` int DEFAULT NULL COMMENT '同模块内执行顺序',
-  `concurrency` int DEFAULT NULL COMMENT '并发度',
-  `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '说明',
-  `is_enabled` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
-  `is_strategy_enabled` tinyint(1) DEFAULT '1' COMMENT '策略是否启用',
-  `last_live_time` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '上次存活时间',
-  `last_live_time_by_machine` json DEFAULT NULL COMMENT '各机器上次存活',
-  `is_primary_machine_run` int NOT NULL DEFAULT '0' COMMENT '是否主机器执行',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_module_task` (`module`,`task_name`),
-  KEY `idx_module` (`module`),
-  KEY `idx_bot_schedule_module_enabled` (`module`,`is_enabled`)
-) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bot 脚本调度';
-
--- 七、下游商户 OpenAPI
-
-CREATE TABLE IF NOT EXISTS `openapi_operation` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `api_version` VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '对外 API 版本',
-  `operation_code` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '接口操作编号',
-  `http_method` VARCHAR(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'HTTP 请求方法',
-  `path_template` VARCHAR(192) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '对外接口路径模板',
-  `required_scope` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '调用所需的权限范围',
-  `idempotency_required` TINYINT UNSIGNED NOT NULL COMMENT '是否要求写请求幂等键',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'DRAFT' COMMENT '接口开通状态',
-  `description` VARCHAR(200) NOT NULL COMMENT '接口用途',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_openapi_operation_code` (`api_version`, `operation_code`),
-  UNIQUE KEY `uk_openapi_operation_route` (`api_version`, `http_method`, `path_template`),
-  CONSTRAINT `ck_openapi_idempotency_required` CHECK (`idempotency_required` IN (0, 1)),
-  CONSTRAINT `ck_openapi_operation_status` CHECK (`status` IN ('DRAFT', 'ACTIVE', 'DISABLED'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='下游 OpenAPI 接口目录和授权要求';
+-- 六、下游商户 OpenAPI（路由与 scope 以代码/OpenAPI 规范为准，V1 不做可配置目录表）
 
 CREATE TABLE IF NOT EXISTS `openapi_request_nonce` (
   `api_key_id` BIGINT UNSIGNED NOT NULL COMMENT '商户 API 凭据主键',
@@ -856,7 +680,7 @@ CREATE TABLE IF NOT EXISTS `openapi_request_log` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
   `request_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '平台请求追踪编号',
   `api_key_id` BIGINT UNSIGNED NULL COMMENT '已验签的商户 API 凭据主键',
-  `operation_id` BIGINT UNSIGNED NULL COMMENT '匹配的接口目录主键',
+  `operation_code` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT '接口操作编号（与 OpenAPI 规范一致）',
   `http_status` SMALLINT UNSIGNED NOT NULL COMMENT '返回给商户的 HTTP 状态码',
   `error_code` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT '返回给商户的业务错误码',
   `duration_ms` INT UNSIGNED NOT NULL COMMENT '请求处理耗时（毫秒）',
@@ -864,9 +688,9 @@ CREATE TABLE IF NOT EXISTS `openapi_request_log` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_openapi_request_id` (`request_id`),
   KEY `idx_openapi_request_key_time` (`api_key_id`, `received_at`),
+  KEY `idx_openapi_request_operation_time` (`operation_code`, `received_at`),
   KEY `idx_openapi_request_received` (`received_at`),
   CONSTRAINT `fk_openapi_request_key` FOREIGN KEY (`api_key_id`) REFERENCES `merchant_api_key` (`id`),
-  CONSTRAINT `fk_openapi_request_operation` FOREIGN KEY (`operation_id`) REFERENCES `openapi_operation` (`id`),
   CONSTRAINT `ck_openapi_request_http_status` CHECK (`http_status` BETWEEN 100 AND 599)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='脱敏的商户 API 请求审计';
 
@@ -888,7 +712,7 @@ CREATE TABLE IF NOT EXISTS `merchant_webhook_delivery_attempt` (
   CONSTRAINT `ck_webhook_delivery_time` CHECK (`finished_at` IS NULL OR `finished_at` >= `attempted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户 Webhook 逐次投递记录';
 
--- 八、基础字典数据
+-- 七、基础字典数据
 
 INSERT INTO `asset` (`code`, `kind`, `decimals`) VALUES
   ('BTC', 'CRYPTO', 8),
@@ -904,31 +728,3 @@ ON DUPLICATE KEY UPDATE `id` = `asset_network`.`id`;
 INSERT INTO `provider` (`code`, `name`, `status`)
 VALUES ('GATE_PAY', 'Gate Pay', 'INACTIVE')
 ON DUPLICATE KEY UPDATE `id` = `provider`.`id`;
-
--- 现有占位脚本默认停用，已存在的调度配置保持原状态。
-INSERT INTO `bot_schedule_config`
-  (`module`, `task_name`, `interval_seconds`, `description`, `is_enabled`, `is_strategy_enabled`)
-VALUES
-  ('ai_agent_paper', 'vip_level_sync', 60, '现有 VIP 同步脚本', 0, 1)
-ON DUPLICATE KEY UPDATE `id` = `bot_schedule_config`.`id`;
-
--- 对外接口目录用于开发与验收，通过后按环境开通。
-INSERT INTO `openapi_operation`
-  (`api_version`, `operation_code`, `http_method`, `path_template`, `required_scope`, `idempotency_required`, `description`)
-VALUES
-  ('v1', 'merchant.onboard', 'POST', '/openapi/v1/merchants/onboardings', 'merchants:write', 1, '授权合作方提交下游商户进件'),
-  ('v1', 'merchant.account.create', 'POST', '/openapi/v1/merchants/{merchant_id}/accounts', 'accounts:write', 1, '创建获授权商户的子账号'),
-  ('v1', 'kyc.session.create', 'POST', '/openapi/v1/users/kyc-sessions', 'kyc:write', 1, '为商户最终用户发起实名核验'),
-  ('v1', 'kyc.session.get', 'GET', '/openapi/v1/users/kyc-sessions/{id}', 'kyc:read', 0, '查询实名核验状态'),
-  ('v1', 'payment_method.list', 'GET', '/openapi/v1/payment-methods', 'payments:read', 0, '查本账号可用支付方式'),
-  ('v1', 'quote.create', 'POST', '/openapi/v1/quotes', 'quotes:write', 1, '获取应付款、结算资产和到期时间'),
-  ('v1', 'payment.create', 'POST', '/openapi/v1/payment-orders', 'payments:write', 1, '建单并返回托管收银台链接'),
-  ('v1', 'payment.get', 'GET', '/openapi/v1/payment-orders/{id}', 'payments:read', 0, '查询订单、付款及结算状态'),
-  ('v1', 'refund.create', 'POST', '/openapi/v1/payment-orders/{id}/refunds', 'refunds:write', 1, '发起原单退款'),
-  ('v1', 'refund.get', 'GET', '/openapi/v1/refunds/{id}', 'refunds:read', 0, '查询退款执行状态'),
-  ('v1', 'balance.list', 'GET', '/openapi/v1/balances', 'balances:read', 0, '查询可用、冻结和在途余额'),
-  ('v1', 'settlement.list', 'GET', '/openapi/v1/settlements', 'settlements:read', 0, '查询结算单'),
-  ('v1', 'statement.list', 'GET', '/openapi/v1/statements', 'statements:read', 0, '查询商户对账单'),
-  ('v1', 'payout.withdraw', 'POST', '/openapi/v1/payouts', 'payouts:write', 1, '申请向审核通过的商户受益账户提现'),
-  ('v1', 'payout.get', 'GET', '/openapi/v1/payouts/{id}', 'payouts:read', 0, '查询出款执行状态')
-ON DUPLICATE KEY UPDATE `id` = `openapi_operation`.`id`;
