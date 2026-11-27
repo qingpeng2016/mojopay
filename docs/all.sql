@@ -155,6 +155,10 @@ CREATE TABLE IF NOT EXISTS `merchant_api_key` (
   `key_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'API 密钥编号',
   `secret_ref` VARCHAR(255) NOT NULL COMMENT 'API 密钥存储引用',
   `scopes` JSON NOT NULL COMMENT '凭据授权范围',
+  `environment` VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '凭据环境（沙盒或生产）',
+  `signature_version` VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'v1' COMMENT '请求签名协议版本',
+  `ip_allowlist` JSON NULL COMMENT '允许访问的来源地址段，空值为未配置',
+  `requests_per_minute` INT UNSIGNED NOT NULL COMMENT '每分钟请求配额',
   `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'INACTIVE' COMMENT 'API 凭据启用状态',
   `expires_at` DATETIME(6) NULL COMMENT 'API 凭据到期时间',
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
@@ -162,8 +166,11 @@ CREATE TABLE IF NOT EXISTS `merchant_api_key` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_merchant_api_key` (`key_id`),
   KEY `idx_api_key_account` (`merchant_account_id`, `status`),
-  CONSTRAINT `fk_merchant_api_key_account` FOREIGN KEY (`merchant_account_id`) REFERENCES `merchant_account` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户 API 凭证和授权范围';
+  CONSTRAINT `fk_merchant_api_key_account` FOREIGN KEY (`merchant_account_id`) REFERENCES `merchant_account` (`id`),
+  CONSTRAINT `ck_merchant_api_key_env` CHECK (`environment` IN ('SANDBOX', 'PRODUCTION')),
+  CONSTRAINT `ck_merchant_api_key_rpm` CHECK (`requests_per_minute` > 0),
+  CONSTRAINT `ck_merchant_api_key_allowlist` CHECK (`ip_allowlist` IS NULL OR (JSON_TYPE(`ip_allowlist`) = 'ARRAY' AND JSON_LENGTH(`ip_allowlist`) > 0))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户 API 凭据、授权与访问策略';
 
 CREATE TABLE IF NOT EXISTS `merchant_webhook_endpoint` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -303,10 +310,16 @@ CREATE TABLE IF NOT EXISTS `payment_order` (
   `origin` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'API' COMMENT '建单方式（接口或人工）',
   `metadata` JSON NULL COMMENT '订单扩展信息',
   `expires_at` DATETIME(6) NOT NULL COMMENT '支付订单到期时间',
+  `checkout_token_hash` BINARY(32) NULL COMMENT '当前收银台令牌摘要',
+  `checkout_brand_snapshot` JSON NULL COMMENT '生成支付链接时的品牌配置',
+  `checkout_issued_at` DATETIME(6) NULL COMMENT '当前支付链接生成时间',
+  `checkout_expires_at` DATETIME(6) NULL COMMENT '当前支付链接到期时间',
+  `checkout_revoked_at` DATETIME(6) NULL COMMENT '当前支付链接吊销时间',
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_payment_order_public` (`public_id`),
+  UNIQUE KEY `uk_payment_checkout_token` (`checkout_token_hash`),
   UNIQUE KEY `uk_payment_merchant_order` (`merchant_account_id`, `merchant_order_no`),
   UNIQUE KEY `uk_payment_owner` (`id`, `merchant_account_id`),
   KEY `idx_payment_list` (`merchant_account_id`, `status`, `created_at`),
@@ -318,25 +331,17 @@ CREATE TABLE IF NOT EXISTS `payment_order` (
   CONSTRAINT `fk_payment_pay_asset` FOREIGN KEY (`requested_payment_asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `fk_payment_settlement_asset` FOREIGN KEY (`settlement_asset_id`) REFERENCES `asset` (`id`),
   CONSTRAINT `ck_payment_positive` CHECK (`order_amount` > 0),
-  CONSTRAINT `ck_payment_origin` CHECK (`origin` IN ('API', 'MANUAL'))
+  CONSTRAINT `ck_payment_origin` CHECK (`origin` IN ('API', 'MANUAL')),
+  CONSTRAINT `ck_payment_checkout_link` CHECK (
+    (`checkout_token_hash` IS NULL AND `checkout_brand_snapshot` IS NULL
+      AND `checkout_issued_at` IS NULL AND `checkout_expires_at` IS NULL AND `checkout_revoked_at` IS NULL)
+    OR
+    (`checkout_token_hash` IS NOT NULL AND `checkout_brand_snapshot` IS NOT NULL
+      AND `checkout_issued_at` IS NOT NULL AND `checkout_expires_at` IS NOT NULL
+      AND `checkout_issued_at` < `checkout_expires_at` AND `checkout_expires_at` <= `expires_at`
+      AND (`checkout_revoked_at` IS NULL OR `checkout_revoked_at` >= `checkout_issued_at`))
+  )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户支付订单及固定结算资产';
-
-CREATE TABLE IF NOT EXISTS `checkout_session` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `public_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '对外资源编号',
-  `payment_order_id` BIGINT UNSIGNED NOT NULL COMMENT '支付订单主键',
-  `token_hash` BINARY(32) NOT NULL COMMENT '收银台访问令牌摘要',
-  `brand_snapshot` JSON NOT NULL COMMENT '创建会话时的品牌配置',
-  `expires_at` DATETIME(6) NOT NULL COMMENT '收银台会话到期时间',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'ACTIVE' COMMENT '收银台会话状态',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_checkout_session_public` (`public_id`),
-  UNIQUE KEY `uk_checkout_token` (`token_hash`),
-  KEY `idx_checkout_payment` (`payment_order_id`, `status`, `expires_at`),
-  CONSTRAINT `fk_checkout_payment` FOREIGN KEY (`payment_order_id`) REFERENCES `payment_order` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='短期品牌收银台访问会话';
 
 CREATE TABLE IF NOT EXISTS `payment_attempt` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -836,21 +841,6 @@ CREATE TABLE IF NOT EXISTS `openapi_operation` (
   CONSTRAINT `ck_openapi_operation_status` CHECK (`status` IN ('DRAFT', 'ACTIVE', 'DISABLED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='下游 OpenAPI 接口目录和授权要求';
 
-CREATE TABLE IF NOT EXISTS `openapi_key_policy` (
-  `api_key_id` BIGINT UNSIGNED NOT NULL COMMENT '商户 API 凭据主键',
-  `environment` VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '凭据环境（沙盒或生产）',
-  `signature_version` VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'v1' COMMENT '请求签名协议版本',
-  `ip_allowlist` JSON NULL COMMENT '允许访问的来源地址段，空值为未配置',
-  `requests_per_minute` INT UNSIGNED NOT NULL COMMENT '每分钟请求配额',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`api_key_id`),
-  CONSTRAINT `fk_openapi_policy_api_key` FOREIGN KEY (`api_key_id`) REFERENCES `merchant_api_key` (`id`),
-  CONSTRAINT `ck_openapi_policy_env` CHECK (`environment` IN ('SANDBOX', 'PRODUCTION')),
-  CONSTRAINT `ck_openapi_policy_rpm` CHECK (`requests_per_minute` > 0),
-  CONSTRAINT `ck_openapi_policy_allowlist` CHECK (`ip_allowlist` IS NULL OR (JSON_TYPE(`ip_allowlist`) = 'ARRAY' AND JSON_LENGTH(`ip_allowlist`) > 0))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='凭据环境、签名和访问策略';
-
 CREATE TABLE IF NOT EXISTS `openapi_request_nonce` (
   `api_key_id` BIGINT UNSIGNED NOT NULL COMMENT '商户 API 凭据主键',
   `nonce_hash` BINARY(32) NOT NULL COMMENT '已核验随机数的摘要',
@@ -858,7 +848,7 @@ CREATE TABLE IF NOT EXISTS `openapi_request_nonce` (
   `expires_at` DATETIME(6) NOT NULL COMMENT '防重放记录到期时间',
   PRIMARY KEY (`api_key_id`, `nonce_hash`),
   KEY `idx_openapi_nonce_expiry` (`expires_at`),
-  CONSTRAINT `fk_openapi_nonce_policy` FOREIGN KEY (`api_key_id`) REFERENCES `openapi_key_policy` (`api_key_id`),
+  CONSTRAINT `fk_openapi_nonce_key` FOREIGN KEY (`api_key_id`) REFERENCES `merchant_api_key` (`id`),
   CONSTRAINT `ck_openapi_nonce_expiry` CHECK (`expires_at` > `accepted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商户 API 请求签名防重放';
 

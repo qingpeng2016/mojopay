@@ -2,7 +2,7 @@
 
 设计草案 · MySQL 8.0 · 现有 Go 工程
 
-[产品功能](mojopay-product-features.md) 定义商户侧能力。[Gate Pay 接入资料](gate.pay) 用于规划首个渠道适配器。本文件给出目标结构和数据契约，表结构是建库设计，供后续迁移评审。
+[产品功能](mojopay-product-features.md) 定义商户侧能力。[Gate Pay 接入资料](gate.pay) 用于规划首个渠道适配器。本文件给出目标结构和数据契约，表结构是建库设计，供后续迁移评审。 全量初始化为 41 张表，API 访问策略随凭据保存，每笔支付订单保存一个当前收银台链接。
 
 ## 1. 应用架构
 
@@ -72,6 +72,8 @@ sequenceDiagram
 3. 加密收款以确认数、币种/网络、金额、归属和风控结果判定。法币支付以渠道的支付与清算状态为准。付款确认、商户资金可用、以及出款确认分别记录。
 4. Gate 回调按其签名协议验证，保存成功后返回渠道要求的确认，重复或漏发由 Inbox 和主动查询恢复。 [Gate Pay 公共 API 与异步通知](https://www.gate.com/docs/gatepay/common/en/)
 
+**收银台链接生命周期。** 每笔订单只有一个当前有效链接，品牌快照、到期时间和令牌摘要保存在订单上。发放、吊销及重发锁定订单行，重发时生成新令牌并替换摘要，旧链接随即失效。令牌有效期不得晚于订单到期。商户在有效期内使用同一幂等键重试时，可从受控的幂等响应存储取回原建单响应。后台可用操作审计保留每次链接发放、吊销及重发的记录。付款尝试、上游支付指令和到账记录仍独立保存。
+
 ### 2.2 结算、跨资产兑换和提现
 
 ```mermaid
@@ -109,8 +111,7 @@ erDiagram
     MERCHANT_ACCOUNT ||--o{ CHANNEL_BINDING : authorizes
     CHANNEL_CAPABILITY ||--o{ CHANNEL_BINDING : uses
     MERCHANT_ACCOUNT ||--o{ MERCHANT_API_KEY : authorizes
-    MERCHANT_API_KEY ||--o| OPENAPI_KEY_POLICY : configures
-    OPENAPI_KEY_POLICY ||--o{ OPENAPI_REQUEST_NONCE : protects
+    MERCHANT_API_KEY ||--o{ OPENAPI_REQUEST_NONCE : protects
     MERCHANT_API_KEY o|--o{ OPENAPI_REQUEST_LOG : authenticates
     OPENAPI_OPERATION o|--o{ OPENAPI_REQUEST_LOG : records
     MERCHANT_ACCOUNT ||--o{ MERCHANT_WEBHOOK_ENDPOINT : subscribes
@@ -150,7 +151,7 @@ erDiagram
 | `merchant` | `id`，`code VARCHAR(48)`，`legal_name VARCHAR(255)`，`country CHAR(2)`，`category VARCHAR(32)`，`status VARCHAR(24)` | UK `code`，索引 `(country, status)` |
 | `merchant_account` | `id, merchant_id, parent_id?`，`code VARCHAR(64)`，`status VARCHAR(24)`，`brand_config JSON` | UK `(merchant_id, code)`，FK 至商户和父账号；子账号只能选用获授权能力 |
 | `merchant_user` | `id, merchant_id`，`external_user_id VARCHAR(128)`，`status VARCHAR(24)`，`profile_ref VARCHAR(255)` | UK `(merchant_id, external_user_id)` |
-| `merchant_api_key` | `id, merchant_account_id`，`key_id VARCHAR(64)`，`secret_ref VARCHAR(255)`，`scopes JSON`，`status VARCHAR(24)`，`expires_at? DATETIME(6)` | UK `key_id`，索引 `(merchant_account_id, status)` |
+| `merchant_api_key` | `id, merchant_account_id`，`key_id VARCHAR(64)`，`secret_ref VARCHAR(255)`，`environment VARCHAR(12)`，`signature_version VARCHAR(12)`，`scopes JSON`，`ip_allowlist? JSON`，`requests_per_minute INT UNSIGNED`，`status VARCHAR(24)`，`expires_at? DATETIME(6)` | UK `key_id`，索引 `(merchant_account_id, status)`；凭据与访问策略同一行保存 |
 | `merchant_webhook_endpoint` | `id, merchant_account_id`，`endpoint_url VARCHAR(512)`，`secret_ref VARCHAR(255)`，`event_types JSON`，`status VARCHAR(24)` | 索引 `(merchant_account_id, status)`；接收地址验证和出网控制 |
 | `channel_binding` | `id, merchant_account_id, capability_id`，`version INT UNSIGNED`，`priority INT`，`weight INT UNSIGNED`，`terms JSON`，`effective_from/effective_to? DATETIME(6)`，`status VARCHAR(24)` | UK `(merchant_account_id, capability_id, version)`，索引 `(merchant_account_id, status, priority)`；防止同一绑定分组的版本生效期冲突 |
 | `compliance_case` | `id, merchant_id, merchant_user_id?, capability_id?`，`subject_type VARCHAR(16)`，`purpose VARCHAR(24)`，`country CHAR(2)`，`status VARCHAR(24)`，`evidence_ref VARCHAR(255)`，`expires_at? DATETIME(6)` | 索引 `(merchant_id, subject_type, status, expires_at)`；按主体、地区和产品校验审核有效性，材料独立存储 |
@@ -160,8 +161,7 @@ erDiagram
 
 | 表 | 核心字段 | 约束及索引 |
 | --- | --- | --- |
-| `payment_order` | `id, merchant_account_id, merchant_user_id?, order_asset_id, requested_payment_asset_id?, settlement_asset_id, quote_id?`，`merchant_order_no VARCHAR(128)`，`order_amount money`，`status VARCHAR(24)`，`origin VARCHAR(16)`，`metadata JSON`，`expires_at DATETIME(6)` | UK `(merchant_account_id, merchant_order_no)`，索引 `(merchant_account_id, status, created_at)`；`origin` 为 `API` 或 `MANUAL`，表示通过接口或后台人工建单 |
-| `checkout_session` | `id, payment_order_id`，`token_hash BINARY(32)`，`brand_snapshot JSON`，`expires_at DATETIME(6)`，`status VARCHAR(24)` | UK `token_hash`；品牌配置按商户子账号授权，令牌限单和限时 |
+| `payment_order` | `id, merchant_account_id, merchant_user_id?, order_asset_id, requested_payment_asset_id?, settlement_asset_id, quote_id?`，`merchant_order_no VARCHAR(128)`，`order_amount money`，`status VARCHAR(24)`，`origin VARCHAR(16)`，`metadata JSON`，`expires_at DATETIME(6)`，`checkout_token_hash? BINARY(32)`，`checkout_brand_snapshot? JSON`，`checkout_issued_at/checkout_expires_at/checkout_revoked_at? DATETIME(6)` | UK `(merchant_account_id, merchant_order_no)`，索引 `(merchant_account_id, status, created_at)`，UK `checkout_token_hash`；`origin` 为 `API` 或 `MANUAL`，表示通过接口或后台人工建单 |
 | `payment_attempt` | `id, payment_order_id, channel_binding_id, provider_account_id, payment_asset_id, network_id?`，`provider_request_no VARCHAR(128)`，`provider_order_id? VARCHAR(128)`，`status VARCHAR(24)`，`route_snapshot JSON`，`instruction_ref VARCHAR(255)` | UK `(provider_account_id, provider_request_no)` 及 `(provider_account_id, provider_order_id)`；通过锁定订单行维护单个有效尝试 |
 | `payment_receipt` | `id, payment_attempt_id, provider_account_id, received_asset_id, network_id?`，`source_receipt_key VARCHAR(200)`，`tx_hash? VARCHAR(160)`，`tx_output_or_log_index? BIGINT UNSIGNED`，`amount/fee money`，`status VARCHAR(24)` | UK `(provider_account_id, source_receipt_key)`；上游重复通知转为同一收款记录 |
 | `quote` | `id, merchant_account_id, source_asset_id, target_asset_id, provider_account_id?`，`rate DECIMAL(38,18)`，`source_amount/target_amount/fee money`，`fee_asset_id`，`pricing_mode VARCHAR(24)`，`expires_at DATETIME(6)` | 索引 `(merchant_account_id, expires_at)`；记录保价条件及来源，接受报价时检查有效性 |
@@ -197,13 +197,12 @@ erDiagram
 
 ### 3.7 下游 OpenAPI
 
-在 `merchant_api_key`、`api_idempotency`、`merchant_webhook_endpoint`、`merchant_event_outbox` 基础上增加以下表。凭据策略和随机数表使用下表所列主键。建表见 [all.sql](all.sql)。
+在 `merchant_api_key`、`api_idempotency`、`merchant_webhook_endpoint`、`merchant_event_outbox` 基础上增加以下表。随机数记录直接关联 API 凭据。建表见 [all.sql](all.sql)。
 
 | 表 | 核心字段 | 约束及索引 |
 | --- | --- | --- |
 | `openapi_operation` | `id`，`api_version VARCHAR(12)`，`operation_code VARCHAR(64)`，`http_method VARCHAR(8)`，`path_template VARCHAR(192)`，`required_scope VARCHAR(64)`，`idempotency_required TINYINT UNSIGNED`，`status VARCHAR(24)` | UK `(api_version, operation_code)` 和 `(api_version, http_method, path_template)`，接口默认 `DRAFT` |
-| `openapi_key_policy` | `api_key_id`，`environment VARCHAR(12)`，`signature_version VARCHAR(12)`，`ip_allowlist? JSON`，`requests_per_minute INT UNSIGNED` | PK 和 FK `api_key_id`，策略继承 API 凭据的商户归属 |
-| `openapi_request_nonce` | `api_key_id`，`nonce_hash BINARY(32)`，`accepted_at DATETIME(6)`，`expires_at DATETIME(6)` | 组合 PK `(api_key_id, nonce_hash)`，索引 `expires_at` 用于定期清理 |
+| `openapi_request_nonce` | `api_key_id`，`nonce_hash BINARY(32)`，`accepted_at DATETIME(6)`，`expires_at DATETIME(6)` | 组合 PK `(api_key_id, nonce_hash)`，FK `api_key_id → merchant_api_key.id`，索引 `expires_at` 用于定期清理 |
 | `openapi_request_log` | `id, api_key_id?, operation_id?`，`request_id VARCHAR(64)`，`http_status SMALLINT UNSIGNED`，`error_code? VARCHAR(64)`，`duration_ms INT UNSIGNED`，`received_at DATETIME(6)` | UK `request_id`，索引 `(api_key_id, received_at)`；租户由已核验的 API 凭据归属确定 |
 | `merchant_webhook_delivery_attempt` | `id, outbox_id`，`attempt_no INT UNSIGNED`，`attempted_at/finished_at? DATETIME(6)`，`http_status? SMALLINT UNSIGNED`，`error_code? VARCHAR(64)`，`status VARCHAR(24)` | UK `(outbox_id, attempt_no)`，FK 至出站事件，索引 `attempted_at` |
 
@@ -225,7 +224,7 @@ API 密钥及银行账户资料由密钥管理或加密存储持有；日志和 
 
 ### 5.1 入口及权限
 
-- 下游商户服务端使用 `/openapi/v1`。沙盒和生产使用不同域名、数据库、渠道账号和密钥。由服务端部署环境与 `openapi_key_policy.environment` 双重校验。
+- 下游商户服务端使用 `/openapi/v1`。沙盒和生产使用不同域名、数据库、渠道账号和密钥。由服务端部署环境与 `merchant_api_key.environment` 双重校验。
 - 商户账号从验签通过的 API 凭据解析。路径与请求体中的目标账号仍需校验请求者的访问范围。主账号管理获授权的子账号；仅获得合作方授权的凭据才可提交其他商户进件。不向商户暴露上游账号、外部凭据或内部路由权重。
 - `openapi_operation` 保存版本、方法、路径模板、权限范围、写入幂等要求及开通状态。正常调用需要已发布接口、已启用的凭据及对应权限。接口目录初始状态为 `DRAFT`，实现和验收后发布。
 - 凭据由运营端为商户账号开通，可轮换和停用。数据库保存密钥的存储引用。来源 IP 校验仅采信已配置的入口代理；每分钟配额按凭据跨实例执行。
