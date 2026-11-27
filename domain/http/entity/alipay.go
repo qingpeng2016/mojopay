@@ -9,7 +9,7 @@ type AccountLogQuery struct {
 	PageSize  int
 }
 
-// AccountLogQueryResult OpenAPI 业务响应体
+// AccountLogQueryResult OpenAPI 业务响应体1
 type AccountLogQueryResult struct {
 	Code       string `json:"code"`
 	Msg        string `json:"msg"`
