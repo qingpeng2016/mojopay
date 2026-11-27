@@ -1,0 +1,18 @@
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    {if !empty($locked_merchant_id)}<input type="hidden" name="merchant_id" value="{$locked_merchant_id}"><input type="hidden" name="embed" value="1">{/if}
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号</label><div class="layui-input-inline" style="width:180px;"><select name="merchant_account_id"><option value="">全部</option>{foreach $accounts as $ak=>$al}<option value="{$ak}" {if isset($get.merchant_account_id) && (string)$get.merchant_account_id===(string)$ak}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">商户单号</label><div class="layui-input-inline" style="width:140px;"><input name="merchant_order_no" value="{$get.merchant_order_no|default=''}" class="layui-input mono"></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr><th>ID</th><th>账号</th><th>商户单号</th><th>金额</th><th>状态</th><th>创建</th><th>过期</th></tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.id}</td><td class="mono">{$vo.account_code}</td><td class="mono">{$vo.merchant_order_no}</td>
+<td class="mono">{$vo.order_amount}</td>
+<td><span class="layui-badge {$vo.status_badge_cls}">{$vo.status}</span></td>
+<td>{$vo.created_at}</td><td>{$vo.expires_at}</td>
+</tr>{/foreach}{if empty($list)}<tr><td colspan="7" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>

@@ -1,0 +1,25 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        {if !empty($locked_merchant_id)}<input type="hidden" name="_scope_merchant_id" value="{$locked_merchant_id}">{/if}
+        {if !empty($locked_merchant_id)}
+        <div class="layui-form-item"><label class="layui-form-label">所属商户</label>
+        <div class="layui-input-block"><input class="layui-input" disabled value="{$locked_merchant_label}{if !empty($locked_merchant_code)}（{$locked_merchant_code}）{/if}"></div></div>
+        {/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">商户账号</label>
+        <div class="layui-input-block"><select name="merchant_account_id" lay-search required>{foreach $account_options as $aid=>$al}<option value="{$aid}" {if isset($vo.merchant_account_id) && (int)$vo.merchant_account_id===(int)$aid}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">通道能力</label>
+        <div class="layui-input-block"><select name="capability_id" lay-search required>{foreach $capability_options as $cid=>$cl}<option value="{$cid}" {if isset($vo.capability_id) && (int)$vo.capability_id===(int)$cid}selected{/if}>{$cl}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">版本</label>
+        <div class="layui-input-block"><input name="version" value="{$vo.version|default='1'}" type="number" min="1" class="layui-input" required></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">优先级</label>
+        <div class="layui-input-block"><input name="priority" value="{$vo.priority|default='100'}" type="number" class="layui-input"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">权重</label>
+        <div class="layui-input-block"><input name="weight" value="{$vo.weight|default='1'}" type="number" min="1" class="layui-input"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">生效时间</label>
+        <div class="layui-input-block"><input name="effective_from" value="{$vo.effective_from|default=''}" class="layui-input" placeholder="YYYY-MM-DD HH:mm:ss"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>

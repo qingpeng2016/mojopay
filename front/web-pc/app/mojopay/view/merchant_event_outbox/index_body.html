@@ -1,0 +1,18 @@
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    {if !empty($locked_merchant_id)}<input type="hidden" name="merchant_id" value="{$locked_merchant_id}"><input type="hidden" name="embed" value="1">{/if}
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号</label><div class="layui-input-inline" style="width:180px;"><select name="merchant_account_id"><option value="">全部</option>{foreach $accounts as $ak=>$al}<option value="{$ak}" {if isset($get.merchant_account_id) && (string)$get.merchant_account_id===(string)$ak}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">事件类型</label><div class="layui-input-inline" style="width:130px;"><input name="event_type" value="{$get.event_type|default=''}" class="layui-input mono"></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr><th>ID</th><th>账号</th><th>事件</th><th>类型</th><th>状态</th><th>重试</th><th>下次投递</th><th>创建</th></tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.id}</td><td class="mono">{$vo.account_code}</td><td class="mono">{$vo.event_id}</td>
+<td>{$vo.event_type_text} <span class="layui-word-aux mono">{$vo.event_type}</span></td>
+<td><span class="layui-badge {$vo.status_badge_cls}">{$vo.status_text}</span></td>
+<td>{$vo.attempt_count}</td><td>{$vo.next_attempt_at}</td><td>{$vo.created_at}</td>
+</tr>{/foreach}{if empty($list)}<tr><td colspan="8" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>

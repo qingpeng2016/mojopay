@@ -1,0 +1,29 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if !empty($locked_merchant_id)}<input type="hidden" name="_scope_merchant_id" value="{$locked_merchant_id}">{/if}
+        {if !empty($locked_merchant_id)}
+        <div class="layui-form-item"><label class="layui-form-label">所属商户</label>
+        <div class="layui-input-block"><input class="layui-input" disabled value="{$locked_merchant_label}{if !empty($locked_merchant_code)}（{$locked_merchant_code}）{/if}"></div></div>
+        {/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">商户账号</label>
+        <div class="layui-input-block"><select name="merchant_account_id" lay-search required>{foreach $account_options as $aid=>$al}<option value="{$aid}" {if isset($vo.merchant_account_id) && (int)$vo.merchant_account_id===(int)$aid}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">Key ID</label>
+        <div class="layui-input-block"><input name="key_id" value="{$vo.key_id|default=''}" required class="layui-input mono" maxlength="64" placeholder="例如 mk_main_sandbox_01"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">Secret 引用</label>
+        <div class="layui-input-block"><input name="secret_ref" value="{$vo.secret_ref|default=''}" required class="layui-input mono" maxlength="255" placeholder="vault://... 或 KMS 引用">
+        <div class="layui-word-aux">实际 Secret 不入库明文，仅登记存储引用</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">环境</label>
+        <div class="layui-input-block"><select name="environment">{foreach $env_options as $ek=>$ev}<option value="{$ek}" {if isset($vo.environment) && $vo.environment===$ek}selected{/if}>{$ev}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">授权范围</label>
+        <div class="layui-input-block"><textarea name="scopes" class="layui-textarea mono" rows="3" placeholder='["payments:write","payments:read"]'>{$vo.scopes|default=''}</textarea></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">签名版本</label>
+        <div class="layui-input-block"><input name="signature_version" value="{$vo.signature_version|default='v1'}" class="layui-input mono" maxlength="12"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">RPM</label>
+        <div class="layui-input-block"><input name="requests_per_minute" value="{$vo.requests_per_minute|default='120'}" type="number" min="1" class="layui-input" required></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">到期时间</label>
+        <div class="layui-input-block"><input name="expires_at" value="{$vo.expires_at|default=''}" class="layui-input" placeholder="留空表示不限期"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>

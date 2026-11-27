@@ -1,0 +1,38 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        {if !empty($locked_merchant_id)}
+        <input type="hidden" name="merchant_id" value="{$locked_merchant_id}">
+        <input type="hidden" name="_scope_merchant_id" value="{$locked_merchant_id}">
+        <div class="layui-form-item"><label class="layui-form-label">商户</label>
+        <div class="layui-input-block"><input class="layui-input" disabled value="{$locked_merchant_label}{if !empty($locked_merchant_code)}（{$locked_merchant_code}）{/if}"></div></div>
+        {else}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">商户</label>
+        <div class="layui-input-block"><select name="merchant_id" lay-search required>{foreach $merchant_options as $mk=>$mn}<option value="{$mk}" {if isset($vo.merchant_id) && (int)$vo.merchant_id===(int)$mk}selected{/if}>{$mn}</option>{/foreach}</select></div></div>
+        {/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">账号编码</label>
+        <div class="layui-input-block"><input name="code" value="{$vo.code|default=''}" required class="layui-input mono" maxlength="64" placeholder="{if !empty($is_add_form) && !empty($default_parent_id)}如 sub_ops、branch_hk{else}如 main{/if}"></div></div>
+        {if !empty($is_add_form)}
+        <div class="layui-form-item"><label class="layui-form-label">账号类型</label>
+        <div class="layui-input-block">
+        {if !empty($default_parent_id)}
+        <p style="margin:0;line-height:38px;color:#666;">子账号 · 自动挂到主账号 <span class="mono layui-badge layui-bg-gray">{$parent_code_hint}</span></p>
+        {else}
+        <p style="margin:0;line-height:38px;color:#666;">主账号 · {$parent_role_hint|default='首个账号'}</p>
+        {/if}
+        </div></div>
+        {else}
+        <div class="layui-form-item"><label class="layui-form-label">账号类型</label>
+        <div class="layui-input-block">
+        {if !empty($vo.parent_id)}
+        <p style="margin:0;line-height:38px;color:#666;">子账号 · 父账号 <span class="mono">{$parent_code_hint|default='-'}</span></p>
+        {else}
+        <p style="margin:0;line-height:38px;color:#666;">主账号</p>
+        {/if}
+        </div></div>
+        {/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>

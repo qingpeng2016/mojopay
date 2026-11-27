@@ -4,7 +4,7 @@
 SET @mojopay_root_id := (SELECT id FROM system_menu WHERE title = 'MojoPay' AND pid = 0 ORDER BY id ASC LIMIT 1);
 
 INSERT INTO system_menu (pid, title, icon, node, url, params, target, sort, status, create_at)
-SELECT @mojopay_root_id, '上游管理', 'layui-icon layui-icon-upload', '', '#', '', '_self', 10, 1, NOW()
+SELECT @mojopay_root_id, '上游管理', 'layui-icon layui-icon-upload', '', '#', '', '_self', 20, 1, NOW()
 FROM DUAL
 WHERE @mojopay_root_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM system_menu WHERE pid = @mojopay_root_id AND title = '上游管理' LIMIT 1);
@@ -28,7 +28,7 @@ WHERE @upstream_dir_id IS NOT NULL
 
 -- 下游商户目录（可选，与全量 init 对齐）
 INSERT INTO system_menu (pid, title, icon, node, url, params, target, sort, status, create_at)
-SELECT @mojopay_root_id, '下游商户', 'layui-icon layui-icon-group', '', '#', '', '_self', 20, 1, NOW()
+SELECT @mojopay_root_id, '下游商户', 'layui-icon layui-icon-group', '', '#', '', '_self', 10, 1, NOW()
 FROM DUAL
 WHERE @mojopay_root_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM system_menu WHERE pid = @mojopay_root_id AND title = '下游商户' LIMIT 1);

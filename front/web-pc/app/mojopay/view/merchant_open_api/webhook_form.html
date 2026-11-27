@@ -1,0 +1,23 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        {if !empty($locked_merchant_id)}<input type="hidden" name="_scope_merchant_id" value="{$locked_merchant_id}">{/if}
+        {if !empty($locked_merchant_id)}
+        <div class="layui-form-item"><label class="layui-form-label">所属商户</label>
+        <div class="layui-input-block"><input class="layui-input" disabled value="{$locked_merchant_label}{if !empty($locked_merchant_code)}（{$locked_merchant_code}）{/if}"></div></div>
+        {/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">商户账号</label>
+        <div class="layui-input-block"><select name="merchant_account_id" lay-search required {if isset($is_edit)}disabled{/if}>{foreach $account_options as $aid=>$al}<option value="{$aid}" {if isset($vo.merchant_account_id) && (int)$vo.merchant_account_id===(int)$aid}selected{/if}>{$al}</option>{/foreach}</select>
+        {if isset($is_edit)}<input type="hidden" name="merchant_account_id" value="{$vo.merchant_account_id}">{/if}
+        </div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">回调 URL</label>
+        <div class="layui-input-block"><input name="endpoint_url" value="{$vo.endpoint_url|default=''}" required class="layui-input mono" maxlength="512" placeholder="https://..."></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">验签 Secret 引用</label>
+        <div class="layui-input-block"><input name="secret_ref" value="{$vo.secret_ref|default=''}" required class="layui-input mono" maxlength="255" placeholder="vault://..."></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">订阅事件</label>
+        <div class="layui-input-block"><textarea name="event_types" class="layui-textarea mono" rows="3" placeholder='["payment.paid","payout.completed"]'>{$vo.event_types|default=''}</textarea></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>

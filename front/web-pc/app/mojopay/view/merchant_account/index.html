@@ -1,0 +1,6 @@
+{extend name="../../admin/view/main"}
+{block name="button"}
+<a class="layui-btn layui-btn-sm" data-modal="{:url('add')}" data-title="新增账号"><i class="layui-icon">&#xe654;</i> 新增</a>
+{/block}
+{block name="content"}{include file="merchant_account/index_body"}{/block}
+{block name="script"}{include file="common/pagination_assets"}<script>layui.use('form',function(){layui.form.render('select');});</script>{/block}

@@ -18,6 +18,10 @@ trait EmbedViewTrait
         if ($pid) {
             $this->assign('locked_provider_id', $pid);
         }
+        $mid = $this->sanitizeId($this->request->get('merchant_id'));
+        if ($mid) {
+            $this->assign('locked_merchant_id', $mid);
+        }
     }
 
     /** @param string $name 如 index */

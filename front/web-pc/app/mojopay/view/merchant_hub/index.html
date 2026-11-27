@@ -1,0 +1,85 @@
+{extend name="../../admin/view/main"}
+{block name="style"}
+<style>
+.mojopay-hub-card { margin: 12px 15px 0; }
+.mojopay-hub-tabs { margin: 0 15px 15px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.mojopay-hub-tabs .layui-tab-title { padding-left:10px; }
+.mojopay-hub-iframe { width:100%; border:0; min-height:calc(100vh - 220px); background:#fff; }
+.mojopay-stat { display:inline-block; margin-right:24px; color:#666; font-size:13px; }
+.mojopay-stat b { color:#009688; font-size:18px; margin-right:4px; }
+</style>
+{/block}
+{block name="content"}
+<div class="think-box-shadow mojopay-hub-card">
+    <div style="padding:12px 15px;">
+        <h3 style="margin:0 0 8px;">{$merchant.legal_name} <span class="layui-badge layui-bg-gray mono" style="font-weight:normal;">{$merchant.code}</span>
+        {if $merchant.status==='ACTIVE'}<span class="layui-badge layui-bg-green">已激活</span>{else}<span class="layui-badge">{$merchant.status}</span>{/if}</h3>
+        <div style="font-size:12px;color:#888;margin-bottom:8px;">
+            国家/地区：<span class="mono">{$merchant.country}</span> · 经营类别：<span class="mono">{$merchant.category}</span>
+        </div>
+        <div>
+            <span class="mojopay-stat">账号 <b>{$stats.accounts}</b></span>
+            <span class="mojopay-stat">通道路由 <b>{$stats.bindings}</b></span>
+            <span class="mojopay-stat">待投递回调 <b>{$stats.outbox_pending}</b></span>
+            <span class="mojopay-stat">支付订单 <b>{$stats.order_count}</b></span>
+            <a class="layui-btn layui-btn-xs layui-btn-primary" data-modal="{$tab_urls.edit}" data-title="编辑商户"><i class="layui-icon layui-icon-edit"></i> 编辑配置</a>
+        </div>
+    </div>
+</div>
+<div class="mojopay-hub-tabs">
+    <div class="layui-tab layui-tab-brief" lay-filter="mojopay-merchant-hub-tab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">首页</li>
+            <li lay-id="accounts">主/子账号</li>
+            <li lay-id="openapi">OpenApi</li>
+            <li lay-id="bindings">通道路由</li>
+            <li lay-id="outbox">回调通知</li>
+            <li lay-id="orders">支付订单</li>
+        </ul>
+        <div class="layui-tab-content" style="padding:0;">
+            <div class="layui-tab-item layui-show" style="padding:15px;">
+                <table class="layui-table" lay-skin="line" style="font-size:12px;max-width:960px;">
+                <tbody>
+                <tr><td width="140">编码</td><td class="mono">{$merchant.code}</td></tr>
+                <tr><td>法定名称</td><td>{$merchant.legal_name}</td></tr>
+                <tr><td>Public ID</td><td class="mono">{$merchant.public_id}</td></tr>
+                <tr><td>国家</td><td class="mono">{$merchant.country}</td></tr>
+                <tr><td>类别</td><td class="mono">{$merchant.category}</td></tr>
+                <tr><td>状态</td><td class="mono">{$merchant.status}</td></tr>
+                </tbody>
+                </table>
+                <p style="color:#999;font-size:12px;">各 Tab 内数据已按本商户过滤；新增账号/路由请在对应 Tab 操作。</p>
+            </div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.accounts}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.openapi}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.bindings}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.outbox}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.orders}"></iframe></div>
+        </div>
+    </div>
+</div>
+{/block}
+{block name="script"}
+<script>
+layui.use(['element','jquery'], function () {
+    var element = layui.element, $ = layui.jquery;
+    var loaded = {accounts:0,openapi:0,bindings:0,outbox:0,orders:0};
+    function loadIframe(layId) {
+        if (!layId || loaded[layId]) return;
+        var titles = ['','accounts','openapi','bindings','outbox','orders'];
+        var idx = titles.indexOf(layId);
+        if (idx < 0) return;
+        var $tab = $('.layui-tab-item').eq(idx);
+        var $iframe = $tab.find('iframe');
+        if ($iframe.length && $iframe.attr('data-src')) {
+            $iframe.attr('src', $iframe.attr('data-src'));
+            loaded[layId] = 1;
+        }
+    }
+    element.on('tab(mojopay-merchant-hub-tab)', function (data) {
+        var titles = ['','accounts','openapi','bindings','outbox','orders'];
+        loadIframe(titles[data.index] || '');
+    });
+});
+</script>
+{/block}

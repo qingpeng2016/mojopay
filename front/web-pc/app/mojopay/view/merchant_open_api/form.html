@@ -1,0 +1,18 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        <input type="hidden" name="id" value="{$vo.id}">
+        {if !empty($locked_merchant_id)}<input type="hidden" name="_scope_merchant_id" value="{$locked_merchant_id}">{/if}
+        <div class="layui-form-item"><label class="layui-form-label">Key ID</label><div class="layui-input-block"><input value="{$vo.key_id}" class="layui-input mono" disabled></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">Secret 引用</label>
+        <div class="layui-input-block"><input name="secret_ref" value="{$vo.secret_ref|default=''}" required class="layui-input mono" maxlength="255"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">授权范围</label>
+        <div class="layui-input-block"><textarea name="scopes" class="layui-textarea mono" rows="3">{$vo.scopes|default=''}</textarea></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">RPM</label>
+        <div class="layui-input-block"><input name="requests_per_minute" value="{$vo.requests_per_minute}" type="number" min="1" class="layui-input" required></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">到期时间</label>
+        <div class="layui-input-block"><input name="expires_at" value="{$vo.expires_at|default=''}" class="layui-input"></div></div>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>

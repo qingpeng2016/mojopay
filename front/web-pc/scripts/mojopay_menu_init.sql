@@ -13,26 +13,15 @@ SET @mojopay_root_id := LAST_INSERT_ID();
 
 -- 上游管理（目录）
 INSERT INTO system_menu (pid, title, icon, node, url, params, target, sort, status, create_at)
-VALUES (@mojopay_root_id, '上游管理', 'layui-icon layui-icon-upload', '', '#', '', '_self', 10, 1, NOW());
+VALUES (@mojopay_root_id, '上游管理', 'layui-icon layui-icon-upload', '', '#', '', '_self', 20, 1, NOW());
 
 SET @upstream_dir_id := LAST_INSERT_ID();
 
-INSERT INTO system_menu (pid, title, icon, node, url, params, target, sort, status, create_at) VALUES
-(@upstream_dir_id, '上游商家', 'layui-icon layui-icon-app', 'mojopay/provider/index', 'mojopay/provider/index', '', '_self', 10, 1, NOW()),
-(@upstream_dir_id, '主/子账号', 'layui-icon layui-icon-user', 'mojopay/provider_account/index', 'mojopay/provider_account/index', '', '_self', 20, 1, NOW()),
-(@upstream_dir_id, '凭据与回调', 'layui-icon layui-icon-password', 'mojopay/provider_credential/index', 'mojopay/provider_credential/index', '', '_self', 30, 1, NOW()),
-(@upstream_dir_id, '通道能力', 'layui-icon layui-icon-slider', 'mojopay/channel_capability/index', 'mojopay/channel_capability/index', '', '_self', 40, 1, NOW()),
-(@upstream_dir_id, '余额流水', 'layui-icon layui-icon-list', 'mojopay/provider_event_inbox/index', 'mojopay/provider_event_inbox/index', '', '_self', 50, 1, NOW()),
-(@upstream_dir_id, '订单记录', 'layui-icon layui-icon-form', 'mojopay/provider_order/index', 'mojopay/provider_order/index', '', '_self', 55, 1, NOW());
+-- 上游/下游二级菜单由 ProviderMenuSync、MerchantMenuSync 按库表生成（见 docs/sql/sync_mojopay_menus.php）
 
 -- 下游商户（目录）
 INSERT INTO system_menu (pid, title, icon, node, url, params, target, sort, status, create_at)
-VALUES (@mojopay_root_id, '下游商户', 'layui-icon layui-icon-group', '', '#', '', '_self', 20, 1, NOW());
-
-SET @merchant_dir_id := LAST_INSERT_ID();
-
-INSERT INTO system_menu (pid, title, icon, node, url, params, target, sort, status, create_at)
-VALUES (@merchant_dir_id, '商户主数据', 'layui-icon layui-icon-template-1', 'mojopay/merchant/index', 'mojopay/merchant/index', '', '_self', 10, 1, NOW());
+VALUES (@mojopay_root_id, '下游商户', 'layui-icon layui-icon-group', '', '#', '', '_self', 10, 1, NOW());
 
 -- 超级管理员角色（id=1）授权节点
 INSERT IGNORE INTO system_auth_node (auth, node)
@@ -53,9 +42,28 @@ SELECT 1, n.node FROM (
   SELECT 'mojopay/channel_capability/remove' UNION ALL
   SELECT 'mojopay/provider_event_inbox/index' UNION ALL
   SELECT 'mojopay/provider_order/index' UNION ALL
+  SELECT 'mojopay/provider_hub/index' UNION ALL
   SELECT 'mojopay/merchant/index' UNION ALL
   SELECT 'mojopay/merchant/add' UNION ALL
   SELECT 'mojopay/merchant/edit' UNION ALL
-  SELECT 'mojopay/merchant/remove'
+  SELECT 'mojopay/merchant/remove' UNION ALL
+  SELECT 'mojopay/merchant_hub/index' UNION ALL
+  SELECT 'mojopay/merchant_account/index' UNION ALL
+  SELECT 'mojopay/merchant_account/add' UNION ALL
+  SELECT 'mojopay/merchant_account/edit' UNION ALL
+  SELECT 'mojopay/merchant_account/remove' UNION ALL
+  SELECT 'mojopay/merchant_open_api/index' UNION ALL
+  SELECT 'mojopay/merchant_open_api/add' UNION ALL
+  SELECT 'mojopay/merchant_open_api/edit' UNION ALL
+  SELECT 'mojopay/merchant_open_api/remove' UNION ALL
+  SELECT 'mojopay/merchant_open_api/webhook_add' UNION ALL
+  SELECT 'mojopay/merchant_open_api/webhook_edit' UNION ALL
+  SELECT 'mojopay/merchant_open_api/webhook_remove' UNION ALL
+  SELECT 'mojopay/merchant_channel_binding/index' UNION ALL
+  SELECT 'mojopay/merchant_channel_binding/add' UNION ALL
+  SELECT 'mojopay/merchant_channel_binding/edit' UNION ALL
+  SELECT 'mojopay/merchant_channel_binding/remove' UNION ALL
+  SELECT 'mojopay/merchant_event_outbox/index' UNION ALL
+  SELECT 'mojopay/merchant_payment_order/index'
 ) AS n
 WHERE EXISTS (SELECT 1 FROM system_auth WHERE id = 1);

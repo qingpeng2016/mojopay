@@ -31,9 +31,13 @@ trait MojopayListTrait
         $embed = (string)($get['embed'] ?? $this->request->get('embed', '')) === '1';
         if ($embed) {
             $get['embed'] = '1';
-            $lockPid      = $this->sanitizeId($get['provider_id'] ?? $this->request->get('provider_id'));
+            $lockPid = $this->sanitizeId($get['provider_id'] ?? $this->request->get('provider_id'));
             if ($lockPid) {
                 $get['provider_id'] = $lockPid;
+            }
+            $lockMid = $this->sanitizeId($get['merchant_id'] ?? $this->request->get('merchant_id'));
+            if ($lockMid) {
+                $get['merchant_id'] = $lockMid;
             }
             $path = preg_replace('/\?.*$/', '', (string)$this->request->url());
         } else {

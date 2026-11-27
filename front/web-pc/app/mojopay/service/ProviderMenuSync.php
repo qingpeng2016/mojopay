@@ -40,6 +40,8 @@ class ProviderMenuSync
             return;
         }
 
+        $this->ensureRootDirOrder($admin, $rootId);
+
         $upstreamId = (int)$admin->name('system_menu')
             ->where('pid', $rootId)
             ->where('title', self::UPSTREAM_TITLE)
@@ -53,10 +55,12 @@ class ProviderMenuSync
                 'url'       => '#',
                 'params'    => '',
                 'target'    => '_self',
-                'sort'      => 10,
+                'sort'      => 20,
                 'status'    => 1,
                 'create_at' => date('Y-m-d H:i:s'),
             ]);
+        } else {
+            $admin->name('system_menu')->where('id', $upstreamId)->update(['sort' => 20]);
         }
 
         $childIds = $admin->name('system_menu')->where('pid', $upstreamId)->column('id');
@@ -104,6 +108,15 @@ class ProviderMenuSync
         ]);
 
         $this->ensureAuthNodes($admin);
+    }
+
+    /** 上游管理始终在下游商户之上（ThinkAdmin 按 sort desc，越大越靠前） */
+    private function ensureRootDirOrder($admin, int $rootId): void
+    {
+        $admin->name('system_menu')->where('pid', $rootId)->where('title', self::UPSTREAM_TITLE)->update(['sort' => 20]);
+        foreach (['下游商户', '下游商家'] as $title) {
+            $admin->name('system_menu')->where('pid', $rootId)->where('title', $title)->update(['sort' => 10]);
+        }
     }
 
     private function ensureAuthNodes($admin): void

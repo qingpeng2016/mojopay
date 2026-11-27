@@ -1,0 +1,41 @@
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    {if !empty($locked_merchant_id)}<input type="hidden" name="merchant_id" value="{$locked_merchant_id}"><input type="hidden" name="embed" value="1">{/if}
+    {if empty($locked_merchant_id)}
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">商户</label><div class="layui-input-inline" style="width:150px;"><select name="merchant_id"><option value="">全部</option>{foreach $merchants as $mk=>$mn}<option value="{$mk}" {if isset($get.merchant_id) && (string)$get.merchant_id===(string)$mk}selected{/if}>{$mn}</option>{/foreach}</select></div></div>
+    {/if}
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号</label><div class="layui-input-inline" style="width:180px;"><select name="merchant_account_id"><option value="">全部</option>{foreach $accounts as $ak=>$al}<option value="{$ak}" {if isset($get.merchant_account_id) && (string)$get.merchant_account_id===(string)$ak}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><a class="layui-btn layui-btn-sm" data-modal="{:url('add')}{if !empty($locked_merchant_id)}?merchant_id={$locked_merchant_id}{elseif !empty($get.merchant_id)}?merchant_id={$get.merchant_id}{/if}{if !empty($get.merchant_account_id)}{if empty($locked_merchant_id) && empty($get.merchant_id)}?{else}&{/if}merchant_account_id={$get.merchant_account_id}{/if}" data-title="新增 API 密钥"><i class="layui-icon">&#xe654;</i> 新增密钥</a></div>
+    <div class="layui-form-item layui-inline"><a class="layui-btn layui-btn-sm layui-btn-primary" data-modal="{:url('webhook_add')}{if !empty($locked_merchant_id)}?merchant_id={$locked_merchant_id}{elseif !empty($get.merchant_id)}?merchant_id={$get.merchant_id}{/if}{if !empty($get.merchant_account_id)}{if empty($locked_merchant_id) && empty($get.merchant_id)}?{else}&{/if}merchant_account_id={$get.merchant_account_id}{/if}" data-title="新增 Webhook"><i class="layui-icon">&#xe654;</i> 新增 Webhook</a></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<h4 style="margin:16px 8px 8px;font-size:14px;">API 密钥</h4>
+<table class="layui-table" lay-skin="line" style="font-size:12px;">
+<thead><tr><th>ID</th>{if empty($locked_merchant_id)}<th>商户</th>{/if}<th>账号</th><th>Key ID</th><th>环境</th><th>RPM</th><th>状态</th><th>操作</th></tr></thead>
+<tbody>{foreach $key_list as $vo}<tr>
+<td>{$vo.id}</td>{if empty($locked_merchant_id)}<td>{$vo.merchant_name}</td>{/if}<td class="mono">{$vo.account_code}</td><td class="mono">{$vo.key_id}</td>
+<td class="mono">{$vo.environment}</td><td>{$vo.requests_per_minute}</td>
+<td><span class="layui-badge {if $vo.status==='ACTIVE'}layui-bg-green{/if}">{$vo.status}</span></td>
+<td style="white-space:nowrap;">
+<a class="layui-btn layui-btn-xs layui-btn-primary" data-modal='{:url("edit")}?id={$vo.id}{if !empty($locked_merchant_id)}&merchant_id={$locked_merchant_id}{/if}' data-title="编辑密钥">编辑</a>
+<a class="layui-btn layui-btn-xs layui-btn-danger" data-confirm="确定删除该 API 密钥？" data-action="{:url('remove')}" data-value="id#{$vo.id}">删除</a>
+</td>
+</tr>{/foreach}{if empty($key_list)}<tr><td colspan="8" style="text-align:center;color:#999;">暂无 API 密钥</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+
+<h4 style="margin:24px 8px 8px;font-size:14px;">Webhook 回调地址</h4>
+<table class="layui-table" lay-skin="line" style="font-size:12px;">
+<thead><tr><th>ID</th>{if empty($locked_merchant_id)}<th>商户</th>{/if}<th>账号</th><th>地址</th><th>状态</th><th>创建</th><th>操作</th></tr></thead>
+<tbody>{foreach $webhook_list as $wh}<tr>
+<td>{$wh.id}</td>{if empty($locked_merchant_id)}<td>{$wh.merchant_name}</td>{/if}<td class="mono">{$wh.account_code}</td>
+<td class="mono" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;">{$wh.endpoint_url}</td>
+<td><span class="layui-badge {if $wh.status==='ACTIVE'}layui-bg-green{/if}">{$wh.status}</span></td>
+<td>{$wh.created_at}</td>
+<td style="white-space:nowrap;">
+<a class="layui-btn layui-btn-xs layui-btn-primary" data-modal='{:url("webhook_edit")}?id={$wh.id}{if !empty($locked_merchant_id)}&merchant_id={$locked_merchant_id}{/if}' data-title="编辑 Webhook">编辑</a>
+<a class="layui-btn layui-btn-xs layui-btn-danger" data-confirm="确定删除？" data-action="{:url('webhook_remove')}" data-value="id#{$wh.id}">删除</a>
+</td>
+</tr>{/foreach}{if empty($webhook_list)}<tr><td colspan="7" style="text-align:center;color:#999;">暂无 Webhook</td></tr>{/if}</tbody>
+</table>
+</div>

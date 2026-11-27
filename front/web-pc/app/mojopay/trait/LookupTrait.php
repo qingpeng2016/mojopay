@@ -83,4 +83,87 @@ trait LookupTrait
 
         return array_map('intval', $ids ?: []);
     }
+
+    /** @return array<int, string> id => label */
+    protected function merchantOptions(): array
+    {
+        $rows = $this->mojopayDb()->name('merchant')->order('id', 'asc')->column('legal_name', 'id');
+        $out  = [];
+        foreach ($rows as $id => $name) {
+            $out[(int)$id] = (string)$name;
+        }
+
+        return $out;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected function merchantAccountRows(): array
+    {
+        return $this->mojopayDb()->name('merchant_account')
+            ->alias('a')
+            ->leftJoin('merchant m', 'm.id = a.merchant_id')
+            ->field('a.id,a.merchant_id,a.code,a.parent_id,m.legal_name as merchant_name')
+            ->order('a.id', 'desc')
+            ->select()
+            ->toArray();
+    }
+
+    /** @return array<int, string> */
+    protected function merchantAccountOptions(?int $merchantId = null): array
+    {
+        $out = [];
+        foreach ($this->merchantAccountRows() as $row) {
+            if ($merchantId !== null && (int)($row['merchant_id'] ?? 0) !== $merchantId) {
+                continue;
+            }
+            $id = (int)($row['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+            $label = sprintf(
+                '%s / %s',
+                (string)($row['merchant_name'] ?? ''),
+                (string)($row['code'] ?? '')
+            );
+            $out[$id] = $label;
+        }
+
+        return $out;
+    }
+
+    protected function merchantAccountIdsForMerchant(int $merchantId): array
+    {
+        $ids = $this->mojopayDb()->name('merchant_account')->where('merchant_id', $merchantId)->column('id');
+
+        return array_map('intval', $ids ?: []);
+    }
+
+    /** @return array<int, string> */
+    protected function channelCapabilityOptions(): array
+    {
+        $rows = $this->mojopayDb()->name('channel_capability')->alias('c')
+            ->join('provider_account a', 'a.id = c.provider_account_id')
+            ->join('provider p', 'p.id = a.provider_id')
+            ->field('c.id,c.operation,c.region,c.capability_key,p.name as provider_name,a.external_id')
+            ->order('c.id', 'desc')
+            ->select()
+            ->toArray();
+        $out = [];
+        foreach ($rows as $row) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+            $out[$id] = sprintf(
+                '#%d %s / %s %s %s',
+                $id,
+                (string)($row['provider_name'] ?? ''),
+                (string)($row['external_id'] ?? ''),
+                (string)($row['operation'] ?? ''),
+                (string)($row['capability_key'] ?? '')
+            );
+        }
+
+        return $out;
+    }
 }

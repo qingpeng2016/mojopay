@@ -5,6 +5,7 @@ declare (strict_types=1);
 namespace app\mojopay\controller;
 
 use app\mojopay\const\Enum;
+use app\mojopay\service\MerchantMenuSync;
 use app\mojopay\trait\MojopayListTrait;
 use think\admin\Controller;
 use think\db\Query;
@@ -22,7 +23,7 @@ class Merchant extends Controller
      */
     public function index()
     {
-        $this->title = '商户';
+        $this->title = '商户列表';
         $get         = $this->request->get();
         $result      = $this->paginateMojopay(
             $this->filteredQuery($get)->order('id', 'desc'),
@@ -65,6 +66,7 @@ class Merchant extends Controller
 
             $data['public_id'] = $this->generatePublicId();
             $this->mojopayDb()->name('merchant')->insert($data);
+            $this->syncMerchantMenus();
 
             return $this->success('新增成功');
         }
@@ -104,6 +106,7 @@ class Merchant extends Controller
             }
 
             $this->mojopayDb()->name('merchant')->where('id', $id)->update($data);
+            $this->syncMerchantMenus();
 
             return $this->success('保存成功');
         }
@@ -129,12 +132,24 @@ class Merchant extends Controller
             return $this->error('记录不存在');
         }
 
+        $hasAccount = $this->mojopayDb()->name('merchant_account')->where('merchant_id', $id)->find();
+        if (!empty($hasAccount)) {
+            return $this->error('请先删除该商户下的账号后再删');
+        }
+
         $deleted = $this->mojopayDb()->name('merchant')->where('id', $id)->delete();
         if ($deleted <= 0) {
             return $this->error('删除失败（可能存在关联数据）');
         }
 
+        $this->syncMerchantMenus();
+
         return $this->success('删除成功');
+    }
+
+    private function syncMerchantMenus(): void
+    {
+        (new MerchantMenuSync())->sync();
     }
 
     /** @param array<string, mixed> $get */
