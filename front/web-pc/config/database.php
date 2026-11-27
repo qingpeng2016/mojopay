@@ -2,19 +2,31 @@
 
 use Symfony\Component\Yaml\Yaml;
 
-// 获取当前Git分支
-function getCurrentBranch()
+// 获取当前 Git 分支（web-pc 可能在 monorepo 子目录，向上查找 .git/HEAD）
+function getCurrentBranch(): string
 {
-    $gitHead = @file_get_contents(dirname(__DIR__) . '/.git/HEAD');
-    if ($gitHead && preg_match('/ref: refs\/heads\/(.*)/', $gitHead, $matches)) {
-        return trim($matches[1]);
+    $dir = dirname(__DIR__);
+    for ($i = 0; $i < 10; $i++) {
+        $headFile = $dir . '/.git/HEAD';
+        if (is_readable($headFile)) {
+            $gitHead = file_get_contents($headFile);
+            if ($gitHead && preg_match('/ref: refs\/heads\/(.*)/', $gitHead, $matches)) {
+                return trim($matches[1]);
+            }
+        }
+        $parent = dirname($dir);
+        if ($parent === $dir) {
+            break;
+        }
+        $dir = $parent;
     }
-    // 读取不到 .git/HEAD 时（docker 构建上下文与打包后的镜像都无 .git，
-    // 因为 .dockerignore 排除了 .git），不再回退到依赖 gitignored 的
-    // database-local.yaml（CI 已不再往构建上下文注入该文件，会导致构建失败）。
-    // 此时构建/运行的就是生产镜像，直接回退到 prod，加载仓库内已提交的
-    // database-prod.yaml（生产配置），符合“生产环境连生产配置”的预期。
-    return 'prod';
+    // 无 .git（如本地 php -S 子目录、或未挂载仓库的镜像）按非生产处理；生产部署请设 APP_ENV=prod
+    return 'local';
+}
+
+function isProductionBranch(string $branch): bool
+{
+    return in_array(strtolower($branch), ['master', 'prod'], true);
 }
 
 // 环境名称规范化映射
@@ -29,29 +41,71 @@ function normalizeEnvironment($envName)
         'dev' => 'develop',
         'development' => 'develop',
         'local' => 'local',
+        'test' => 'test',
     ];
     
     return $envMapping[strtolower($envName)] ?? 'local';
 }
 
-// 获取当前环境（根据分支名映射到环境）
-function getCurrentEnvironment()
+/**
+ * 非 master/prod 分支：MySQL 写死（与 mojopay/conf/local.conf.yaml 的 db 段一致），不读 DB_* 环境变量。
+ */
+function applyBranchHardcodedMysql(array &$connections, array $dsn): void
 {
-    $branch = getCurrentBranch();
-    return normalizeEnvironment($branch);
+    foreach ($connections as $name => &$conn) {
+        if (!is_array($conn)) {
+            continue;
+        }
+        if (($conn['type'] ?? '') !== 'mysql') {
+            continue;
+        }
+        $conn['hostname'] = $dsn['hostname'];
+        $conn['hostport'] = $dsn['hostport'];
+        $conn['username'] = $dsn['username'];
+        $conn['password'] = $dsn['password'];
+        $conn['database'] = $dsn['database'];
+    }
+    unset($conn);
 }
 
 // 从 YAML 文件读取数据库配置
-// 优先使用环境变量 APP_ENV，其次使用 Git 分支判断
-$envFromVar = getenv('APP_ENV');
-$currentEnv = $envFromVar ? normalizeEnvironment($envFromVar) : getCurrentEnvironment();
-$yamlFile = dirname(__DIR__) . "/conf/database-{$currentEnv}.yaml";
+// 仅 master / prod 分支（或 APP_ENV=prod）走 database-prod + 环境变量；其余分支 MySQL 写死
+$gitBranch   = getCurrentBranch();
+$envFromVar  = getenv('APP_ENV');
+$appEnvNorm  = ($envFromVar !== false && $envFromVar !== '') ? normalizeEnvironment($envFromVar) : null;
+
+if ($appEnvNorm === 'prod') {
+    $currentEnv        = 'prod';
+    $useHardcodedMysql = false;
+} elseif ($appEnvNorm !== null) {
+    $currentEnv        = 'local';
+    $useHardcodedMysql = true;
+} elseif (isProductionBranch($gitBranch)) {
+    $currentEnv        = 'prod';
+    $useHardcodedMysql = false;
+} else {
+    $currentEnv        = 'local';
+    $useHardcodedMysql = true;
+}
+
+$yamlFile = dirname(__DIR__) . '/conf/database-' . $currentEnv . '.yaml';
 if (!file_exists($yamlFile)) {
     throw new \RuntimeException("Database configuration file not found: {$yamlFile}");
 }
 $connections = Yaml::parseFile($yamlFile);
 if (!is_array($connections)) {
     $connections = [];
+}
+
+$mojopayMysqlDsn = [
+    'hostname' => '216.236.43.172',
+    'hostport' => '3306',
+    'username' => 'mojopay',
+    'password' => 'PwrRbxXSX5sABeXS',
+    'database' => 'mojopay',
+];
+if ($useHardcodedMysql) {
+    applyBranchHardcodedMysql($connections, $mojopayMysqlDsn);
 }
 
 $initialConnections= $connections; // 保存初始配置用于调试日志
@@ -122,7 +176,7 @@ $defaultMysqlConnection = [
 
 // 生产配置依赖环境变量注入。若外部挂载的 YAML 缺少 mysql 节点，
 // 这里兜底创建默认连接，避免登录页 sysconf 读取主库时直接报配置未定义。
-if ($currentEnv !== 'local') {
+if (!$useHardcodedMysql) {
     foreach (['mysql', 'db_pay2', 'db_pay3'] as $connName) {
         if (!isset($connections[$connName]) || !is_array($connections[$connName])) {
             $connections[$connName] = $defaultMysqlConnection;
@@ -130,8 +184,8 @@ if ($currentEnv !== 'local') {
     }
 }
 
-// ===== 非 local 环境从环境变量读取数据库配置 =====
-if ($currentEnv !== 'local' && isset($connections['mysql']) && isset($connections['db_pay2'])) {
+// ===== master/prod：从环境变量读取数据库配置 =====
+if (!$useHardcodedMysql && isset($connections['mysql']) && isset($connections['db_pay2'])) {
     // develop/prod 环境优先使用环境变量
     $dbHost = getenv('DB_HOST');
     if ($dbHost !== false && $dbHost !== '') {
@@ -318,7 +372,7 @@ if ($currentEnv !== 'local' && isset($connections['mysql']) && isset($connection
 
 // SO 快盘 PNL 只读库默认采用 YAML；本地联调可显式覆盖到测试库。
 // 密码仅从部署环境变量注入，不复用主库 DB_PASSWORD，也不在仓库中保存明文。
-if (isset($connections['db_fastbook'])) {
+if (!$useHardcodedMysql && isset($connections['db_fastbook'])) {
     foreach ([
         'DB_HOST_SO_DATA' => 'hostname',
         'DB_PORT_SO_DATA' => 'hostport',
@@ -394,7 +448,8 @@ if (isset($connections['sqlite'])) {
 $debugInfo = [
     'timestamp' => date('Y-m-d H:i:s'),
     'env_var_APP_ENV' => getenv('APP_ENV') ?: 'NOT_SET',
-    'git_branch' => getCurrentBranch(),
+    'git_branch' => $gitBranch,
+    'use_hardcoded_mysql' => $useHardcodedMysql,
     'final_environment' => $currentEnv,
     'yaml_file' => $yamlFile,
     'hostname' => $connections['mysql']['hostname'] ?? 'NOT_SET',

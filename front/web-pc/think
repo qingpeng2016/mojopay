@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-declare(strict_types=1);11
+declare(strict_types=1);
 /**
  * // +----------------------------------------------------------------------
  * // | Payment Plugin for ThinkAdmin

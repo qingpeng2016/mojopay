@@ -25,13 +25,11 @@
     "symfony/yaml": "^7.3",
     "topthink/think-multi-app": "^1.1",
     "zoujingli/think-library": "^6.0",
-    "zoujingli/think-plugs-admin": "^1.0",
-    "zoujingli/think-plugs-wechat": "^1.0"
+    "zoujingli/think-plugs-admin": "^1.0"
   },
   "autoload": {
     "exclude-from-classmap": [
-      "/vendor/zoujingli/think-plugs-admin/src/",
-      "/vendor/zoujingli/think-plugs-wechat/src/"
+      "/vendor/zoujingli/think-plugs-admin/src/"
     ],
     "psr-0": {
       "": "extend"

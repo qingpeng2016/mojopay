@@ -159,7 +159,7 @@ func (s *Scheduler) Handle(configIDs ...uint) {
 							zap.Error(err))
 						return
 					}
-					if dbConfig == nil || dbConfig.IsEnabled != 1 || dbConfig.IsStrategyEnabled == nil || *dbConfig.IsStrategyEnabled != 1 {
+					if dbConfig == nil || dbConfig.IsEnabled == nil || *dbConfig.IsEnabled != 1 || dbConfig.IsStrategyEnabled == nil || *dbConfig.IsStrategyEnabled != 1 {
 						logger.InfoZ(ctx, "bot scheduler-TaskDisabled",
 							zap.String("module", module),
 							zap.String("taskName", taskName))

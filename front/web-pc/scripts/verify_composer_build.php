@@ -45,7 +45,6 @@ foreach ($declared as $packageName => $packageServices) {
 foreach ([
     \app\admin\controller\Login::class => '/app/admin/controller/Login.php',
     \app\admin\controller\Index::class => '/app/admin/controller/Index.php',
-    \app\wechat\Service::class => '/app/wechat/Service.php',
 ] as $class => $path) {
     $actual = (new ReflectionClass($class))->getFileName();
     if ($actual !== $root . $path) {

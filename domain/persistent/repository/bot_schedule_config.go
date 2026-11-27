@@ -7,10 +7,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// BotScheduleConfigRepo 脚本调度配置表仓库
+// BotScheduleConfigRepo 提供 bot_schedule_config 的持久化操作。
 type BotScheduleConfigRepo interface {
-	FindOne(ctx context.Context, tx *gorm.DB, where map[string]interface{}, orderBy string) (entity.BotScheduleConfig, error)
-	List(ctx context.Context, tx *gorm.DB, where map[string]interface{}, orderBy, groupBy string) (total int64, list []entity.BotScheduleConfig, err error)
+	ReadRepo[entity.BotScheduleConfig]
+	BatchCreate(ctx context.Context, tx *gorm.DB, rows []*entity.BotScheduleConfig) error
 	Update(ctx context.Context, tx *gorm.DB, where map[string]interface{}, updateData map[string]interface{}) error
-	Create(ctx context.Context, tx *gorm.DB, m *entity.BotScheduleConfig) (id uint, err error)
+	Create(ctx context.Context, tx *gorm.DB, row *entity.BotScheduleConfig) (uint, error)
 }

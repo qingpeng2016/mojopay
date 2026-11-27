@@ -8,7 +8,6 @@ import (
 	"github.com/qingpeng2016/ai-agent-paper/conf"
 	"github.com/qingpeng2016/ai-agent-paper/infrastructure/http"
 	"github.com/qingpeng2016/ai-agent-paper/infrastructure/http/alipay"
-	"github.com/qingpeng2016/ai-agent-paper/infrastructure/mysql"
 	"github.com/qingpeng2016/ai-agent-paper/interfaces/rest"
 
 	"go.uber.org/dig"
@@ -32,7 +31,7 @@ func BuildContainer() *dig.Container {
 	_ = c.Provide(botscheduleconfig.NewBotScheduleConfigService)
 
 	_ = c.Provide(NewDBClient)
-	_ = c.Provide(mysql.NewBotScheduleConfigImpl)
+	provideModels(c)
 
 	_ = c.Provide(http.NewHTTPClient)
 	_ = c.Provide(alipay.NewClient)
