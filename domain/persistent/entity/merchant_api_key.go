@@ -12,6 +12,7 @@ type MerchantAPIKey struct {
 	MerchantAccountID uint64          `gorm:"column:merchant_account_id;type:bigint unsigned;not null"`                                      // 商户账号主键
 	KeyID             string          `gorm:"column:key_id;type:varchar(64);not null"`                                                       // API 密钥编号
 	SecretRef         string          `gorm:"column:secret_ref;type:varchar(255);not null"`                                                  // API 密钥存储引用
+	SecretPlain       *string         `gorm:"column:secret_plain;type:varchar(128)"`                                                         // 沙盒 HMAC 密钥明文
 	Scopes            datatypes.JSON  `gorm:"column:scopes;type:json;not null"`                                                              // 凭据授权范围
 	Environment       string          `gorm:"column:environment;type:varchar(12);not null"`                                                  // 凭据环境（沙盒或生产）
 	SignatureVersion  string          `gorm:"column:signature_version;type:varchar(12);not null;default:v1"`                                 // 请求签名协议版本

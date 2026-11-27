@@ -22,14 +22,15 @@ func BuildContainer() *dig.Container {
 
 	cfg := conf.NewCfg()
 	_ = c.Provide(func() *conf.Config { return cfg })
-	_ = c.Provide(rest.NewRouter)
+	_ = c.Provide(NewDBClient)
+	provideModels(c)
+	if err := c.Provide(rest.NewRouter); err != nil {
+		panic(err)
+	}
 
 	_ = c.Provide(viplevelsync.NewVipLevelSyncJob)
 	_ = c.Provide(bot.NewScheduler)
 	_ = c.Provide(bot.NewEntry)
-
-	_ = c.Provide(NewDBClient)
-	provideModels(c)
 
 	_ = c.Provide(http.NewHTTPClient)
 	_ = c.Provide(alipay.NewClient)

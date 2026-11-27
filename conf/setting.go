@@ -38,7 +38,8 @@ type Server struct {
 	ProductName    string `mapstructure:"product_name"`
 	ApiHost        string `mapstructure:"api_host"`
 	MachineName    string `mapstructure:"machine_name"`
-	HTTPTimeoutSec int    `mapstructure:"http_timeout_sec"`
+	HTTPTimeoutSec  int    `mapstructure:"http_timeout_sec"`
+	CheckoutBaseURL string `mapstructure:"checkout_base_url"` // 收银台页面根 URL，如 http://127.0.0.1:8886
 }
 
 type Mysql struct {

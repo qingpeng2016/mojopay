@@ -3,34 +3,58 @@ package rest
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	ginMiddleware "github.com/qingpeng2016/ai-agent-paper/common/dederi/gin/middleware"
+	"github.com/qingpeng2016/ai-agent-paper/application/checkout"
+	"github.com/qingpeng2016/ai-agent-paper/common/dederi/gin/middleware"
 	"github.com/qingpeng2016/ai-agent-paper/common/dederi/gin/response"
 	"github.com/qingpeng2016/ai-agent-paper/common/notification"
 	"github.com/qingpeng2016/ai-agent-paper/conf"
+	openapiMiddleware "github.com/qingpeng2016/ai-agent-paper/interfaces/rest/middleware"
+	"github.com/qingpeng2016/ai-agent-paper/interfaces/rest/handler"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type Router struct {
 	httpServer *http.Server
+	engine     *gin.Engine
 	setting    *conf.Config
 }
 
-func NewRouter(setting *conf.Config) *Router {
-	return &Router{setting: setting}
+func NewRouter(setting *conf.Config, db *gorm.DB) (*Router, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database client is required for REST router")
+	}
+	svc := checkout.NewService(db, setting)
+	ch := handler.NewCheckoutHandler(svc)
+	r := &Router{setting: setting}
+	r.engine = r.buildEngine(svc, ch)
+	return r, nil
 }
 
-func (r *Router) setupRouters() *gin.Engine {
+func (r *Router) buildEngine(svc *checkout.Service, ch *handler.CheckoutHandler) *gin.Engine {
 	engine := gin.Default()
-	engine.Use(ginMiddleware.TraceRequestLog, ginMiddleware.CORSMiddleware)
+	engine.Use(middleware.TraceRequestLog, middleware.CORSMiddleware)
+
 	engine.GET("/api/v1/test", func(c *gin.Context) {
 		response.ResponseSuccess(c, gin.H{"status": "ok"})
 	})
+
+	// 宿主收银台（付款 URL 指向此页）
+	engine.GET("/checkout/:sessionID", ch.CheckoutPage)
+
+	v1 := engine.Group("/api/v1")
+	{
+		pay := v1.Group("/payments")
+		pay.Use(openapiMiddleware.MerchantOpenAPIAuth(svc))
+		pay.POST("/checkout-sessions", ch.CreateSession)
+	}
 	return engine
 }
 
@@ -57,7 +81,7 @@ func (r *Router) Run(setting *conf.Server) error {
 	}
 	r.httpServer = &http.Server{
 		Addr:              setting.Port,
-		Handler:           r.setupRouters(),
+		Handler:           r.engine,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	go func(server *http.Server) {
