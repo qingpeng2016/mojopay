@@ -1,0 +1,82 @@
+package rest
+
+import (
+	"context"
+	"errors"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	ginMiddleware "github.com/qingpeng2016/ai-agent-paper/common/dederi/gin/middleware"
+	"github.com/qingpeng2016/ai-agent-paper/common/dederi/gin/response"
+	"github.com/qingpeng2016/ai-agent-paper/common/notification"
+	"github.com/qingpeng2016/ai-agent-paper/conf"
+	"go.uber.org/zap"
+)
+
+type Router struct {
+	httpServer *http.Server
+	setting    *conf.Config
+}
+
+func NewRouter(setting *conf.Config) *Router {
+	return &Router{setting: setting}
+}
+
+func (r *Router) setupRouters() *gin.Engine {
+	engine := gin.Default()
+	engine.Use(ginMiddleware.TraceRequestLog, ginMiddleware.CORSMiddleware)
+	engine.GET("/api/v1/test", func(c *gin.Context) {
+		response.ResponseSuccess(c, gin.H{"status": "ok"})
+	})
+	return engine
+}
+
+func (r *Router) Run(setting *conf.Server) error {
+	if setting == nil && r.setting != nil {
+		setting = r.setting.ServerConf
+	}
+	if setting == nil || setting.Port == "" {
+		return errors.New("server.port is required")
+	}
+	mode := strings.ToLower(strings.TrimSpace(setting.RunMode))
+	switch mode {
+	case "":
+		mode = gin.ReleaseMode
+	case gin.DebugMode, gin.ReleaseMode, gin.TestMode:
+	default:
+		return errors.New("server.run_mode must be debug, release, or test")
+	}
+	gin.SetMode(mode)
+
+	listener, err := net.Listen("tcp", setting.Port)
+	if err != nil {
+		return err
+	}
+	r.httpServer = &http.Server{
+		Addr:              setting.Port,
+		Handler:           r.setupRouters(),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func(server *http.Server) {
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			notification.SendErrorLog(context.Background(), "run http server failed", zap.Error(err))
+			panic(err)
+		}
+	}(r.httpServer)
+	return nil
+}
+
+func (r *Router) Close() {
+	if r.httpServer == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := r.httpServer.Shutdown(ctx); err != nil {
+		notification.SendErrorLog(ctx, "stop http server failed", zap.Error(err))
+		_ = r.httpServer.Close()
+	}
+}

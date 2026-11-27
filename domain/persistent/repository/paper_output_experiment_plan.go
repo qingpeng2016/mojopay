@@ -1,0 +1,36 @@
+package repository
+
+import (
+	"context"
+
+	"github.com/qingpeng2016/ai-agent-paper/domain/persistent/entity"
+)
+
+type PaperOutputExperimentPlanRepo interface {
+	Create(ctx context.Context, row *entity.PaperOutputExperimentPlan) error
+	ListByManuscript(ctx context.Context, manuscriptID uint64) ([]entity.PaperOutputExperimentPlan, error)
+	ListByManuscriptPaged(
+		ctx context.Context,
+		manuscriptID uint64,
+		offset, limit int,
+	) ([]entity.PaperOutputExperimentPlan, error)
+	CountByManuscript(ctx context.Context, manuscriptID uint64) (int64, error)
+	GetByIDForUser(
+		ctx context.Context,
+		id, manuscriptID uint64,
+		userID uint,
+	) (*entity.PaperOutputExperimentPlan, error)
+	// GetByIDForManuscript 调用方须已校验 manuscript 归属。
+	GetByIDForManuscript(ctx context.Context, id, manuscriptID uint64) (*entity.PaperOutputExperimentPlan, error)
+	UpdateExperimentDataURI(
+		ctx context.Context,
+		id, manuscriptID uint64,
+		userID uint,
+		uri string,
+	) (bool, error)
+	ClearExperimentDataURI(
+		ctx context.Context,
+		id, manuscriptID uint64,
+		userID uint,
+	) (bool, error)
+}

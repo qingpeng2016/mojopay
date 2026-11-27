@@ -1,0 +1,126 @@
+package mysql
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/qingpeng2016/ai-agent-paper/domain/persistent/entity"
+	"github.com/qingpeng2016/ai-agent-paper/domain/persistent/repository"
+	"gorm.io/gorm"
+)
+
+type PaperManuscriptImpl struct {
+	db *gorm.DB
+}
+
+func NewPaperManuscriptImpl(db *gorm.DB) repository.PaperManuscriptRepo {
+	return &PaperManuscriptImpl{db: db}
+}
+
+func (r *PaperManuscriptImpl) GetByIDForUser(ctx context.Context, manuscriptID, userID uint) (*entity.PaperManuscript, error) {
+	var row entity.PaperManuscript
+	err := r.db.WithContext(ctx).
+		Where("id = ? AND user_id = ? AND status = ?", manuscriptID, userID, "active").
+		First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
+}
+
+func (r *PaperManuscriptImpl) ListByUser(ctx context.Context, userID uint) ([]entity.PaperManuscript, error) {
+	var rows []entity.PaperManuscript
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND status = ?", userID, "active").
+		Order("is_current DESC, updated_at DESC, id DESC").
+		Find(&rows).Error
+	return rows, err
+}
+
+func (r *PaperManuscriptImpl) ListByUserPaged(ctx context.Context, userID uint, offset, limit int) ([]entity.PaperManuscript, error) {
+	var rows []entity.PaperManuscript
+	q := r.db.WithContext(ctx).
+		Where("user_id = ? AND status = ?", userID, "active").
+		Order("is_current DESC, updated_at DESC, id DESC")
+	if limit > 0 {
+		q = q.Offset(offset).Limit(limit)
+	}
+	err := q.Find(&rows).Error
+	return rows, err
+}
+
+func (r *PaperManuscriptImpl) CountByUserActive(ctx context.Context, userID uint) (int64, error) {
+	var n int64
+	err := r.db.WithContext(ctx).
+		Model(&entity.PaperManuscript{}).
+		Where("user_id = ? AND status = ?", userID, "active").
+		Count(&n).Error
+	return n, err
+}
+
+func (r *PaperManuscriptImpl) Create(ctx context.Context, userID uint, title string, disciplineID *uint64, language string) (*entity.PaperManuscript, error) {
+	row := entity.PaperManuscript{
+		UserID:           userID,
+		Title:            title,
+		DisciplineID:     disciplineID,
+		Language:         language,
+		Status:           "active",
+		DraftStatus:      "writing",
+		SubmissionStatus: "not_submitted",
+	}
+	if err := r.db.WithContext(ctx).Create(&row).Error; err != nil {
+		return nil, err
+	}
+	return &row, nil
+}
+
+func (r *PaperManuscriptImpl) SetCurrentForUser(ctx context.Context, userID, manuscriptID uint) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var target entity.PaperManuscript
+		if err := tx.Where("id = ? AND user_id = ? AND status = ?", manuscriptID, userID, "active").
+			First(&target).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return gorm.ErrRecordNotFound
+			}
+			return err
+		}
+		if err := tx.Model(&entity.PaperManuscript{}).
+			Where("user_id = ? AND status = ?", userID, "active").
+			Update("is_current", false).Error; err != nil {
+			return err
+		}
+		return tx.Model(&entity.PaperManuscript{}).
+			Where("id = ? AND user_id = ?", manuscriptID, userID).
+			Update("is_current", true).Error
+	})
+}
+
+func (r *PaperManuscriptImpl) UpdateSubmissionSummary(
+	ctx context.Context,
+	manuscriptID, userID uint,
+	submissionStatus string,
+	submissionLabel *string,
+	submissionDeadline *time.Time,
+) error {
+	updates := map[string]any{
+		"submission_status": submissionStatus,
+	}
+	if submissionLabel != nil {
+		updates["submission_label"] = *submissionLabel
+	} else {
+		updates["submission_label"] = nil
+	}
+	if submissionDeadline != nil && !submissionDeadline.IsZero() {
+		updates["submission_deadline"] = submissionDeadline
+	} else {
+		updates["submission_deadline"] = nil
+	}
+	return r.db.WithContext(ctx).
+		Model(&entity.PaperManuscript{}).
+		Where("id = ? AND user_id = ? AND status = ?", manuscriptID, userID, "active").
+		Updates(updates).Error
+}
