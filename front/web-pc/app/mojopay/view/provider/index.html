@@ -1,0 +1,33 @@
+{extend name="../../admin/view/main"}
+{block name="button"}
+<a class="layui-btn layui-btn-sm" data-modal="{:url('add')}" data-title="新增上游商家"><i class="layui-icon">&#xe654;</i> 新增</a>
+{/block}
+{block name="content"}
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">ID</label><div class="layui-input-inline" style="width:80px;"><input name="id" value="{$get.id|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">编码</label><div class="layui-input-inline" style="width:120px;"><input name="code" value="{$get.code|default=''}" class="layui-input mono"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">名称</label><div class="layui-input-inline" style="width:140px;"><input name="name" value="{$get.name|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">状态</label><div class="layui-input-inline" style="width:100px;"><select name="status"><option value="">全部</option>{foreach $statuses as $sk=>$sv}<option value="{$sk}" {if isset($get.status) && $get.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr>
+<th>ID</th><th>编码</th><th>名称</th><th>官网</th><th>生产 API</th><th>沙盒 API</th><th>文档</th><th>状态</th><th>操作</th>
+</tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.id}</td><td class="mono">{$vo.code}</td><td>{$vo.name}</td>
+<td class="mono" title="{$vo.official_url|default=''}">{if !empty($vo.official_url)}<a href="{$vo.official_url}" target="_blank" rel="noopener">{$vo.official_url_short}</a>{else}-{/if}</td>
+<td class="mono" title="{$vo.api_base_url_production|default=''}">{$vo.api_base_url_production_short}</td>
+<td class="mono" title="{$vo.api_base_url_sandbox|default=''}">{$vo.api_base_url_sandbox_short}</td>
+<td class="mono" title="{$vo.docs_url|default=''}">{if !empty($vo.docs_url)}<a href="{$vo.docs_url}" target="_blank" rel="noopener">{$vo.docs_url_short}</a>{else}-{/if}</td>
+<td><span class="layui-badge {if $vo.status==='ACTIVE'}layui-bg-green{/if}">{$vo.status}</span></td>
+<td>
+<a class="layui-btn layui-btn-xs layui-btn-primary" data-modal='{:url("edit")}?id={$vo.id}' data-title="配置上游商家">配置</a>
+<a class="layui-btn layui-btn-xs layui-btn-danger" data-confirm="确定删除？需无下属账号。" data-action="{:url('remove')}" data-value="id#{$vo.id}">删除</a>
+</td></tr>{/foreach}{if empty($list)}<tr><td colspan="9" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>
+{/block}
+{block name="script"}{include file="common/pagination_assets"}<script>layui.use('form',function(){layui.form.render('select');});</script>{/block}

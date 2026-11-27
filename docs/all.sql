@@ -41,14 +41,19 @@ CREATE TABLE IF NOT EXISTS `asset_network` (
 
 CREATE TABLE IF NOT EXISTS `provider` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `code` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '上游服务商编码',
-  `name` VARCHAR(128) NOT NULL COMMENT '上游服务商名称',
-  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'INACTIVE' COMMENT '上游服务商启用状态',
+  `code` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '上游商家编码',
+  `name` VARCHAR(128) NOT NULL COMMENT '上游商家名称',
+  `official_url` VARCHAR(512) NULL COMMENT '官网地址',
+  `api_base_url_sandbox` VARCHAR(512) NULL COMMENT '沙盒 API 根地址',
+  `api_base_url_production` VARCHAR(512) NULL COMMENT '生产 API 根地址',
+  `docs_url` VARCHAR(512) NULL COMMENT '开发者文档地址',
+  `remark` VARCHAR(500) NULL COMMENT '运营备注',
+  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'INACTIVE' COMMENT '上游商家启用状态',
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_provider_code` (`code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='上游服务商';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='上游商家（渠道）档案与接入配置';
 
 CREATE TABLE IF NOT EXISTS `provider_account` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
@@ -57,7 +62,8 @@ CREATE TABLE IF NOT EXISTS `provider_account` (
   `environment` VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '上游环境（沙盒或生产）',
   `external_id` VARCHAR(128) COLLATE utf8mb4_bin NOT NULL COMMENT '上游账号编号',
   `role` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '上游账号用途',
-  `credential_ref` VARCHAR(255) NULL COMMENT '上游凭据存储引用',
+  `credential_ref` VARCHAR(255) NULL COMMENT '上游凭据存储引用（可选，对接外部密钥库路径）',
+  `credential_profile` JSON NULL COMMENT '账号对接配置（API 密钥、回调、出款 IP 等）',
   `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'INACTIVE' COMMENT '上游账号启用状态',
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
@@ -79,6 +85,7 @@ CREATE TABLE IF NOT EXISTS `channel_capability` (
   `operation` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '通道支持的操作类型',
   `method` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '渠道支付或出款方式',
   `region` CHAR(2) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '通道适用地区代码',
+  `region_name` VARCHAR(64) NULL COMMENT '地区中文名称',
   `capability_key` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '通道能力编码',
   `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '能力配置版本',
   `min_amount` DECIMAL(36,0) NOT NULL DEFAULT 0 COMMENT '单笔金额下限',
@@ -716,8 +723,39 @@ CREATE TABLE IF NOT EXISTS `merchant_webhook_delivery_attempt` (
 
 INSERT INTO `asset` (`code`, `kind`, `decimals`) VALUES
   ('BTC', 'CRYPTO', 8),
-  ('USD', 'FIAT', 2)
-ON DUPLICATE KEY UPDATE `id` = `asset`.`id`;
+  ('USDT', 'CRYPTO', 6),
+  ('USD', 'FIAT', 2),
+  ('EUR', 'FIAT', 2),
+  ('GBP', 'FIAT', 2),
+  ('JPY', 'FIAT', 0),
+  ('CNY', 'FIAT', 2),
+  ('HKD', 'FIAT', 2),
+  ('SGD', 'FIAT', 2),
+  ('AUD', 'FIAT', 2),
+  ('CAD', 'FIAT', 2),
+  ('CHF', 'FIAT', 2),
+  ('KRW', 'FIAT', 0),
+  ('INR', 'FIAT', 2),
+  ('BRL', 'FIAT', 2),
+  ('MXN', 'FIAT', 2),
+  ('THB', 'FIAT', 2),
+  ('MYR', 'FIAT', 2),
+  ('PHP', 'FIAT', 2),
+  ('IDR', 'FIAT', 2),
+  ('TWD', 'FIAT', 2),
+  ('AED', 'FIAT', 2),
+  ('SAR', 'FIAT', 2),
+  ('NZD', 'FIAT', 2),
+  ('SEK', 'FIAT', 2),
+  ('NOK', 'FIAT', 2),
+  ('DKK', 'FIAT', 2),
+  ('PLN', 'FIAT', 2),
+  ('TRY', 'FIAT', 2),
+  ('ZAR', 'FIAT', 2),
+  ('VND', 'FIAT', 0)
+ON DUPLICATE KEY UPDATE
+  `kind` = VALUES(`kind`),
+  `decimals` = VALUES(`decimals`);
 
 INSERT INTO `asset_network` (`asset_id`, `network_code`, `status`)
 SELECT `id`, 'BITCOIN', 'INACTIVE'
@@ -725,6 +763,14 @@ FROM `asset`
 WHERE `code` = 'BTC'
 ON DUPLICATE KEY UPDATE `id` = `asset_network`.`id`;
 
-INSERT INTO `provider` (`code`, `name`, `status`)
-VALUES ('GATE_PAY', 'Gate Pay', 'INACTIVE')
+INSERT INTO `provider` (`code`, `name`, `official_url`, `api_base_url_sandbox`, `api_base_url_production`, `docs_url`, `status`)
+VALUES (
+  'GATE_PAY',
+  'Gate Pay',
+  'https://www.gate.io/gatepay',
+  'https://open-platform.gateapi.io',
+  'https://open-platform.gateapi.io',
+  'https://www.gate.io/docs/developers/gatepay',
+  'INACTIVE'
+)
 ON DUPLICATE KEY UPDATE `id` = `provider`.`id`;

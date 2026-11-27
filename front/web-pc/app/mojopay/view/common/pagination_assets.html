@@ -1,4 +1,12 @@
 <style>
+.table-block .layui-table th:last-child,
+.table-block .layui-table td:last-child {
+    white-space: nowrap;
+    width: 1%;
+}
+.table-block .layui-table td:last-child .layui-btn + .layui-btn {
+    margin-left: 6px;
+}
 .layui-card-body .pagination,
 .think-box-shadow .pagination {
     display: flex;
@@ -40,9 +48,28 @@ $(document).ready(function () {
     $('.think-box-shadow .pagination li a').on('click', function (e) {
         e.preventDefault();
         var href = $(this).attr('href');
-        if (href && href !== '#') {
-            window.location.href = href;
+        if (!href || href === '#') {
+            return;
         }
+        if (window.self !== window.top && href.indexOf('admin.html#') !== -1) {
+            var qs = href.split('?')[1] || '';
+            var page = (href.match(/[?&]page=(\d+)/) || [])[1];
+            var params = new URLSearchParams(window.location.search);
+            if (page) {
+                params.set('page', page);
+            }
+            if (qs) {
+                qs.split('&').forEach(function (pair) {
+                    var kv = pair.split('=');
+                    if (kv[0] && kv[0] !== 'page') {
+                        params.set(kv[0], decodeURIComponent(kv[1] || ''));
+                    }
+                });
+            }
+            window.location.search = '?' + params.toString();
+            return;
+        }
+        window.location.href = href;
     });
 });
 </script>

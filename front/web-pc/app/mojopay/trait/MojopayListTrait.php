@@ -28,13 +28,25 @@ trait MojopayListTrait
             $slug = substr($slug, 0, -strlen('/index'));
         }
 
+        $embed = (string)($get['embed'] ?? $this->request->get('embed', '')) === '1';
+        if ($embed) {
+            $get['embed'] = '1';
+            $lockPid      = $this->sanitizeId($get['provider_id'] ?? $this->request->get('provider_id'));
+            if ($lockPid) {
+                $get['provider_id'] = $lockPid;
+            }
+            $path = preg_replace('/\?.*$/', '', (string)$this->request->url());
+        } else {
+            $path = '/admin.html#/mojopay/' . $slug . '/index.html';
+        }
+
         return $query->paginate([
             'list_rows' => isset($get['pageSize'])
                 ? min(100, max(10, intval($get['pageSize'])))
                 : $defaultSize,
             'page'      => isset($get['page']) ? max(1, intval($get['page'])) : 1,
             'query'     => $get,
-            'path'      => '/admin.html#/mojopay/' . $slug . '/index.html',
+            'path'      => $path,
         ], false);
     }
 

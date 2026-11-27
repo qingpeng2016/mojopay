@@ -1,0 +1,30 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:72vh;overflow-y:auto;">
+        <input type="hidden" name="id" value="{$vo.id}">
+        <fieldset class="layui-elem-field" style="margin-bottom:12px;">
+            <legend style="font-size:13px;">当前账号</legend>
+            <div class="layui-field-box" style="padding:8px 12px;color:#666;font-size:12px;">
+                {$vo.provider_name|default=''} / <span class="mono">{$vo.environment}</span> / <span class="mono">{$vo.external_id}</span>
+            </div>
+        </fieldset>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">API Key</label>
+        <div class="layui-input-block"><input name="api_key" value="{$vo.api_key|default=''}" required class="layui-input" maxlength="256" placeholder="上游发放的 API Key"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">API Secret</label>
+        <div class="layui-input-block"><input name="api_secret" type="password" value="{$vo.api_secret|default=''}" class="layui-input" maxlength="512" placeholder="{if !empty($vo.api_secret_masked)}已保存，留空表示不修改{else}上游发放的 API Secret{/if}" autocomplete="new-password">
+        {if !empty($vo.api_secret_masked)}<div class="layui-word-aux">当前已保存（{$vo.api_secret_masked}），不修改请留空</div>{/if}</div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">回调地址</label>
+        <div class="layui-input-block"><input name="webhook_url" value="{$vo.webhook_url|default=''}" required class="layui-input" maxlength="512" placeholder="https://api.mojopay.example/webhook/gatepay/..."></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">出款 IP 白名单</label>
+        <div class="layui-input-block"><textarea name="payout_ip_allowlist" class="layui-textarea mono" placeholder="每行一个 IP，或逗号分隔">{$vo.payout_ip_allowlist|default=''}</textarea>
+        <div class="layui-word-aux">上游要求固定出款源 IP 时填写；无要求可留空</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">备注</label>
+        <div class="layui-input-block"><input name="credential_remark" value="{$vo.credential_remark|default=''}" class="layui-input" maxlength="255"></div></div>
+        <details style="margin:8px 0 12px;font-size:12px;color:#888;">
+            <summary style="cursor:pointer;color:#009688;">高级：外部密钥库路径（一般不用填）</summary>
+            <div class="layui-form-item" style="margin-top:10px;"><label class="layui-form-label">密钥库路径</label>
+            <div class="layui-input-block"><input name="credential_ref" value="{$vo.credential_ref|default=''}" class="layui-input mono" maxlength="255" placeholder="vault://gate_pay/sandbox/...">
+            <div class="layui-word-aux">若密钥放在 Vault/运维系统，可填引用路径；与上方 API Key 二选一即可</div></div></div>
+        </details>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>

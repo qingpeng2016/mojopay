@@ -1,0 +1,25 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:72vh;overflow-y:auto;">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">编码</label>
+        <div class="layui-input-block"><input name="code" value="{$vo.code|default=''}" required class="layui-input mono" maxlength="32" placeholder="GATE_PAY">
+        <div class="layui-word-aux">上游商家唯一编码</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">名称</label>
+        <div class="layui-input-block"><input name="name" value="{$vo.name|default=''}" required class="layui-input" maxlength="128" placeholder="Gate Pay"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">官网</label>
+        <div class="layui-input-block"><input name="official_url" value="{$vo.official_url|default=''}" required class="layui-input" maxlength="512" placeholder="https://www.example.com"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">生产 API</label>
+        <div class="layui-input-block"><input name="api_base_url_production" value="{$vo.api_base_url_production|default=''}" required class="layui-input mono" maxlength="512" placeholder="https://api.example.com">
+        <div class="layui-word-aux">生产环境 OpenAPI 根地址（启用时必填）</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">沙盒 API</label>
+        <div class="layui-input-block"><input name="api_base_url_sandbox" value="{$vo.api_base_url_sandbox|default=''}" class="layui-input mono" maxlength="512" placeholder="https://sandbox-api.example.com"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">开发文档</label>
+        <div class="layui-input-block"><input name="docs_url" value="{$vo.docs_url|default=''}" class="layui-input" maxlength="512" placeholder="https://docs.example.com"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">备注</label>
+        <div class="layui-input-block"><textarea name="remark" class="layui-textarea" maxlength="500" placeholder="对接说明、商务联系人等">{$vo.remark|default=''}</textarea></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select>
+        <div class="layui-word-aux">账号密钥、回调等在「主/子账号」「凭据与回调」维护</div></div></div>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>

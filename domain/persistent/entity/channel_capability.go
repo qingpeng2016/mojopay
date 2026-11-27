@@ -17,6 +17,7 @@ type ChannelCapability struct {
 	Operation         string          `gorm:"column:operation;type:varchar(24);not null"`                                                    // 通道支持的操作类型
 	Method            string          `gorm:"column:method;type:varchar(32);not null"`                                                       // 渠道支付或出款方式
 	Region            string          `gorm:"column:region;type:char(2);not null"`                                                           // 通道适用地区代码
+	RegionName        *string         `gorm:"column:region_name;type:varchar(64)"`                                                           // 地区中文名称
 	CapabilityKey     string          `gorm:"column:capability_key;type:varchar(64);not null"`                                               // 通道能力编码
 	Version           *uint32         `gorm:"column:version;type:int unsigned;not null;default:1"`                                           // 能力配置版本
 	MinAmount         decimal.Decimal `gorm:"column:min_amount;type:decimal(36,0);not null;default:0"`                                       // 单笔金额下限

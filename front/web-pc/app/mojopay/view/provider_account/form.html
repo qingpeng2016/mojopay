@@ -1,0 +1,21 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">上游</label>
+        <div class="layui-input-block"><select name="provider_id" lay-search required>{foreach $provider_options as $pk=>$pn}<option value="{$pk}" {if isset($vo.provider_id) && (int)$vo.provider_id===(int)$pk}selected{/if}>{$pn}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">环境</label>
+        <div class="layui-input-block"><select name="environment">{foreach $env_options as $ek=>$ev}<option value="{$ek}" {if isset($vo.environment) && $vo.environment===$ek}selected{/if}>{$ev}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">外部编号</label>
+        <div class="layui-input-block"><input name="external_id" value="{$vo.external_id|default=''}" required class="layui-input mono" maxlength="128"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">角色</label>
+        <div class="layui-input-block"><select name="role">{foreach $role_options as $rk=>$rv}<option value="{$rk}" {if isset($vo.role) && $vo.role===$rk}selected{/if}>{$rv}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">父账号</label>
+        <div class="layui-input-block"><select name="parent_id" lay-search><option value="">无（主账号）</option>{foreach $parent_options as $aid=>$al}<option value="{$aid}" {if isset($vo.parent_id) && (int)$vo.parent_id===(int)$aid}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">凭据引用</label>
+        <div class="layui-input-block"><input name="credential_ref" value="{$vo.credential_ref|default=''}" class="layui-input mono" maxlength="255" placeholder="vault://...">
+        <div class="layui-word-aux">也可在「凭据与回调」菜单集中维护</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>

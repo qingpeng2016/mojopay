@@ -1,0 +1,39 @@
+<script>
+(function () {
+    if (window.parent === window) {
+        return;
+    }
+    var pWin = window.parent;
+    var p$ = pWin.jQuery || pWin.$;
+    if (!p$ || !pWin.layer || !pWin.$ || !pWin.$.form) {
+        return;
+    }
+
+    function openInParent(elem) {
+        var dset = elem.dataset || {};
+        var url = dset.modal;
+        if (!url) {
+            return;
+        }
+        var title = dset.title || (elem.innerText || '').trim() || '编辑';
+        var area = dset.area || dset.width || '640px';
+        pWin.$.form.modal(url, {open_type: 'modal'}, title, null, true, undefined, area, 'auto', false, !!dset.maxmin)
+            .progress(function (type) {
+                if (type === 'modal.close') {
+                    window.location.reload();
+                }
+            });
+    }
+
+    document.addEventListener('click', function (e) {
+        var el = e.target && e.target.closest ? e.target.closest('[data-modal]') : null;
+        if (!el) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        openInParent(el);
+    }, true);
+})();
+</script>

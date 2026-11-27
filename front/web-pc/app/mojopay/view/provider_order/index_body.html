@@ -1,0 +1,28 @@
+<div class="think-box-shadow table-block">
+<p style="font-size:12px;color:#888;margin:0 0 10px;line-height:1.6;">经本上游执行的<strong>收款尝试</strong>与<strong>退款单</strong>（商户侧单号、上游单号、金额与状态）。</p>
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    {if !empty($locked_provider_id)}<input type="hidden" name="provider_id" value="{$locked_provider_id}"><input type="hidden" name="embed" value="1">{/if}
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">类型</label><div class="layui-input-inline" style="width:90px;"><select name="order_kind">{foreach $kinds as $kk=>$kv}<option value="{$kk}" {if isset($get.order_kind) && (string)$get.order_kind===(string)$kk}selected{/if}>{$kv}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号</label><div class="layui-input-inline" style="width:180px;"><select name="provider_account_id" lay-search><option value="">全部</option>{foreach $accounts as $aid=>$al}<option value="{$aid}" {if isset($get.provider_account_id) && (string)$get.provider_account_id===(string)$aid}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">商户单号</label><div class="layui-input-inline" style="width:120px;"><input name="biz_no" value="{$get.biz_no|default=''}" class="layui-input mono"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">上游单号</label><div class="layui-input-inline" style="width:120px;"><input name="provider_biz_no" value="{$get.provider_biz_no|default=''}" class="layui-input mono"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">状态</label><div class="layui-input-inline" style="width:100px;"><input name="status" value="{$get.status|default=''}" class="layui-input mono" placeholder="PAID"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">日期</label><div class="layui-input-inline" style="width:200px;"><input name="date_range" value="{$get.date_range|default=''}" class="layui-input" placeholder="2026-01-01 - 2026-01-31"></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr><th>类型</th><th>商户</th><th>上游账号</th><th>商户单号</th><th>上游单号</th><th>金额</th><th>资产</th><th>状态</th><th>创建时间</th></tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.kind_label}</td>
+<td>{$vo.merchant_name|default='-'}</td>
+<td class="mono">{$vo.account_external_id} / {$vo.environment}</td>
+<td class="mono">{$vo.biz_no|default='-'}</td>
+<td class="mono">{$vo.provider_biz_no|default=$vo.provider_request_no|default='-'}</td>
+<td class="mono">{$vo.amount}</td>
+<td class="mono">{$vo.asset_code|default='-'}</td>
+<td><span class="layui-badge {$vo.status_badge_cls|default='layui-bg-gray'}">{$vo.status}</span></td>
+<td>{$vo.created_at}</td>
+</tr>{/foreach}{if empty($list)}<tr><td colspan="9" style="text-align:center;color:#999;">暂无数据（默认近 90 天）</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>

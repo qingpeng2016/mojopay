@@ -1,0 +1,52 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">上游账号</label>
+        <div class="layui-input-block"><select name="provider_account_id" lay-search required>{foreach $account_options as $aid=>$al}<option value="{$aid}" {if isset($vo.provider_account_id) && (int)$vo.provider_account_id===(int)$aid}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">资产</label>
+        <div class="layui-input-block"><select name="asset_id" lay-search required>{foreach $asset_options as $asid=>$ac}<option value="{$asid}" {if isset($vo.asset_id) && (int)$vo.asset_id===(int)$asid}selected{/if}>{$ac}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">结算资产</label>
+        <div class="layui-input-block"><select name="settlement_asset_id" lay-search><option value="">同资产</option>{foreach $asset_options as $asid=>$ac}<option value="{$asid}" {if isset($vo.settlement_asset_id) && (int)$vo.settlement_asset_id===(int)$asid}selected{/if}>{$ac}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">操作</label>
+        <div class="layui-input-block"><select name="operation">{foreach $operation_options as $ok=>$ov}<option value="{$ok}" {if isset($vo.operation) && $vo.operation===$ok}selected{/if}>{$ov}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">方式 method</label>
+        <div class="layui-input-block"><input name="method" value="{$vo.method|default=''}" required class="layui-input mono" maxlength="32" placeholder="GATE_HOSTED"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">地区代码</label>
+        <div class="layui-input-block"><input id="cap-region-code" name="region" value="{$vo.region|default='US'}" required class="layui-input mono" maxlength="2" placeholder="US">
+        <div class="layui-word-aux">ISO 3166-1 两位国家/地区码</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">地区中文</label>
+        <div class="layui-input-block"><input id="cap-region-name" name="region_name" value="{$vo.region_name|default=''}" required class="layui-input" maxlength="64" placeholder="美国">
+        <div class="layui-word-aux">填写展示名；修改地区代码时可自动带出常用中文名</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">能力键</label>
+        <div class="layui-input-block"><input name="capability_key" value="{$vo.capability_key|default=''}" required class="layui-input mono" maxlength="64"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">版本</label>
+        <div class="layui-input-block"><input name="version" value="{$vo.version|default='1'}" class="layui-input" type="number" min="1"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">最小金额</label>
+        <div class="layui-input-block"><input name="min_amount" value="{$vo.min_amount|default='0'}" class="layui-input mono"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">最大金额</label>
+        <div class="layui-input-block"><input name="max_amount" value="{$vo.max_amount|default=''}" required class="layui-input mono"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">约束 JSON</label>
+        <div class="layui-input-block"><textarea name="constraints" class="layui-textarea mono" placeholder="{}">{$vo.constraints|default=$vo.constraints_text|default=''}</textarea></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
+        <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select></div></div>
+        <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
+    </div>
+</form>
+<script>
+(function () {
+    var map = {:json_encode($region_zh_map ?? [])};
+    var $code = document.getElementById('cap-region-code');
+    var $name = document.getElementById('cap-region-name');
+    if (!$code || !$name) return;
+    function suggestName() {
+        var c = ($code.value || '').toUpperCase().trim();
+        if (c.length !== 2 || !map[c]) return;
+        var cur = ($name.value || '').trim();
+        if (cur === '' || Object.values(map).indexOf(cur) >= 0) {
+            $name.value = map[c];
+        }
+    }
+    $code.addEventListener('blur', suggestName);
+    $code.addEventListener('change', suggestName);
+})();
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="__ROOT__/static/plugs/layui/css/layui.css">
+    <link rel="stylesheet" href="__ROOT__/static/theme/css/console.css">
+    <style>body{margin:0;background:#f8f8f8;}.table-block{margin:8px;}
+    .table-block .layui-table th:last-child,.table-block .layui-table td:last-child{white-space:nowrap;width:1%;}
+    .table-block .layui-table td:last-child .layui-btn+.layui-btn{margin-left:6px;}</style>
+</head>
+<body>
+{block name="content"}{/block}
+<script src="__ROOT__/static/plugs/layui/layui.js"></script>
+<script src="__ROOT__/static/plugs/jquery/jquery.min.js"></script>
+<script src="__ROOT__/static/plugs/require/require.js"></script>
+<script src="__ROOT__/static/admin.js"></script>
+<script>layui.use(['layer', 'form'], function () { window.layer = layui.layer; window.form = layui.form; });</script>
+{block name="script"}{/block}
+{include file="common/embed_hub_bridge"}
+</body>
+</html>

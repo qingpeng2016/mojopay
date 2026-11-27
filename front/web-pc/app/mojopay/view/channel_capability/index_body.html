@@ -1,0 +1,23 @@
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    {if !empty($locked_provider_id)}<input type="hidden" name="provider_id" value="{$locked_provider_id}"><input type="hidden" name="embed" value="1">{/if}
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">ID</label><div class="layui-input-inline" style="width:70px;"><input name="id" value="{$get.id|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号</label><div class="layui-input-inline" style="width:200px;"><select name="provider_account_id" lay-search><option value="">全部</option>{foreach $accounts as $aid=>$al}<option value="{$aid}" {if isset($get.provider_account_id) && (string)$get.provider_account_id===(string)$aid}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">操作</label><div class="layui-input-inline" style="width:100px;"><select name="operation"><option value="">全部</option>{foreach $operations as $ok=>$ov}<option value="{$ok}" {if isset($get.operation) && $get.operation===$ok}selected{/if}>{$ov}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><a class="layui-btn layui-btn-sm" data-modal="{:url('add')}" data-title="新增能力"><i class="layui-icon">&#xe654;</i> 新增</a></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr><th>ID</th><th>上游账号</th><th>能力键</th><th>操作</th><th>方式</th><th>资产</th><th>地区</th><th>地区中文</th><th>金额区间</th><th>状态</th><th>操作</th></tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.id}</td><td>{$vo.provider_name} / {$vo.account_external_id}</td><td class="mono">{$vo.capability_key} v{$vo.version}</td>
+<td class="mono">{$vo.operation}</td><td class="mono">{$vo.method}</td><td class="mono">{$vo.asset_code|default=$vo.asset_id}</td><td class="mono">{$vo.region}</td><td>{$vo.region_name|default='-'}</td>
+<td class="mono">{$vo.min_amount} ~ {$vo.max_amount}</td>
+<td><span class="layui-badge {if $vo.status==='ACTIVE'}layui-bg-green{/if}">{$vo.status}</span></td>
+<td>
+<a class="layui-btn layui-btn-xs layui-btn-primary" data-modal='{:url("edit")}?id={$vo.id}' data-title="修改">修改</a>
+<a class="layui-btn layui-btn-xs layui-btn-danger" data-confirm="确定删除？" data-action="{:url('remove')}" data-value="id#{$vo.id}">删除</a>
+</td></tr>{/foreach}{if empty($list)}<tr><td colspan="11" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>

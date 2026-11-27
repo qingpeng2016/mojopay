@@ -1,0 +1,84 @@
+{extend name="../../admin/view/main"}
+{block name="style"}
+<style>
+.mojopay-hub-card { margin: 12px 15px 0; }
+.mojopay-hub-tabs { margin: 0 15px 15px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.mojopay-hub-tabs .layui-tab-title { padding-left:10px; }
+.mojopay-hub-iframe { width:100%; border:0; min-height:calc(100vh - 220px); background:#fff; }
+.mojopay-stat { display:inline-block; margin-right:24px; color:#666; font-size:13px; }
+.mojopay-stat b { color:#009688; font-size:18px; margin-right:4px; }
+</style>
+{/block}
+{block name="content"}
+<div class="think-box-shadow mojopay-hub-card">
+    <div style="padding:12px 15px;">
+        <h3 style="margin:0 0 8px;">{$provider.name} <span class="layui-badge layui-bg-gray mono" style="font-weight:normal;">{$provider.code}</span>
+        {if $provider.status==='ACTIVE'}<span class="layui-badge layui-bg-green">已启用</span>{else}<span class="layui-badge">未启用</span>{/if}</h3>
+        <div style="font-size:12px;color:#888;margin-bottom:8px;">
+            {if !empty($provider.official_url)}官网：<a href="{$provider.official_url}" target="_blank" rel="noopener">{$provider.official_url}</a> · {/if}
+            生产 API：<span class="mono">{$provider.api_base_url_production|default='-'}</span>
+        </div>
+        <div>
+            <span class="mojopay-stat">账号 <b>{$stats.accounts}</b></span>
+            <span class="mojopay-stat">通道能力 <b>{$stats.capabilities}</b></span>
+            <span class="mojopay-stat">待处理流水 <b>{$stats.inbox_pending}</b></span>
+            <span class="mojopay-stat">订单 <b>{$stats.order_count}</b></span>
+            <a class="layui-btn layui-btn-xs layui-btn-primary" data-modal="{$tab_urls.edit}" data-title="编辑商家配置"><i class="layui-icon layui-icon-edit"></i> 编辑配置</a>
+        </div>
+    </div>
+</div>
+<div class="mojopay-hub-tabs">
+    <div class="layui-tab layui-tab-brief" lay-filter="mojopay-hub-tab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">首页</li>
+            <li lay-id="accounts">主/子账号</li>
+            <li lay-id="credentials">凭据与回调</li>
+            <li lay-id="capabilities">通道能力</li>
+            <li lay-id="inbox">余额流水</li>
+            <li lay-id="orders">订单记录</li>
+        </ul>
+        <div class="layui-tab-content" style="padding:0;">
+            <div class="layui-tab-item layui-show" style="padding:15px;">
+                <table class="layui-table" lay-skin="line" style="font-size:12px;max-width:960px;">
+                <tbody>
+                <tr><td width="140">编码</td><td class="mono">{$provider.code}</td></tr>
+                <tr><td>名称</td><td>{$provider.name}</td></tr>
+                <tr><td>官网</td><td>{if !empty($provider.official_url)}<a href="{$provider.official_url}" target="_blank">{$provider.official_url}</a>{else}-{/if}</td></tr>
+                <tr><td>沙盒 API</td><td class="mono">{$provider.api_base_url_sandbox|default='-'}</td></tr>
+                <tr><td>生产 API</td><td class="mono">{$provider.api_base_url_production|default='-'}</td></tr>
+                <tr><td>文档</td><td>{if !empty($provider.docs_url)}<a href="{$provider.docs_url}" target="_blank">{$provider.docs_url}</a>{else}-{/if}</td></tr>
+                <tr><td>备注</td><td>{$provider.remark|default='-'}</td></tr>
+                </tbody>
+                </table>
+                <p style="color:#999;font-size:12px;">其他 Tab 内数据已按本商家过滤；新增账号/能力请在对应 Tab 操作。</p>
+            </div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.accounts}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.credentials}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.capabilities}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.inbox}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.orders}"></iframe></div>
+        </div>
+    </div>
+</div>
+{/block}
+{block name="script"}
+<script>
+layui.use(['element','jquery'], function () {
+    var element = layui.element, $ = layui.jquery;
+    var loaded = {accounts:0,credentials:0,capabilities:0,inbox:0,orders:0};
+    function loadIframe(layId) {
+        if (!layId || loaded[layId]) return;
+        var $tab = $('.layui-tab-item').eq(['accounts','credentials','capabilities','inbox','orders'].indexOf(layId) + 1);
+        var $iframe = $tab.find('iframe');
+        if ($iframe.length && $iframe.attr('data-src')) {
+            $iframe.attr('src', $iframe.attr('data-src'));
+            loaded[layId] = 1;
+        }
+    }
+    element.on('tab(mojopay-hub-tab)', function (data) {
+        var titles = ['','accounts','credentials','capabilities','inbox','orders'];
+        loadIframe(titles[data.index] || '');
+    });
+});
+</script>
+{/block}
