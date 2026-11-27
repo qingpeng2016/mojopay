@@ -121,6 +121,9 @@ class MerchantMenuSync
             'mojopay/merchant_account/add',
             'mojopay/merchant_account/edit',
             'mojopay/merchant_account/remove',
+            'mojopay/merchant_compliance/manage',
+            'mojopay/merchant_compliance/case_add',
+            'mojopay/merchant_compliance/case_edit',
             'mojopay/merchant_open_api/index',
             'mojopay/merchant_open_api/add',
             'mojopay/merchant_open_api/edit',
@@ -133,7 +136,10 @@ class MerchantMenuSync
             'mojopay/merchant_channel_binding/edit',
             'mojopay/merchant_channel_binding/remove',
             'mojopay/merchant_event_outbox/index',
+            'mojopay/merchant_event_inbox/index',
             'mojopay/merchant_payment_order/index',
+            'mojopay/merchant_payment_order/add',
+            'mojopay/merchant_payment_order/binding_options',
         ];
         foreach ($nodes as $node) {
             $exists = $admin->name('system_auth_node')->where(['auth' => 1, 'node' => $node])->find();

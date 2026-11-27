@@ -1,0 +1,56 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        <input type="hidden" name="merchant_account_id" value="{$account.id}">
+        {if !empty($locked_merchant_id)}<input type="hidden" name="_scope_merchant_id" value="{$locked_merchant_id}">{/if}
+        <div class="layui-form-item"><label class="layui-form-label">账号</label>
+        <div class="layui-input-block"><input class="layui-input" disabled value="{$account.merchant_name} / {$account.code}"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">资质类型</label>
+        <div class="layui-input-block"><select name="qual_kind" lay-filter="qual_kind" required>
+            {foreach $qual_kinds as $qk=>$ql}<option value="{$qk}" {if isset($vo.qual_kind) && $vo.qual_kind===$qk}selected{elseif !isset($vo.id) && $qk==='KYB'}selected{/if}>{$ql}</option>{/foreach}
+        </select></div></div>
+        <div class="layui-form-item" id="row_merchant_user" style="{if isset($vo.qual_kind) && $vo.qual_kind==='KYC'}{else}{if !isset($vo.id)}display:none;{/if}{/if}">
+            <label class="layui-form-label label-required-next">最终用户</label>
+            <div class="layui-input-block">
+                <select name="merchant_user_id" lay-search>
+                    <option value="">请选择</option>
+                    {foreach $merchant_users as $uid=>$ulabel}
+                    <option value="{$uid}" {if isset($vo.merchant_user_id) && (int)$vo.merchant_user_id===(int)$uid}selected{/if}>{$ulabel}</option>
+                    {/foreach}
+                </select>
+                <div class="layui-word-aux">KYC 须绑定商户侧用户编号（merchant_user）</div>
+            </div>
+        </div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">国家/地区</label>
+        <div class="layui-input-block">
+            <select name="country" lay-search required>
+                {foreach $region_options as $rc=>$rn}
+                <option value="{$rc}" {if isset($vo.country) && $vo.country===$rc}selected{elseif !isset($vo.country) && $rc==='US'}selected{/if}>{$rc} · {$rn}</option>
+                {/foreach}
+            </select>
+        </div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">审核状态</label>
+        <div class="layui-input-block"><select name="status" required>
+            {foreach $status_options as $st}<option value="{$st}" {if isset($vo.status) && $vo.status===$st}selected{elseif !isset($vo.status) && $st==='PENDING'}selected{/if}>{$st}</option>{/foreach}
+        </select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">材料引用</label>
+        <div class="layui-input-block"><input name="evidence_ref" value="{$vo.evidence_ref|default=''}" class="layui-input" maxlength="255" placeholder="vault://… 或对象存储路径"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">有效期至</label>
+        <div class="layui-input-block"><input name="expires_at" value="{$vo.expires_at|default=''}" class="layui-input" placeholder="2026-12-31 23:59:59"></div></div>
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">保存</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+<script>
+layui.use(['form'], function () {
+    var form = layui.form, $ = layui.jquery;
+    function toggleUserRow(val) {
+        $('#row_merchant_user')[val === 'KYC' ? 'show' : 'hide']();
+    }
+    form.on('select(qual_kind)', function (data) { toggleUserRow(data.value); });
+    toggleUserRow($('select[name=qual_kind]').val() || 'KYB');
+    form.render('select');
+});
+</script>

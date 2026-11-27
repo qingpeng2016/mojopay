@@ -24,6 +24,7 @@ class ProviderMenuSync
         'mojopay/provider_account/index',
         'mojopay/provider_credential/index',
         'mojopay/channel_capability/index',
+        'mojopay/provider_callback_inbox/index',
         'mojopay/provider_event_inbox/index',
     ];
 
@@ -96,7 +97,7 @@ class ProviderMenuSync
 
         $admin->name('system_menu')->insert([
             'pid'       => $upstreamId,
-            'title'     => '商家列表',
+            'title'     => '上游列表',
             'icon'      => 'layui-icon layui-icon-add-circle',
             'node'      => self::LIB_NODE,
             'url'       => self::LIB_URL,
@@ -137,6 +138,7 @@ class ProviderMenuSync
             'mojopay/channel_capability/add',
             'mojopay/channel_capability/edit',
             'mojopay/channel_capability/remove',
+            'mojopay/provider_callback_inbox/index',
             'mojopay/provider_event_inbox/index',
             'mojopay/provider_order/index',
         ];

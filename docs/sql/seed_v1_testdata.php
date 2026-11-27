@@ -220,9 +220,18 @@ for ($i = 0; $i < 20; $i++) {
     $bindIds[] = (int)$pdo->query("SELECT id FROM channel_binding WHERE public_id=" . $pdo->quote($pub))->fetchColumn();
 }
 
-$insComp = $pdo->prepare('INSERT IGNORE INTO compliance_case (public_id,merchant_id,subject_type,purpose,country,status) VALUES (?,?,?,?,?,?)');
+$insComp = $pdo->prepare('INSERT IGNORE INTO compliance_case (public_id,merchant_id,merchant_account_id,merchant_user_id,subject_type,purpose,country,status,evidence_ref) VALUES (?,?,?,?,?,?,?,?,?)');
 for ($i = 0; $i < 15; $i++) {
-    $insComp->execute([pub('kyc'), $merIds[$i % count($merIds)], 'MERCHANT', 'KYB', 'US', $i % 3 === 0 ? 'PENDING' : 'APPROVED']);
+    $maid = $macctIds[$i % count($macctIds)];
+    $mid  = (int)$pdo->query("SELECT merchant_id FROM merchant_account WHERE id=$maid")->fetchColumn();
+    $insComp->execute([pub('kyb'), $mid, $maid, null, 'MERCHANT', 'KYB', 'US', $i % 3 === 0 ? 'PENDING' : 'APPROVED', 'vault://seed/kyb/' . $maid]);
+}
+foreach (array_slice($macctIds, 0, 8) as $maid) {
+    $mid = (int)$pdo->query("SELECT merchant_id FROM merchant_account WHERE id=$maid")->fetchColumn();
+    $uid = (int)$pdo->query("SELECT id FROM merchant_user WHERE merchant_id=$mid ORDER BY id ASC LIMIT 1")->fetchColumn();
+    if ($uid > 0) {
+        $insComp->execute([pub('kyc'), $mid, $maid, $uid, 'MERCHANT_USER', 'KYC', 'SG', 'PENDING', 'vault://seed/kyc/' . $uid]);
+    }
 }
 
 $insBen = $pdo->prepare('INSERT IGNORE INTO beneficiary (public_id,merchant_account_id,merchant_id,asset_id,network_id,type,country,destination_ref,fingerprint,status) VALUES (?,?,?,?,?,?,?,?,?,?)');
@@ -247,7 +256,7 @@ for ($i = 1; $i <= 30; $i++) {
     $quoteIds[] = (int)$pdo->query("SELECT id FROM quote WHERE public_id=" . $pdo->quote($pid))->fetchColumn();
 }
 
-$insPO = $pdo->prepare('INSERT IGNORE INTO payment_order (public_id,merchant_account_id,merchant_id,order_asset_id,settlement_asset_id,quote_id,merchant_order_no,order_amount,status,expires_at) VALUES (?,?,?,?,?,?,?,?,?,?)');
+$insPO = $pdo->prepare('INSERT IGNORE INTO payment_order (public_id,merchant_account_id,merchant_id,order_asset_id,settlement_asset_id,quote_id,merchant_order_no,order_amount,status,expires_at,payment_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
 $poIds = [];
 for ($i = 1; $i <= 35; $i++) {
     $maid = $macctIds[$i % count($macctIds)];
@@ -256,7 +265,8 @@ for ($i = 1; $i <= 35; $i++) {
     $pubId = pub('pay');
     $qid = $quoteIds[($i - 1) % count($quoteIds)];
     $st = ['CREATED', 'PENDING_PAYMENT', 'PAID', 'EXPIRED'][$i % 4];
-    $insPO->execute([$pubId, $maid, $mid, $assetId['USD'], $assetId['USD'], $qid, $mono, 5000 + $i * 100, $st, date('Y-m-d H:i:s', strtotime('+2 days'))]);
+    $payUrl = sprintf('https://checkout.mojopay.demo/pay/%s?token=%s', $pubId, bin2hex(random_bytes(8)));
+    $insPO->execute([$pubId, $maid, $mid, $assetId['USD'], $assetId['USD'], $qid, $mono, 5000 + $i * 100, $st, date('Y-m-d H:i:s', strtotime('+2 days')), $payUrl]);
     $poIds[] = (int)$pdo->query("SELECT id FROM payment_order WHERE merchant_order_no=" . $pdo->quote($mono))->fetchColumn();
 }
 $counts['payment_order'] = 35;
@@ -361,6 +371,13 @@ for ($i = 1; $i <= 40; $i++) {
     $types = ['balance.snapshot', 'payment.paid', 'payout.completed', 'webhook.test'];
     $pdo->prepare('INSERT IGNORE INTO provider_event_inbox (provider_account_id,dedup_key,event_type,payload,status,received_at) VALUES (?,?,?,?,?,?)')
         ->execute([$provAccIds[$i % count($provAccIds)], $dk, $types[$i % 4], json_encode(['seq' => $i, 'demo' => true]), $i % 5 === 0 ? 'DONE' : 'PENDING', date('Y-m-d H:i:s', strtotime("-$i hours"))]);
+}
+
+for ($i = 1; $i <= 20; $i++) {
+    $maid = $macctIds[$i % count($macctIds)];
+    $typ  = $i % 2 ? 'balance.snapshot' : 'balance.change';
+    $pdo->prepare('INSERT IGNORE INTO merchant_event_inbox (merchant_account_id,dedup_key,event_type,payload,status,received_at) VALUES (?,?,?,?,?,?)')
+        ->execute([$maid, "seed_merch_inbox_$i", $typ, json_encode(['seq' => $i, 'demo' => true]), $i % 4 === 0 ? 'DONE' : 'PENDING', date('Y-m-d H:i:s', strtotime("-$i hours"))]);
 }
 
 foreach (array_slice($macctIds, 0, 6) as $i => $maid) {

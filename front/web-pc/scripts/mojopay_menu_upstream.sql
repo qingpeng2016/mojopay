@@ -18,10 +18,11 @@ SELECT @upstream_dir_id, t.title, t.icon, t.node, t.url, '', '_self', t.sort, 1,
 FROM (
   SELECT 10 AS sort, '上游商家' AS title, 'layui-icon layui-icon-app' AS icon, 'mojopay/provider/index' AS node, 'mojopay/provider/index' AS url UNION ALL
   SELECT 20, '主/子账号', 'layui-icon layui-icon-user', 'mojopay/provider_account/index', 'mojopay/provider_account/index' UNION ALL
-  SELECT 30, '凭据与回调', 'layui-icon layui-icon-password', 'mojopay/provider_credential/index', 'mojopay/provider_credential/index' UNION ALL
-  SELECT 40, '通道能力', 'layui-icon layui-icon-slider', 'mojopay/channel_capability/index', 'mojopay/channel_capability/index' UNION ALL
+  SELECT 30, 'OpenApi', 'layui-icon layui-icon-password', 'mojopay/provider_credential/index', 'mojopay/provider_credential/index' UNION ALL
+  SELECT 40, '通道路由', 'layui-icon layui-icon-slider', 'mojopay/channel_capability/index', 'mojopay/channel_capability/index' UNION ALL
+  SELECT 45, '回调通知', 'layui-icon layui-icon-notice', 'mojopay/provider_callback_inbox/index', 'mojopay/provider_callback_inbox/index' UNION ALL
   SELECT 50, '余额流水', 'layui-icon layui-icon-list', 'mojopay/provider_event_inbox/index', 'mojopay/provider_event_inbox/index' UNION ALL
-  SELECT 55, '订单记录', 'layui-icon layui-icon-form', 'mojopay/provider_order/index', 'mojopay/provider_order/index'
+  SELECT 55, '支付订单', 'layui-icon layui-icon-form', 'mojopay/provider_order/index', 'mojopay/provider_order/index'
 ) AS t
 WHERE @upstream_dir_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM system_menu m WHERE m.pid = @upstream_dir_id AND m.node = t.node LIMIT 1);
@@ -61,6 +62,7 @@ SELECT 1, n.node FROM (
   SELECT 'mojopay/channel_capability/add' UNION ALL
   SELECT 'mojopay/channel_capability/edit' UNION ALL
   SELECT 'mojopay/channel_capability/remove' UNION ALL
+  SELECT 'mojopay/provider_callback_inbox/index' UNION ALL
   SELECT 'mojopay/provider_event_inbox/index' UNION ALL
   SELECT 'mojopay/provider_order/index'
 ) AS n

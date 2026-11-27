@@ -87,6 +87,87 @@ class Enum
         return $map[$t] ?? ($t === '' ? '-' : '其他通知');
     }
 
+    public static function isProviderInboxBalanceEventType(string $type): bool
+    {
+        return str_starts_with(strtolower(trim($type)), 'balance.');
+    }
+
+    /** @return list<string> */
+    public static function getComplianceStatuses(): array
+    {
+        return ['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED', 'SUSPENDED'];
+    }
+
+    /** @return array<string, string> UI 资质大类 */
+    public static function getComplianceQualKinds(): array
+    {
+        return [
+            'KYB' => 'KYB（主体）',
+            'KYC' => 'KYC（最终用户）',
+        ];
+    }
+
+    public static function complianceQualKindLabel(string $subjectType, string $purpose): string
+    {
+        $st = strtoupper(trim($subjectType));
+        $pu = strtoupper(trim($purpose));
+        if ($st === 'MERCHANT' || $pu === 'KYB') {
+            return 'KYB';
+        }
+        if ($st === 'MERCHANT_USER' || $pu === 'KYC') {
+            return 'KYC';
+        }
+
+        return $pu !== '' ? $pu : $st;
+    }
+
+    public static function complianceStatusBadgeClass(string $status): string
+    {
+        $st = strtoupper(trim($status));
+
+        return match ($st) {
+            'APPROVED' => 'layui-bg-green',
+            'PENDING' => 'layui-bg-orange',
+            'REJECTED', 'SUSPENDED' => 'layui-bg-red',
+            'EXPIRED' => 'layui-bg-gray',
+            default => 'layui-bg-cyan',
+        };
+    }
+
+    /** @return list<string> */
+    public static function getPaymentOrderStatuses(): array
+    {
+        return ['CREATED', 'PENDING_PAYMENT', 'PAID', 'EXPIRED', 'CANCELLED'];
+    }
+
+    public static function paymentOrderStatusLabel(string $status): string
+    {
+        $st = strtoupper(trim($status));
+
+        return match ($st) {
+            'CREATED' => '初始化',
+            'PENDING_PAYMENT' => '待支付',
+            'PAID' => '已支付',
+            'EXPIRED' => '已过期',
+            'CANCELLED' => '已取消',
+            default => $st === '' ? '-' : $st,
+        };
+    }
+
+    public static function complianceStatusLabel(string $status): string
+    {
+        $st = strtoupper(trim($status));
+
+        return match ($st) {
+            'PENDING' => '待审核',
+            'APPROVED' => '已通过',
+            'REJECTED' => '已拒绝',
+            'EXPIRED' => '已过期',
+            'SUSPENDED' => '已暂停',
+            default => $st === '' ? '-' : $st,
+        };
+    }
+
     public static function providerInboxStatusLabel(string $status): string
     {
         $st = strtoupper(trim($status));

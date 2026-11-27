@@ -1,0 +1,64 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if !empty($locked_merchant_id)}<input type="hidden" name="_scope_merchant_id" value="{$locked_merchant_id}">{/if}
+        {if !empty($locked_merchant_id)}
+        <div class="layui-form-item"><label class="layui-form-label">商户</label>
+        <div class="layui-input-block"><input class="layui-input" disabled value="{$locked_merchant_label}"></div></div>
+        {/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">商户账号</label>
+        <div class="layui-input-block"><select name="merchant_account_id" id="mpo_account" lay-search required lay-filter="mpo_account">
+            <option value="">请选择</option>
+            {foreach $account_options as $aid=>$al}<option value="{$aid}" {if isset($vo.merchant_account_id) && (int)$vo.merchant_account_id===(int)$aid}selected{/if}>{$al}</option>{/foreach}
+        </select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">通道路由</label>
+        <div class="layui-input-block"><select name="channel_binding_id" id="mpo_binding" lay-search required>
+            <option value="">请先选择账号</option>
+            {foreach $binding_options as $bid=>$bl}<option value="{$bid}">{$bl}</option>{/foreach}
+        </select>
+        <div class="layui-word-aux">仅展示该账号下已启用的路由</div></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">订单金额</label>
+        <div class="layui-input-block"><input name="order_amount" required class="layui-input" placeholder="如 99.50"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">币种</label>
+        <div class="layui-input-block"><select name="order_asset_id" lay-search required>
+            {foreach $asset_options as $asId=>$asLabel}<option value="{$asId}" {if isset($vo.order_asset_id) && (int)$vo.order_asset_id===(int)$asId}selected{/if}>{$asLabel}</option>{/foreach}
+        </select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">商户单号</label>
+        <div class="layui-input-block"><input name="merchant_order_no" class="layui-input mono" maxlength="128" placeholder="留空自动生成"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">过期时间</label>
+        <div class="layui-input-block"><input name="expires_at" value="{$vo.expires_at|default=''}" required class="layui-input" placeholder="2026-12-31 23:59:59"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">初始状态</label>
+        <div class="layui-input-block"><input class="layui-input" disabled value="CREATED（初始化）"></div></div>
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">创建订单</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+<script>
+layui.use(['form','jquery'], function () {
+    var form = layui.form, $ = layui.jquery;
+    var merchantId = $('input[name=_scope_merchant_id]').val() || '';
+    form.on('select(mpo_account)', function (data) {
+        var aid = data.value;
+        var $bind = $('#mpo_binding');
+        $bind.html('<option value="">加载中…</option>');
+        form.render('select');
+        if (!aid) {
+            $bind.html('<option value="">请先选择账号</option>');
+            form.render('select');
+            return;
+        }
+        var qs = 'merchant_account_id=' + encodeURIComponent(aid);
+        if (merchantId) qs += '&merchant_id=' + encodeURIComponent(merchantId);
+        $.get('{:url("binding_options")}?' + qs, function (res) {
+            var html = '<option value="">请选择</option>';
+            if (res && res.code === 1 && res.data) {
+                $.each(res.data, function (id, label) { html += '<option value="' + id + '">' + label + '</option>'; });
+            }
+            $bind.html(html);
+            form.render('select');
+        }, 'json');
+    });
+    form.render('select');
+});
+</script>

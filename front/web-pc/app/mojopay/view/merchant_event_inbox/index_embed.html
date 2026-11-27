@@ -1,0 +1,3 @@
+{extend name="common/embed_shell"}
+{block name="content"}{include file="merchant_event_inbox/index_body"}{/block}
+{block name="script"}{include file="common/pagination_assets"}<script>layui.use('form',function(){layui.form.render('select');});</script>{/block}

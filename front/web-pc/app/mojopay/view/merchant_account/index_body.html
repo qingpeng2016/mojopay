@@ -17,6 +17,7 @@
 <td><span class="layui-badge {if $vo.status==='ACTIVE'}layui-bg-green{/if}">{$vo.status}</span></td>
 <td style="white-space:nowrap;">
 <a class="layui-btn layui-btn-xs layui-btn-primary" data-modal='{:url("edit")}?id={$vo.id}{if !empty($locked_merchant_id)}&merchant_id={$locked_merchant_id}{/if}' data-title="修改账号">修改</a>
+<a class="layui-btn layui-btn-xs layui-btn-normal" data-modal='{:url("merchant_compliance/manage")}?merchant_account_id={$vo.id}{if !empty($locked_merchant_id)}&merchant_id={$locked_merchant_id}{/if}' data-area="960px,85%" data-title="资质管理">资质管理</a>
 <a class="layui-btn layui-btn-xs layui-btn-danger" data-confirm="确定删除？" data-action="{:url('remove')}" data-value="id#{$vo.id}">删除</a>
 </td></tr>{/foreach}{if empty($list)}<tr><td colspan="8" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}</tbody>
 </table>

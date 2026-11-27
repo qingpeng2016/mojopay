@@ -22,7 +22,7 @@ class ChannelCapability extends Controller
 
     public function index()
     {
-        $this->title = '通道能力';
+        $this->title = '通道路由';
         $get         = $this->request->get();
         $result      = $this->paginateMojopay(
             $this->filteredQuery($get)->order('c.id', 'desc'),

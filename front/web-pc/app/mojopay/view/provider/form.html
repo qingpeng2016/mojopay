@@ -19,7 +19,7 @@
         <div class="layui-input-block"><textarea name="remark" class="layui-textarea" maxlength="500" placeholder="对接说明、商务联系人等">{$vo.remark|default=''}</textarea></div></div>
         <div class="layui-form-item"><label class="layui-form-label label-required-next">状态</label>
         <div class="layui-input-block"><select name="status">{foreach $status_options as $sk=>$sv}<option value="{$sk}" {if isset($vo.status) && $vo.status===$sk}selected{/if}>{$sv}</option>{/foreach}</select>
-        <div class="layui-word-aux">账号密钥、回调等在「主/子账号」「凭据与回调」维护</div></div></div>
+        <div class="layui-word-aux">账号密钥、回调等在「主/子账号」「OpenApi」维护</div></div></div>
         <div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button class="layui-btn layui-btn-danger" type="button" data-close>取消</button></div>
     </div>
 </form>

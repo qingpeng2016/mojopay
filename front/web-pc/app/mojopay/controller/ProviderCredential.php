@@ -22,7 +22,7 @@ class ProviderCredential extends Controller
 
     public function index()
     {
-        $this->title = '凭据与回调';
+        $this->title = 'OpenApi';
         $get         = $this->request->get();
         $result      = $this->paginateMojopay(
             $this->filteredQuery($get)->order('a.id', 'desc'),

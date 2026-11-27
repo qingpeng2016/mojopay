@@ -36,7 +36,16 @@ class MerchantHub extends Controller
                 ? (int)$db->name('channel_binding')->whereIn('merchant_account_id', $acctIds)->count()
                 : 0,
             'outbox_pending' => $acctIds
-                ? (int)$db->name('merchant_event_outbox')->whereIn('merchant_account_id', $acctIds)->where('status', 'PENDING')->count()
+                ? (int)$db->name('merchant_event_outbox')->whereIn('merchant_account_id', $acctIds)
+                    ->where('status', 'PENDING')
+                    ->whereNotLike('event_type', 'balance.%')
+                    ->count()
+                : 0,
+            'inbox_pending' => $acctIds
+                ? (int)$db->name('merchant_event_inbox')->whereIn('merchant_account_id', $acctIds)
+                    ->where('status', 'PENDING')
+                    ->whereLike('event_type', 'balance.%')
+                    ->count()
                 : 0,
             'order_count' => (int)$db->name('payment_order')->where('merchant_id', $merchantId)->count(),
         ];
@@ -53,6 +62,7 @@ class MerchantHub extends Controller
                 'openapi'    => url('merchant_open_api/index') . '?' . $baseQuery,
                 'bindings'   => url('merchant_channel_binding/index') . '?' . $baseQuery,
                 'outbox'     => url('merchant_event_outbox/index') . '?' . $baseQuery,
+                'inbox'      => url('merchant_event_inbox/index') . '?' . $baseQuery,
                 'orders'     => url('merchant_payment_order/index') . '?' . $baseQuery,
                 'edit'       => url('merchant/edit') . '?id=' . $merchantId,
             ],

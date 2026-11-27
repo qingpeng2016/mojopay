@@ -40,6 +40,7 @@ SELECT 1, n.node FROM (
   SELECT 'mojopay/channel_capability/add' UNION ALL
   SELECT 'mojopay/channel_capability/edit' UNION ALL
   SELECT 'mojopay/channel_capability/remove' UNION ALL
+  SELECT 'mojopay/provider_callback_inbox/index' UNION ALL
   SELECT 'mojopay/provider_event_inbox/index' UNION ALL
   SELECT 'mojopay/provider_order/index' UNION ALL
   SELECT 'mojopay/provider_hub/index' UNION ALL
@@ -52,6 +53,9 @@ SELECT 1, n.node FROM (
   SELECT 'mojopay/merchant_account/add' UNION ALL
   SELECT 'mojopay/merchant_account/edit' UNION ALL
   SELECT 'mojopay/merchant_account/remove' UNION ALL
+  SELECT 'mojopay/merchant_compliance/manage' UNION ALL
+  SELECT 'mojopay/merchant_compliance/case_add' UNION ALL
+  SELECT 'mojopay/merchant_compliance/case_edit' UNION ALL
   SELECT 'mojopay/merchant_open_api/index' UNION ALL
   SELECT 'mojopay/merchant_open_api/add' UNION ALL
   SELECT 'mojopay/merchant_open_api/edit' UNION ALL
@@ -64,6 +68,9 @@ SELECT 1, n.node FROM (
   SELECT 'mojopay/merchant_channel_binding/edit' UNION ALL
   SELECT 'mojopay/merchant_channel_binding/remove' UNION ALL
   SELECT 'mojopay/merchant_event_outbox/index' UNION ALL
-  SELECT 'mojopay/merchant_payment_order/index'
+  SELECT 'mojopay/merchant_event_inbox/index' UNION ALL
+  SELECT 'mojopay/merchant_payment_order/index' UNION ALL
+  SELECT 'mojopay/merchant_payment_order/add' UNION ALL
+  SELECT 'mojopay/merchant_payment_order/binding_options'
 ) AS n
 WHERE EXISTS (SELECT 1 FROM system_auth WHERE id = 1);

@@ -8,8 +8,9 @@ import (
 type ComplianceCase struct {
 	ID             uint64     `gorm:"column:id;type:bigint unsigned;not null;primaryKey;autoIncrement"`                              // 自增主键
 	PublicID       string     `gorm:"column:public_id;type:varchar(64);not null"`                                                    // 对外资源编号
-	MerchantID     uint64     `gorm:"column:merchant_id;type:bigint unsigned;not null"`                                              // 所属商户主键
-	MerchantUserID *uint64    `gorm:"column:merchant_user_id;type:bigint unsigned"`                                                  // 商户最终用户主键
+	MerchantID          uint64     `gorm:"column:merchant_id;type:bigint unsigned;not null"`                                              // 所属商户主键
+	MerchantAccountID   *uint64    `gorm:"column:merchant_account_id;type:bigint unsigned"`                                                 // 关联商户主/子账号
+	MerchantUserID      *uint64    `gorm:"column:merchant_user_id;type:bigint unsigned"`                                                  // 商户最终用户主键
 	CapabilityID   *uint64    `gorm:"column:capability_id;type:bigint unsigned"`                                                     // 通道能力主键
 	SubjectType    string     `gorm:"column:subject_type;type:varchar(16);not null"`                                                 // 核验对象类型（商户或最终用户）
 	Purpose        string     `gorm:"column:purpose;type:varchar(24);not null"`                                                      // 资质核验用途

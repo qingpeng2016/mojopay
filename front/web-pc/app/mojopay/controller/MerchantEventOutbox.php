@@ -56,6 +56,8 @@ class MerchantEventOutbox extends Controller
             ->leftJoin('merchant_webhook_endpoint w', 'w.id = o.endpoint_id')
             ->field('o.*,a.code as account_code,m.legal_name as merchant_name,w.endpoint_url');
 
+        $query->whereNotLike('o.event_type', 'balance.%');
+
         $mid = $this->sanitizeId($get['merchant_id'] ?? $this->request->get('merchant_id'));
         if ($mid) {
             $query->where('a.merchant_id', $mid);

@@ -24,6 +24,7 @@ type PaymentOrder struct {
 	Origin                  string          `gorm:"column:origin;type:varchar(16);not null;default:API"`                                           // 建单方式（接口或人工）
 	Metadata                *datatypes.JSON `gorm:"column:metadata;type:json"`                                                                     // 订单扩展信息
 	ExpiresAt               time.Time       `gorm:"column:expires_at;type:datetime(6);not null"`                                                   // 支付订单到期时间
+	PaymentURL              *string         `gorm:"column:payment_url;type:varchar(512)"`                                                            // 付款页 URL（收银台链接）
 	CheckoutTokenHash       *[]byte         `gorm:"column:checkout_token_hash;type:binary(32)"`                                                    // 当前收银台令牌摘要
 	CheckoutBrandSnapshot   *datatypes.JSON `gorm:"column:checkout_brand_snapshot;type:json"`                                                      // 生成支付链接时的品牌配置
 	CheckoutIssuedAt        *time.Time      `gorm:"column:checkout_issued_at;type:datetime(6)"`                                                    // 当前支付链接生成时间

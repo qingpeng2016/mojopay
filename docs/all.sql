@@ -228,6 +228,7 @@ CREATE TABLE IF NOT EXISTS `compliance_case` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
   `public_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '对外资源编号',
   `merchant_id` BIGINT UNSIGNED NOT NULL COMMENT '所属商户主键',
+  `merchant_account_id` BIGINT UNSIGNED NULL COMMENT '关联商户主/子账号',
   `merchant_user_id` BIGINT UNSIGNED NULL COMMENT '商户最终用户主键',
   `capability_id` BIGINT UNSIGNED NULL COMMENT '通道能力主键',
   `subject_type` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '核验对象类型（商户或最终用户）',
@@ -241,7 +242,9 @@ CREATE TABLE IF NOT EXISTS `compliance_case` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_compliance_case_public` (`public_id`),
   KEY `idx_compliance_subject` (`merchant_id`, `subject_type`, `status`, `expires_at`),
+  KEY `idx_compliance_merchant_account` (`merchant_account_id`, `status`),
   CONSTRAINT `fk_compliance_merchant` FOREIGN KEY (`merchant_id`) REFERENCES `merchant` (`id`),
+  CONSTRAINT `fk_compliance_merchant_account` FOREIGN KEY (`merchant_account_id`) REFERENCES `merchant_account` (`id`),
   CONSTRAINT `fk_compliance_user` FOREIGN KEY (`merchant_user_id`, `merchant_id`) REFERENCES `merchant_user` (`id`, `merchant_id`),
   CONSTRAINT `fk_compliance_capability` FOREIGN KEY (`capability_id`) REFERENCES `channel_capability` (`id`),
   CONSTRAINT `ck_compliance_subject` CHECK ((`subject_type` = 'MERCHANT' AND `merchant_user_id` IS NULL) OR (`subject_type` = 'MERCHANT_USER' AND `merchant_user_id` IS NOT NULL))
@@ -320,6 +323,7 @@ CREATE TABLE IF NOT EXISTS `payment_order` (
   `origin` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'API' COMMENT '建单方式（接口或人工）',
   `metadata` JSON NULL COMMENT '订单扩展信息',
   `expires_at` DATETIME(6) NOT NULL COMMENT '支付订单到期时间',
+  `payment_url` VARCHAR(512) NULL COMMENT '付款页 URL（收银台链接）',
   `checkout_token_hash` BINARY(32) NULL COMMENT '当前收银台令牌摘要',
   `checkout_brand_snapshot` JSON NULL COMMENT '生成支付链接时的品牌配置',
   `checkout_issued_at` DATETIME(6) NULL COMMENT '当前支付链接生成时间',
@@ -651,6 +655,22 @@ CREATE TABLE IF NOT EXISTS `merchant_event_outbox` (
   KEY `idx_outbox_account_event` (`merchant_account_id`, `event_id`),
   CONSTRAINT `fk_outbox_endpoint` FOREIGN KEY (`endpoint_id`, `merchant_account_id`) REFERENCES `merchant_webhook_endpoint` (`id`, `merchant_account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='按收件地址投递的商户出站事件';
+
+CREATE TABLE IF NOT EXISTS `merchant_event_inbox` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `merchant_account_id` BIGINT UNSIGNED NOT NULL COMMENT '商户账号主键',
+  `dedup_key` VARCHAR(180) COLLATE utf8mb4_bin NOT NULL COMMENT '余额/流水事件去重键',
+  `event_type` VARCHAR(48) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '事件类型',
+  `payload` JSON NOT NULL COMMENT '余额流水事件数据',
+  `status` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'PENDING' COMMENT '事件处理状态',
+  `received_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '接收时间',
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_merchant_inbox_dedup` (`merchant_account_id`, `dedup_key`),
+  KEY `idx_merchant_inbox_status` (`status`, `received_at`),
+  CONSTRAINT `fk_merchant_inbox_account` FOREIGN KEY (`merchant_account_id`) REFERENCES `merchant_account` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商户余额快照与变动接收记录';
 
 CREATE TABLE IF NOT EXISTS `async_job` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',

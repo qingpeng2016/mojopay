@@ -1,0 +1,21 @@
+<div class="think-box-shadow table-block">
+<p style="font-size:12px;color:#888;margin:0 0 10px;line-height:1.6;">本商户各账号 <strong>余额快照 / 变动</strong> 类事件及处理进度（账内同步或内部投递）。</p>
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    {if !empty($locked_merchant_id)}<input type="hidden" name="merchant_id" value="{$locked_merchant_id}"><input type="hidden" name="embed" value="1">{/if}
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">ID</label><div class="layui-input-inline" style="width:70px;"><input name="id" value="{$get.id|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号</label><div class="layui-input-inline" style="width:200px;"><select name="merchant_account_id" lay-search><option value="">全部</option>{foreach $accounts as $aid=>$al}<option value="{$aid}" {if isset($get.merchant_account_id) && (string)$get.merchant_account_id===(string)$aid}selected{/if}>{$al}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">事件</label><div class="layui-input-inline" style="width:130px;"><select name="event_type"><option value="">全部</option>{foreach $event_types as $ek=>$ev}{if $ek!==''}<option value="{$ek}" {if isset($get.event_type) && (string)$get.event_type===(string)$ek}selected{/if}>{$ev}</option>{/if}{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">日期</label><div class="layui-input-inline" style="width:200px;"><input name="date_range" value="{$get.date_range|default=''}" class="layui-input" placeholder="2026-01-01 - 2026-01-31"></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr><th>ID</th>{if empty($locked_merchant_id)}<th>商户</th>{/if}<th>账号</th><th>事件</th><th>状态</th><th>接收时间</th><th>摘要</th></tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.id}</td>{if empty($locked_merchant_id)}<td>{$vo.merchant_name}</td>{/if}<td class="mono">{$vo.account_code} / {$vo.account_role}</td>
+<td>{$vo.event_type_text|default='-'}</td>
+<td><span class="layui-badge {$vo.status_badge_cls|default='layui-bg-gray'}">{$vo.status_text|default=$vo.status}</span></td><td>{$vo.received_at}</td>
+<td class="mono" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;" title="{$vo.payload_preview}">{$vo.payload_preview}</td>
+</tr>{/foreach}{if empty($list)}<tr><td colspan="7" style="text-align:center;color:#999;">暂无数据（默认近 30 天）</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>

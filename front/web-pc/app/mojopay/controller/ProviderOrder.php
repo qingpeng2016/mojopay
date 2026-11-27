@@ -23,7 +23,7 @@ class ProviderOrder extends Controller
 
     public function index()
     {
-        $this->title = '订单记录';
+        $this->title = '支付订单';
         $get         = $this->request->get();
         $page        = isset($get['page']) ? max(1, (int)$get['page']) : 1;
         $pageSize    = isset($get['pageSize']) ? min(100, max(10, (int)$get['pageSize'])) : 30;

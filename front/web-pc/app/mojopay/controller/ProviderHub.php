@@ -35,10 +35,17 @@ class ProviderHub extends Controller
                 ->join('provider_account a', 'a.id = c.provider_account_id')
                 ->where('a.provider_id', $providerId)
                 ->count(),
+            'callback_pending' => (int)$db->name('provider_event_inbox')->alias('i')
+                ->join('provider_account a', 'a.id = i.provider_account_id')
+                ->where('a.provider_id', $providerId)
+                ->where('i.status', 'PENDING')
+                ->whereNotLike('i.event_type', 'balance.%')
+                ->count(),
             'inbox_pending' => (int)$db->name('provider_event_inbox')->alias('i')
                 ->join('provider_account a', 'a.id = i.provider_account_id')
                 ->where('a.provider_id', $providerId)
                 ->where('i.status', 'PENDING')
+                ->whereLike('i.event_type', 'balance.%')
                 ->count(),
             'order_count'   => (int)$db->name('payment_attempt')->alias('pa')
                 ->join('provider_account a', 'a.id = pa.provider_account_id')
@@ -61,6 +68,7 @@ class ProviderHub extends Controller
                 'accounts'     => url('provider_account/index') . '?' . $baseQuery,
                 'credentials'  => url('provider_credential/index') . '?' . $baseQuery,
                 'capabilities' => url('channel_capability/index') . '?' . $baseQuery,
+                'callbacks'    => url('provider_callback_inbox/index') . '?' . $baseQuery,
                 'inbox'        => url('provider_event_inbox/index') . '?' . $baseQuery,
                 'orders'       => url('provider_order/index') . '?' . $baseQuery,
                 'edit'         => url('provider/edit') . '?id=' . $providerId,

@@ -20,7 +20,8 @@
         </div>
         <div>
             <span class="mojopay-stat">账号 <b>{$stats.accounts}</b></span>
-            <span class="mojopay-stat">通道能力 <b>{$stats.capabilities}</b></span>
+            <span class="mojopay-stat">通道路由 <b>{$stats.capabilities}</b></span>
+            <span class="mojopay-stat">待处理回调 <b>{$stats.callback_pending}</b></span>
             <span class="mojopay-stat">待处理流水 <b>{$stats.inbox_pending}</b></span>
             <span class="mojopay-stat">订单 <b>{$stats.order_count}</b></span>
             <a class="layui-btn layui-btn-xs layui-btn-primary" data-modal="{$tab_urls.edit}" data-title="编辑商家配置"><i class="layui-icon layui-icon-edit"></i> 编辑配置</a>
@@ -32,10 +33,11 @@
         <ul class="layui-tab-title">
             <li class="layui-this">首页</li>
             <li lay-id="accounts">主/子账号</li>
-            <li lay-id="credentials">凭据与回调</li>
-            <li lay-id="capabilities">通道能力</li>
+            <li lay-id="credentials">OpenApi</li>
+            <li lay-id="capabilities">通道路由</li>
+            <li lay-id="callbacks">回调通知</li>
             <li lay-id="inbox">余额流水</li>
-            <li lay-id="orders">订单记录</li>
+            <li lay-id="orders">支付订单</li>
         </ul>
         <div class="layui-tab-content" style="padding:0;">
             <div class="layui-tab-item layui-show" style="padding:15px;">
@@ -50,11 +52,12 @@
                 <tr><td>备注</td><td>{$provider.remark|default='-'}</td></tr>
                 </tbody>
                 </table>
-                <p style="color:#999;font-size:12px;">其他 Tab 内数据已按本商家过滤；新增账号/能力请在对应 Tab 操作。</p>
+                <p style="color:#999;font-size:12px;">其他 Tab 内数据已按本商家过滤；新增账号/路由请在对应 Tab 操作。</p>
             </div>
             <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.accounts}"></iframe></div>
             <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.credentials}"></iframe></div>
             <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.capabilities}"></iframe></div>
+            <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.callbacks}"></iframe></div>
             <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.inbox}"></iframe></div>
             <div class="layui-tab-item"><iframe class="mojopay-hub-iframe" data-src="{$tab_urls.orders}"></iframe></div>
         </div>
@@ -65,10 +68,10 @@
 <script>
 layui.use(['element','jquery'], function () {
     var element = layui.element, $ = layui.jquery;
-    var loaded = {accounts:0,credentials:0,capabilities:0,inbox:0,orders:0};
+    var loaded = {accounts:0,credentials:0,capabilities:0,callbacks:0,inbox:0,orders:0};
     function loadIframe(layId) {
         if (!layId || loaded[layId]) return;
-        var $tab = $('.layui-tab-item').eq(['accounts','credentials','capabilities','inbox','orders'].indexOf(layId) + 1);
+        var $tab = $('.layui-tab-item').eq(['accounts','credentials','capabilities','callbacks','inbox','orders'].indexOf(layId) + 1);
         var $iframe = $tab.find('iframe');
         if ($iframe.length && $iframe.attr('data-src')) {
             $iframe.attr('src', $iframe.attr('data-src'));
@@ -76,7 +79,7 @@ layui.use(['element','jquery'], function () {
         }
     }
     element.on('tab(mojopay-hub-tab)', function (data) {
-        var titles = ['','accounts','credentials','capabilities','inbox','orders'];
+        var titles = ['','accounts','credentials','capabilities','callbacks','inbox','orders'];
         loadIframe(titles[data.index] || '');
     });
 });

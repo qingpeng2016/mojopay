@@ -128,7 +128,7 @@ class ProviderAccount extends Controller
 
         $cap = $this->mojopayDb()->name('channel_capability')->where('provider_account_id', $id)->find();
         if (!empty($cap)) {
-            return $this->error('存在通道能力配置，无法删除');
+            return $this->error('存在通道路由配置，无法删除');
         }
 
         $deleted = $this->mojopayDb()->name('provider_account')->where('id', $id)->delete();

@@ -21,7 +21,7 @@ class Provider extends Controller
 
     public function index()
     {
-        $this->title = '商家列表';
+        $this->title = '上游列表';
         $get         = $this->request->get();
         $result      = $this->paginateMojopay(
             $this->filteredQuery($get)->order('id', 'desc'),
