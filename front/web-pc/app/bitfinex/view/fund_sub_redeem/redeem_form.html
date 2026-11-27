@@ -1,0 +1,82 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off" id="fsr-redeem-form">
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <label class="layui-form-label">申购 ID</label>
+            <div class="layui-input-block">
+                <input type="text" value="{$vo.id|default=''}" class="layui-input layui-disabled" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">客户/产品</label>
+            <div class="layui-input-block">
+                <input type="text" value="#{$vo.client_id|default=''} {$vo.client_name|default=''} · {$vo.product_code|default=''}" class="layui-input layui-disabled" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">产品类型</label>
+            <div class="layui-input-block" style="padding-top:9px;">{$vo.product_type|default='-'}</div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">可赎金额</label>
+            <div class="layui-input-block">
+                <input type="text" value="{$vo.redeemable_amount_fmt|default='0'}" class="layui-input layui-disabled mono" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">赎回类型</label>
+            <div class="layui-input-block">
+                <select name="redemption_type" lay-filter="fsr-redemption-type">
+                    <option value="FULL">全部赎回</option>
+                    <option value="PARTIAL">部分赎回</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item fsr-partial-field" style="display:none;">
+            <label class="layui-form-label">赎回金额 amount</label>
+            <div class="layui-input-block">
+                <input name="amount" placeholder="保底型必填；浮动型可选" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item fsr-partial-field fsr-shares-field" style="display:none;">
+            <label class="layui-form-label">赎回份额 shares</label>
+            <div class="layui-input-block">
+                <input name="shares" placeholder="浮动型可选" class="layui-input mono">
+                <div class="layui-form-mid layui-word-aux">FLOATING 部分赎回可填 shares 或 amount</div>
+            </div>
+        </div>
+        <div class="hr-line-dashed"></div>
+        <input type="hidden" name="subscription_id" value="{$vo.id|default=''}">
+        <input type="hidden" id="fsr-product-type" value="{$vo.product_type|default=''}">
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">提交赎回</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function () {
+    var form = layui.form;
+    var productType = document.getElementById('fsr-product-type').value || '';
+    var partialFields = document.querySelectorAll('.fsr-partial-field');
+    var sharesField = document.querySelector('.fsr-shares-field');
+
+    function syncPartialFields(type) {
+        var show = type === 'PARTIAL';
+        partialFields.forEach(function (el) { el.style.display = show ? '' : 'none'; });
+        if (sharesField) {
+            sharesField.style.display = (show && productType === 'FLOATING') ? '' : 'none';
+        }
+    }
+
+    form.render();
+    form.on('select(fsr-redemption-type)', function (data) {
+        syncPartialFields(data.value);
+    });
+    syncPartialFields('FULL');
+});
+</script>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>

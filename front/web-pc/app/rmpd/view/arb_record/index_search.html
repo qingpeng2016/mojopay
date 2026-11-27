@@ -1,0 +1,87 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+    <div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">套利记录ID</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <input name="id" value="{$get.id|default=''}" placeholder="精确匹配" class="layui-input" type="number" min="1">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">市场对ID</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <input name="market_pair_id" value="{$get.market_pair_id|default=''}" placeholder="精确匹配" class="layui-input" type="number" min="1">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:140px;">
+                <select name="status" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $statuses as $key=>$label}
+                    <option value="{$key}" {if isset($get.status) && $get.status==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">依赖类型</label>
+            <div class="layui-input-inline" style="width:150px;">
+                <select name="dependency_type" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $dep_types as $key=>$label}
+                    <option value="{$key}" {if isset($get.dependency_type) && $get.dependency_type==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">平台A</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="platform_a" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $platforms as $key=>$label}
+                    <option value="{$key}" {if isset($get.platform_a) && $get.platform_a==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">平台B</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="platform_b" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $platforms as $key=>$label}
+                    <option value="{$key}" {if isset($get.platform_b) && $get.platform_b==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">执行机器</label>
+            <div class="layui-input-inline" style="width:130px;">
+                <input name="assigned_machine" value="{$get.assigned_machine|default=''}" placeholder="精确匹配" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">创建时间</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <input name="date_range" value="{$get.date_range|default=''}" placeholder="开始日期 - 结束日期（默认近30天）" class="layui-input" id="arb-date-range">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form', 'laydate'], function () {
+    layui.form.render('select');
+    layui.laydate.render({
+        elem: '#arb-date-range',
+        type: 'date',
+        range: ' - ',
+        format: 'yyyy-MM-dd'
+    });
+});
+</script>

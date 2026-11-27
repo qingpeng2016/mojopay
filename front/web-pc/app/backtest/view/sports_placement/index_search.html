@@ -1,0 +1,105 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+    <div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">联赛名称</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <input name="league_name" value="{$get.league_name|default=''}" placeholder="联赛名称" class="layui-input" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">联赛 ID</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <input name="league_id" value="{$get.league_id|default=''}" placeholder="league_id" class="layui-input" type="number" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">市场记录ID</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <input name="sports_market_id" value="{$get.sports_market_id|default=''}" placeholder="sports_market_id" class="layui-input" type="number" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">赛事 ID</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <input name="event_id" value="{$get.event_id|default=''}" placeholder="event_id" class="layui-input" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">盘口标识</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <input name="market_key" value="{$get.market_key|default=''}" placeholder="market_key" class="layui-input" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">返回码</label>
+            <div class="layui-input-inline" style="width:90px;">
+                <input name="calc_code" value="{$get.calc_code|default=''}" placeholder="calc_code" class="layui-input" type="number" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">市场状态</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="market_status" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $marketStatusOptions as $v}
+                    <option value="{$v}" {if ($get.market_status??'')==$v}selected{/if}>{$v}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">市场状态(文本)</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <input name="market_status_text" value="{$get.market_status_text|default=''}" placeholder="模糊匹配" class="layui-input" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">赛事状态</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="in_event_status" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $eventStatusOptions as $v}
+                    <option value="{$v}" {if ($get.in_event_status??'')==$v}selected{/if}>{$v}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">赛事状态(文本)</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <input name="in_event_status_text" value="{$get.in_event_status_text|default=''}" placeholder="模糊匹配" class="layui-input" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">开始时间</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <input name="calc_start" value="{$get.calc_start|default=''}" placeholder="yyyy-MM-dd HH:mm:ss" class="layui-input" id="sp-calc-start" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">结束时间</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <input name="calc_end" value="{$get.calc_end|default=''}" placeholder="yyyy-MM-dd HH:mm:ss" class="layui-input" id="sp-calc-end" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form', 'laydate'], function () {
+    layui.form.render('select');
+    layui.laydate.render({
+        elem: '#sp-calc-start',
+        type: 'datetime',
+        format: 'yyyy-MM-dd HH:mm:ss'
+    });
+    layui.laydate.render({
+        elem: '#sp-calc-end',
+        type: 'datetime',
+        format: 'yyyy-MM-dd HH:mm:ss'
+    });
+});
+</script>

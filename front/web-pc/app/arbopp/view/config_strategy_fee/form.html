@@ -1,0 +1,12 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+<div class="layui-card-body">
+{if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+<div class="layui-form-item"><label class="layui-form-label label-required-next">平台</label><div class="layui-input-block"><select name="platform" required>{foreach $platforms as $p}<option value="{$p}" {if isset($vo.platform)&&$vo.platform==$p}selected{/if}>{$p}</option>{/foreach}</select></div></div>
+<div class="layui-form-item"><label class="layui-form-label label-required-next">大类</label><div class="layui-input-block"><input name="category" value="{$vo.category|default='Sports'}" required class="layui-input"></div></div>
+<div class="layui-form-item"><label class="layui-form-label">子类</label><div class="layui-input-block"><input name="sub_category" value="{$vo.sub_category|default=''}" class="layui-input"><div class="layui-word-aux">空=该大类默认系数</div></div></div>
+<div class="layui-form-item"><label class="layui-form-label label-required-next">系数</label><div class="layui-input-block"><input name="taker_fee_coef" value="{$vo.taker_fee_coef|default=''}" required class="layui-input mono"></div></div>
+<div class="layui-form-item"><label class="layui-form-label">说明</label><div class="layui-input-block"><input name="description" value="{$vo.description|default=''}" class="layui-input"></div></div>
+<div class="layui-form-item"><label class="layui-form-label">状态</label><div class="layui-input-block">{foreach $tiny_status as $s}<input type="radio" name="status" value="{$s}" title="{$s}" {if isset($vo.status)&&strval($vo.status)==$s}checked{elseif $s=='1'&&!isset($vo.id)}checked{/if}>{/foreach}</div></div>
+<div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button type="button" class="layui-btn layui-btn-danger" data-close>取消</button></div>
+</div>
+</form>

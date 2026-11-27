@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fg-marketmaker-mis
+  labels:
+    app: fg-marketmaker-mis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fg-marketmaker-mis
+  template:
+    metadata:
+      labels:
+        app: fg-marketmaker-mis
+    spec:
+      nodeSelector:
+        alibabacloud.com/nodepool-id: ${NODEGROUP}
+      containers:
+      - name: fg-marketmaker-mis
+        image: ${REPOSITORY_URI}:${IMAGE_TAG}
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: fg-marketmaker-mis-config
+        - secretRef:
+            name: fg-marketmaker-mis-secrets
+        resources:
+          requests:
+            cpu: "${REQUEST_CPU}"
+            memory: "${REQUEST_MEMORY}"
+          limits:
+            cpu: "${LIMIT_CPU}"
+            memory: "${LIMIT_MEMORY}"
+      imagePullSecrets:
+      - name: acr-secret

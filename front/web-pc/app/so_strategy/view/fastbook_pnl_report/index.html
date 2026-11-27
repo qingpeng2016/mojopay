@@ -1,0 +1,121 @@
+{extend name="../../admin/view/main"}
+
+{block name="style"}
+<style>
+.fastbook-table-block{overflow:hidden}.fastbook-table-scroll{width:100%;overflow-x:auto;border:1px solid #f0f0f0;border-radius:3px}.fastbook-table-scroll table{width:max-content;min-width:100%;margin:0}.fastbook-table-scroll thead th{position:sticky;top:0;z-index:2;background:#fafafa;color:#555;font-weight:600}.fastbook-table-scroll th,.fastbook-table-scroll td{white-space:nowrap;padding:10px 12px}.fastbook-table-scroll td .fb-cell{max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}.fastbook-table-scroll td .fb-cell:hover{color:#009688}.fastbook-table-scroll td .fb-cell.fb-empty{cursor:default;color:#bbb}.fastbook-table-scroll tbody tr:hover{background:#f8fbff}.insight-range-wrap{display:flex;align-items:center;gap:6px;width:100%;height:38px;padding:0 10px;border:1px solid #e6e6e6;border-radius:2px;background:#fff;box-sizing:border-box;cursor:pointer}.insight-range-input{flex:1;min-width:0;width:0;height:36px;border:0;outline:0;background:transparent;cursor:pointer}.fb-pos{color:#009688;font-weight:600}.fb-neg{color:#f44336;font-weight:600}.fb-detail{white-space:nowrap}.notdata{display:block;text-align:center;padding:30px;color:#999}.fastbook-pagination{overflow-x:auto}.fastbook-pagination .pagination{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;margin:20px 0 4px;padding:0;list-style:none}.fastbook-pagination .pagination li{display:block;margin:0}.fastbook-pagination .pagination li a,.fastbook-pagination .pagination li span{display:flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 10px;box-sizing:border-box;border:1px solid #e2e2e2;background:#fff;color:#666;text-decoration:none;border-radius:4px;line-height:1;transition:color .2s,border-color .2s,background-color .2s}.fastbook-pagination .pagination li a:hover{background:#f2fffc;color:#009688;border-color:#009688}.fastbook-pagination .pagination li.active span{background:#009688;color:#fff;border-color:#009688}.fastbook-pagination .pagination li.disabled span{background:#f7f7f7;color:#bbb;cursor:not-allowed}@media(max-width:640px){.fastbook-pagination .pagination{justify-content:flex-start;flex-wrap:nowrap}.fastbook-pagination .pagination li{flex:0 0 auto}}
+</style>
+{/block}
+
+*{block name="button"}
+<div class="layui-btn-group">
+    <!-- data-table-refresh 只对 layui 表格生效，本页是服务端渲染的静态表，改用 admin.js 的 $.form.reload()。 -->
+    <button data-page-refresh class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon">&#xe669;</i> 刷新</button>
+    <a class="layui-btn layui-btn-sm layui-btn-normal" href="{:url('export')}?{$export_query}"><i class="layui-icon">&#xe601;</i> 导出 CSV</a>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow fastbook-table-block" style="padding:16px;">
+    {if !empty($notice)}<div class="layui-bg-gray" style="padding:10px 12px;margin-bottom:12px;color:#666;">{$notice}</div>{/if}
+    <form id="pnl-report-form" class="layui-form layui-form-pane form-search" action="{$navigation_path}" onsubmit="return false" method="get" autocomplete="off">
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">时间范围</label>
+            <!-- 与数据洞察完全相同的写法：只读触发框 + 隐藏起止日期，laydate 用 range:true 并显式给定初值。 -->
+            <div class="layui-input-inline" style="width:280px;"><div id="range-wrap" class="insight-range-wrap"><i class="layui-icon">&#xe637;</i><input readonly id="range-trigger" class="insight-range-input" value="{$range_start} - {$range_end}"></div></div>
+            <input type="hidden" name="range_start" id="range-start" value="{$range_start}"><input type="hidden" name="range_end" id="range-end" value="{$range_end}">
+        </div>
+        {foreach $filters as $filter}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">{$filter.label}</label>
+            <div class="layui-input-inline" style="width:180px;">
+                {if $filter.type eq 'select'}
+                <select name="{$filter.name}">
+                    {foreach $filter.options as $oval => $olabel}
+                    <option value="{$oval}" {if $filter.value eq $oval}selected{/if}>{$olabel}</option>
+                    {/foreach}
+                </select>
+                {else}
+                <input name="{$filter.name}" value="{$filter.value}" placeholder="请输入" class="layui-input">
+                {/if}
+            </div>
+        </div>
+        {/foreach}
+        <div class="layui-form-item layui-inline"><button id="btn-search" class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+    </form>
+    <div class="fastbook-table-scroll">
+        <table class="layui-table margin-top-10" lay-skin="line">
+            <thead><tr>{foreach $columns as $column}<th>{$column.label}</th>{/foreach}</tr></thead>
+            <tbody>
+            {foreach $list as $vo}
+            <tr>
+                {foreach $columns as $column}
+                {php}
+                    $column = (array)$column;
+                    if (!empty($column['detail'])) {
+                        $text = null;
+                    } else {
+                        $field = $column['field'];
+                        $value = $vo[$field] ?? null;
+                        $text  = $value === null || $value === '' ? '-' : (string)$value;
+                        $sign  = isset($column['sign']) ? (float)($vo[$column['sign']] ?? 0) : null;
+                    }
+                {/php}
+                {if !empty($column.detail)}
+                <td class="fb-detail"><a class="layui-btn layui-btn-xs layui-btn-normal" data-open="{$vo.detail_url}" data-title="成交记录">详情</a></td>
+                {else}
+                <td><div class="fb-cell{if $text eq '-'} fb-empty{/if}{if $sign !== null && $sign > 0} fb-pos{/if}{if $sign !== null && $sign < 0} fb-neg{/if}"{if !empty($column.width)} style="max-width:{$column.width}px"{/if}>{:htmlspecialchars($text, ENT_QUOTES, 'UTF-8')}</div></td>
+                {/if}
+                {/foreach}
+            </tr>
+            {/foreach}
+            </tbody>
+        </table>
+    </div>
+    {empty name="list"}<span class="notdata">没有记录</span>{else}<nav class="fastbook-pagination" aria-label="数据分页">{$pagehtml|raw|default=''}</nav>{/empty}
+</div>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['form','laydate','layer'],function(){
+    var layer=layui.layer;
+    layui.form.render();
+    // 刷新：后台 Hash 路由下重新加载当前内容区（保留筛选与页码）；整页直开时退化为整页刷新。
+    document.querySelectorAll('[data-page-refresh]').forEach(function(btn){
+        btn.addEventListener('click',function(){try{jQuery.form.reload();}catch(e){location.reload();}});
+    });
+    // 时间范围：与数据洞察同一套初始化，range 用布尔值并显式传入已生效的「起始 - 结束」，
+    // 否则 laydate 会把空值当成非法日期范围并提示「日期格式不合法 / 已自动重置」。
+    var startEl=document.getElementById('range-start'),endEl=document.getElementById('range-end'),trigger=document.getElementById('range-trigger');
+    layui.laydate.render({elem:'#range-trigger',type:'date',range:true,format:'yyyy-MM-dd',value:startEl.value+' - '+endEl.value,done:function(value){var m=value.match(/^(\d{4}-\d{2}-\d{2})\s+-\s+(\d{4}-\d{2}-\d{2})$/);if(m){startEl.value=m[1];endEl.value=m[2];trigger.value=m[1]+' - '+m[2];}}});
+    document.getElementById('range-wrap').onclick=function(e){if(e.target!==trigger)trigger.click();};
+    var wrap=document.querySelector('.fastbook-table-scroll');
+    if(!wrap)return;
+    var tip=null,tipCell=null;
+    function esc(s){return s.replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+    function closeTip(){if(tip!==null){layer.close(tip);tip=null;}tipCell=null;}
+    function cellOf(e){return e.target&&e.target.closest?e.target.closest('.fb-cell'):null;}
+    function copyText(text,ok,fail){
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,fail);return;}
+        var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.top='-9999px';document.body.appendChild(ta);ta.select();
+        try{document.execCommand('copy')?ok():fail();}catch(err){fail();}
+        document.body.removeChild(ta);
+    }
+    wrap.addEventListener('mouseover',function(e){
+        var cell=cellOf(e);
+        if(!cell||cell===tipCell)return;
+        closeTip();
+        if(cell.scrollWidth<=cell.clientWidth+1)return;
+        tipCell=cell;
+        tip=layer.tips('<div style="max-width:460px;max-height:280px;overflow:auto;white-space:pre-wrap;word-break:break-all;line-height:1.6;">'+esc(cell.textContent)+'</div>',cell,{tips:[1,'#333'],time:0,maxWidth:500});
+    });
+    wrap.addEventListener('mouseout',function(e){var cell=cellOf(e);if(cell&&cell===tipCell)closeTip();});
+    wrap.addEventListener('scroll',closeTip);
+    wrap.addEventListener('click',function(e){
+        var cell=cellOf(e);
+        if(!cell||cell.classList.contains('fb-empty'))return;
+        copyText(cell.textContent,function(){layer.msg('已复制',{offset:'t'});},function(){layer.msg('复制失败，请手动选择',{offset:'t'});});
+    });
+});
+</script>
+{/block}

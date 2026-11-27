@@ -1,0 +1,74 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block pld-table-wrap">
+    {include file="product_liquidity_daily/index_search"}
+
+    <table class="layui-table margin-top-10 pld-table" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:36px;text-align:center;">
+                <input type="checkbox" lay-ignore data-check-target="input.list-check-box.pld-row" title="全选本页">
+            </th>
+            <th style="width:55px;">ID</th>
+            <th style="width:55px;">产品ID</th>
+            <th style="width:150px;">产品</th>
+            <th style="width:95px;">计算批次日</th>
+            <th style="width:95px;">曲线日 d</th>
+            <th style="width:110px;text-align:right;">O(d)</th>
+            <th style="width:110px;text-align:right;">G(d)</th>
+            <th style="width:100px;text-align:right;">shortfall</th>
+            <th style="width:140px;">计算时间</th>
+            <th style="width:120px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr{if !empty($vo.has_shortfall)} style="background:#fff7f7;"{/if}>
+            <td style="text-align:center;"><input type="checkbox" lay-ignore class="list-check-box pld-row" value="{$vo.id}"></td>
+            <td>{$vo.id}</td>
+            <td>{$vo.product_id|default='-'}</td>
+            <td><span class="mono" style="font-size:12px;">{$vo.product_code|default='-'}</span></td>
+            <td>{$vo.calc_date|default='-'}</td>
+            <td>{$vo.liquidity_date|default='-'}</td>
+            <td class="mono" style="text-align:right;">{$vo.obligation_o_fmt|default='0'}</td>
+            <td class="mono" style="text-align:right;">{$vo.return_g_fmt|default='0'}</td>
+            <td class="mono" style="text-align:right;{if !empty($vo.has_shortfall)}color:#c00;font-weight:600;{/if}">{$vo.shortfall_fmt|default='0'}</td>
+            <td style="font-size:12px;">{$vo.calculated_at|default='-'}</td>
+            <td>
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-primary"
+                        data-modal='{:url("detail")}?id={$vo.id}' data-width="760px"
+                        data-title="流动性详情 #{$vo.id}">详情</button>
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-danger"
+                        data-confirm="确定删除记录 #{$vo.id}（{$vo.product_code|default=''} / calc={$vo.calc_date|default=''} / d={$vo.liquidity_date|default=''}）吗？"
+                        data-action='{:url("remove")}'
+                        data-value="id#{$vo.id}">删除</button>
+            </td>
+        </tr>
+        {/foreach}
+        {if empty($list)}
+        <tr><td colspan="11" style="text-align:center;color:#999;">暂无流动性曲线记录</td></tr>
+        {/if}
+        </tbody>
+    </table>
+    {include file="common/pagination_footer"}
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.pld-table-wrap { overflow-x: auto; }
+.pld-table { min-width: 1200px; font-size: 12px; }
+.pld-table th, .pld-table td { white-space: nowrap; }
+</style>
+{include file="common/pagination_assets"}
+{/block}

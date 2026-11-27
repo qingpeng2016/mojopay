@@ -1,0 +1,588 @@
+{extend name="../../admin/view/main"}
+
+{block name="style"}
+<style>
+.scarb-dash-panel { background: #fff; border-radius: 8px; padding: 16px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 12px; }
+.scarb-kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin: 14px 0 4px; }
+.scarb-kpi-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 18px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    border: 1px solid #ebedf2;
+    min-height: 96px;
+}
+.scarb-kpi-label { font-size: 12px; color: #888; margin-bottom: 10px; }
+.scarb-kpi-value { font-size: 26px; font-weight: 700; line-height: 1.2; }
+.scarb-kpi-card--debt .scarb-kpi-value { color: #111; }
+.scarb-kpi-card--reward .scarb-kpi-reward-line { color: #111; }
+.scarb-kpi-card--payback .scarb-kpi-value { color: #111; }
+.scarb-kpi-card--apr .scarb-kpi-value { color: #3ba272; }
+.scarb-kpi-value--uni-ok { color: #3ba272; }
+.scarb-kpi-value--uni-low { color: #cf1322; }
+.scarb-kpi-reward-lines { display: flex; flex-direction: column; gap: 6px; }
+.scarb-kpi-reward-line { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.scarb-kpi-reward-line .scarb-kpi-asset-gap { margin-left: 0.35em; }
+.scarb-kpi-empty { font-size: 22px; font-weight: 700; color: #ccc; }
+.scarb-dash-alerts { margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.scarb-dash-alert {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
+    padding: 10px 14px; border-radius: 8px; font-size: 13px;
+    background: #fff7e6; border: 1px solid #ffd591; color: #614700;
+}
+.scarb-dash-alert-link {
+    color: #1890ff; font-weight: 600; text-decoration: none;
+}
+.scarb-dash-alert-link:hover { text-decoration: underline; }
+@media (max-width: 1100px) {
+    .scarb-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+    .scarb-kpi-grid { grid-template-columns: 1fr; }
+}
+.scarb-reward-row {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+    margin-top: 16px; margin-bottom: 20px; align-items: start;
+}
+.scarb-reward-charts-wrap {
+    display: flex; flex-direction: column; gap: 16px; min-width: 0; max-width: 100%; box-sizing: border-box;
+}
+.scarb-reward-charts-wrap > .scarb-reward-hero {
+    flex: 0 0 auto; display: flex; flex-direction: column;
+    min-height: 360px; max-height: 400px;
+}
+.scarb-reward-hero { width: 100%; max-width: 100%; box-sizing: border-box; border-radius: 10px; padding: 18px 20px; background: linear-gradient(135deg, #f0f7ff 0%, #fff 55%); border: 1px solid #dce8f5; }
+.scarb-reward-recent {
+    min-width: 0; max-width: 100%; box-sizing: border-box; border-radius: 10px;
+    border: 1px solid #dce8f5; background: #fff;
+    display: flex; flex-direction: column;
+    height: 400px; max-height: 400px; overflow: hidden;
+}
+.scarb-reward-recent > .scarb-reward-hero-title { flex-shrink: 0; }
+.scarb-reward-recent-body { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.scarb-pos-groups {
+    flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px; padding-right: 4px;
+}
+.scarb-pos-symbol-block {
+    flex: 0 0 auto;
+    border: 1px solid #e4e8ef; border-radius: 8px;
+    background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.scarb-pos-symbol-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f5f7fa; border-bottom: 1px solid #ebedf2; }
+.scarb-pos-symbol-name { font-size: 13px; font-weight: 700; color: #222; }
+.scarb-pos-symbol-platform { font-size: 11px; color: #999; }
+.scarb-pos-side { padding: 10px 12px; }
+.scarb-pos-side--long { background: linear-gradient(180deg, #f6ffed 0%, #fff 100%); border-bottom: 1px dashed #e8e8e8; }
+.scarb-pos-side--short { background: linear-gradient(180deg, #fff1f0 0%, #fff 100%); }
+.scarb-pos-side-label { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; margin-bottom: 8px; }
+.scarb-pos-side-label--long { color: #389e3d; }
+.scarb-pos-side-label--short { color: #cf1322; }
+.scarb-pos-side-empty { font-size: 11px; color: #bbb; padding: 2px 0 4px; }
+.scarb-pos-mini-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.scarb-pos-mini-table th { text-align: left; color: #888; font-weight: 500; padding: 0 6px 4px 0; white-space: nowrap; }
+.scarb-pos-mini-table th.num, .scarb-pos-mini-table td.num { text-align: right; }
+.scarb-pos-mini-table td { padding: 4px 6px 4px 0; color: #333; vertical-align: top; }
+.scarb-pos-mini-table tr + tr td { border-top: 1px solid #f0f0f0; padding-top: 6px; }
+.scarb-pos-mini-table .scarb-pos-col-upnl { padding-right: 14px !important; }
+.scarb-pos-mini-table .scarb-pos-col-pnl { padding-right: 28px !important; }
+.scarb-pos-mini-table .scarb-pos-col-lev { padding-left: 20px !important; padding-right: 14px !important; white-space: nowrap; }
+.scarb-reward-hero-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 10px; }
+.scarb-chart-title { font-size: 12px; color: #666; margin-bottom: 8px; font-weight: 600; }
+.scarb-chart-cumulative-val { margin-right: 0.35em; }
+.scarb-reward-chart { width: 100%; flex: 1 1 auto; min-height: 300px; height: 100%; }
+.scarb-dash-two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 8px; }
+.scarb-dash-col { min-width: 0; }
+.scarb-dash-col .layui-table { margin: 0; }
+@media (max-width: 1100px) {
+    .scarb-reward-row { grid-template-columns: 1fr; }
+    .scarb-reward-recent { height: 400px; max-height: 400px; }
+    .scarb-reward-charts-wrap > .scarb-reward-hero { max-height: none; min-height: 320px; }
+    .scarb-dash-two-col { grid-template-columns: 1fr; }
+}
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.layui-tab[lay-filter="scarb-dashboard-account"].layui-tab-brief > .layui-tab-title li .scarb-dash-tab-link {
+    color: #111 !important;
+    font-weight: 600;
+}
+.layui-tab[lay-filter="scarb-dashboard-account"].layui-tab-brief > .layui-tab-title li.layui-this .scarb-dash-tab-link {
+    color: #000 !important;
+    font-weight: 700;
+}
+.layui-tab[lay-filter="scarb-dashboard-account"].layui-tab-brief > .layui-tab-title .layui-this:after {
+    border-bottom: 2px solid #000 !important;
+}
+</style>
+{/block}
+
+{block name="button"}
+<button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+    <i class="layui-icon">&#xe669;</i> 刷新
+</button>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    {if empty($account_tabs)}
+    <p style="text-align:center;color:#999;padding:24px 0;">暂无交易所账号，请先在「交易所账号」中配置</p>
+    {else}
+    {if !empty($dashboard_pending_alerts)}
+    <div class="scarb-dash-alerts">
+        {foreach $dashboard_pending_alerts as $alert}
+        <div class="scarb-dash-alert">
+            <span>{$alert.text}</span>
+            <a class="scarb-dash-alert-link" href="{$alert.href}">去处理</a>
+        </div>
+        {/foreach}
+    </div>
+    {/if}
+    <div class="layui-tab layui-tab-brief" lay-filter="scarb-dashboard-account" style="margin-top:4px;">
+        <ul class="layui-tab-title">
+            {foreach $account_tabs as $tab}
+            <li class="{if $selected_account_id==$tab.id}layui-this{/if}">
+                <a class="scarb-dash-tab-link" href="javascript:;" data-account-id="{$tab.id}">{$tab.account_name|default='-'}</a>
+            </li>
+            {/foreach}
+        </ul>
+    </div>
+
+    <div class="scarb-kpi-grid">
+        <div class="scarb-kpi-card scarb-kpi-card--debt">
+            <div class="scarb-kpi-label">总负债（手续费 + PNL）</div>
+            <div class="scarb-kpi-value mono">{$dashboard_summary.total_debt_usd_fmt|default='—'}</div>
+        </div>
+        <div class="scarb-kpi-card scarb-kpi-card--reward">
+            <div class="scarb-kpi-label">已奖励</div>
+            {if empty($dashboard_summary.reward_lines)}
+            <div class="scarb-kpi-value scarb-kpi-empty mono">—</div>
+            {else}
+            <div class="scarb-kpi-reward-lines">
+                {foreach $dashboard_summary.reward_lines as $rl}
+                <div class="scarb-kpi-reward-line mono">
+                    <span>{$rl.qty_fmt|default='0'}</span><span class="scarb-kpi-asset-gap">{$rl.reward_asset|default=''}</span>
+                </div>
+                {/foreach}
+            </div>
+            {/if}
+        </div>
+        <div class="scarb-kpi-card scarb-kpi-card--payback">
+            <div class="scarb-kpi-label">预计回本时间</div>
+            <div class="scarb-kpi-value mono">{$dashboard_summary.estimated_payback_fmt|default='—'}</div>
+        </div>
+        <div class="scarb-kpi-card scarb-kpi-card--apr">
+            <div class="scarb-kpi-label">预计年化率</div>
+            <div class="scarb-kpi-value mono">{$dashboard_summary.estimated_apr_fmt|default='—'}</div>
+        </div>
+        <div class="scarb-kpi-card scarb-kpi-card--uni-mmr">
+            <div class="scarb-kpi-label">UniMMR</div>
+            <div class="scarb-kpi-value mono {if !empty($dashboard_summary.portfolio_uni_mmr_ok)}scarb-kpi-value--uni-ok{else}scarb-kpi-value--uni-low{/if}">{$dashboard_summary.portfolio_uni_mmr_fmt|default='—'}</div>
+        </div>
+    </div>
+
+    <div class="scarb-reward-row">
+        <div class="scarb-reward-charts-wrap">
+            {foreach $reward_chart_blocks as $block}
+            <div class="scarb-reward-hero scarb-dash-panel" style="margin-bottom:0;">
+                <div class="scarb-reward-hero-title">奖励数据（{$block.reward_asset|default='—'}）</div>
+                <div class="scarb-chart-title">
+                    累计 <span class="mono scarb-chart-cumulative-val">{$block.cumulative_7d_fmt|default='0'}</span>{$block.reward_asset|default=''}
+                </div>
+                <div class="scarb-reward-chart" data-reward-asset="{$block.reward_asset|default=''|htmlspecialchars}" data-payload='{:htmlspecialchars(json_encode(["labels" => $block.labels, "series" => $block.series], JSON_UNESCAPED_UNICODE), ENT_QUOTES, "UTF-8")}'></div>
+            </div>
+            {/foreach}
+        </div>
+        <div class="scarb-reward-recent scarb-dash-panel" style="margin-bottom:0;">
+            <div class="scarb-reward-hero-title">当前持仓（{$open_position_pair_count|default=0}对持仓）</div>
+            <div class="scarb-reward-recent-body">
+            {if empty($open_position_groups)}
+            <p style="text-align:center;color:#999;padding:48px 12px;font-size:12px;">暂无 OPEN 持仓</p>
+            {else}
+            <div class="scarb-pos-groups">
+                {foreach $open_position_groups as $grp}
+                <div class="scarb-pos-symbol-block">
+                    <div class="scarb-pos-symbol-head">
+                        <span class="scarb-pos-symbol-name mono">{$grp.symbol|default='-'}</span>
+                        <span class="scarb-pos-symbol-platform">{$grp.platform|default='-'}</span>
+                    </div>
+                    <div class="scarb-pos-side scarb-pos-side--long">
+                        <div class="scarb-pos-side-label scarb-pos-side-label--long">LONG</div>
+                        {if empty($grp.long_rows)}
+                        <div class="scarb-pos-side-empty">无多仓</div>
+                        {else}
+                        <table class="scarb-pos-mini-table">
+                            <thead>
+                            <tr>
+                                <th>合约</th>
+                                <th class="num">数量</th>
+                                <th class="num scarb-pos-col-upnl">未实现盈亏</th>
+                                <th class="num scarb-pos-col-pnl">盈亏比例</th>
+                                <th class="scarb-pos-col-lev">合约倍数</th>
+                                <th class="num">开仓价</th>
+                                <th class="num">爆仓价</th>
+                                <th>同步</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {foreach $grp.long_rows as $pos}
+                            <tr>
+                                <td class="mono">{$pos.symbol|default='-'}</td>
+                                <td class="mono num">{$pos.qty_fmt|default='0'}</td>
+                                <td class="mono num scarb-pos-col-upnl">{$pos.unrealized_pnl_fmt|default='0'}</td>
+                                <td class="mono num scarb-pos-col-pnl">{$pos.pnl_ratio_fmt|default='-'}</td>
+                                <td class="scarb-pos-col-lev">{$pos.leverage|default='-'}</td>
+                                <td class="mono num">{$pos.entry_price_fmt|default='-'}</td>
+                                <td class="mono num">{$pos.liquidation_price_fmt|default='-'}</td>
+                                <td style="font-size:10px;color:#888;">{$pos.last_sync_at|default='-'}</td>
+                            </tr>
+                            {/foreach}
+                            </tbody>
+                        </table>
+                        {/if}
+                    </div>
+                    <div class="scarb-pos-side scarb-pos-side--short">
+                        <div class="scarb-pos-side-label scarb-pos-side-label--short">SHORT</div>
+                        {if empty($grp.short_rows)}
+                        <div class="scarb-pos-side-empty">无空仓</div>
+                        {else}
+                        <table class="scarb-pos-mini-table">
+                            <thead>
+                            <tr>
+                                <th>合约</th>
+                                <th class="num">数量</th>
+                                <th class="num scarb-pos-col-upnl">未实现盈亏</th>
+                                <th class="num scarb-pos-col-pnl">盈亏比例</th>
+                                <th class="scarb-pos-col-lev">合约倍数</th>
+                                <th class="num">开仓价</th>
+                                <th class="num">爆仓价</th>
+                                <th>同步</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {foreach $grp.short_rows as $pos}
+                            <tr>
+                                <td class="mono">{$pos.symbol|default='-'}</td>
+                                <td class="mono num">{$pos.qty_fmt|default='0'}</td>
+                                <td class="mono num scarb-pos-col-upnl">{$pos.unrealized_pnl_fmt|default='0'}</td>
+                                <td class="mono num scarb-pos-col-pnl">{$pos.pnl_ratio_fmt|default='-'}</td>
+                                <td class="scarb-pos-col-lev">{$pos.leverage|default='-'}</td>
+                                <td class="mono num">{$pos.entry_price_fmt|default='-'}</td>
+                                <td class="mono num">{$pos.liquidation_price_fmt|default='-'}</td>
+                                <td style="font-size:10px;color:#888;">{$pos.last_sync_at|default='-'}</td>
+                            </tr>
+                            {/foreach}
+                            </tbody>
+                        </table>
+                        {/if}
+                    </div>
+                </div>
+                {/foreach}
+            </div>
+            {/if}
+            </div>
+        </div>
+    </div>
+
+    <div class="scarb-dash-panel" style="margin-top:12px;">
+        <div class="scarb-reward-hero-title">最近订单</div>
+        <table class="layui-table" lay-skin="line" style="font-size:12px;">
+            <thead>
+            <tr>
+                <th style="width:55px;">ID</th>
+                <th style="width:70px;">账号</th>
+                <th style="width:80px;">平台</th>
+                <th style="width:100px;">交易对</th>
+                <th style="width:55px;">方向</th>
+                <th style="width:70px;">持仓侧</th>
+                <th style="width:70px;">类型</th>
+                <th style="width:100px;">Purpose</th>
+                <th style="width:100px;text-align:right;">委托量</th>
+                <th style="width:100px;text-align:right;">成交量</th>
+                <th style="width:100px;text-align:right;">均价</th>
+                <th style="width:140px;">Client OID</th>
+                <th style="width:90px;">状态</th>
+                <th style="width:140px;">创建时间</th>
+            </tr>
+            </thead>
+            <tbody>
+            {foreach $recent_orders as $vo}
+            <tr>
+                <td>{$vo.id}</td>
+                <td>{$vo.exchange_account_id|default='-'}</td>
+                <td><span class="layui-badge layui-bg-gray">{$vo.platform|default='-'}</span></td>
+                <td class="mono">{$vo.symbol|default='-'}</td>
+                <td>
+                    {if isset($vo.side) && $vo.side eq 'BUY'}
+                    <span class="layui-badge layui-bg-green">BUY</span>
+                    {elseif isset($vo.side) && $vo.side eq 'SELL'}
+                    <span class="layui-badge layui-bg-orange">SELL</span>
+                    {else}
+                    {$vo.side|default='-'}
+                    {/if}
+                </td>
+                <td>{$vo.position_side|default='-'}</td>
+                <td>{$vo.order_type|default='-'}</td>
+                <td style="font-size:12px;">{$vo.purpose|default='-'}</td>
+                <td class="mono" style="text-align:right;">{$vo.orig_qty_fmt|default='0'}</td>
+                <td class="mono" style="text-align:right;">{$vo.executed_qty_fmt|default='0'}</td>
+                <td class="mono" style="text-align:right;">{$vo.avg_price_fmt|default='-'}</td>
+                <td class="mono" style="font-size:11px;word-break:break-all;">{$vo.client_order_id|default='-'}</td>
+                <td>
+                    {if isset($vo.status) && $vo.status eq 'FILLED'}
+                    <span class="layui-badge layui-bg-green">FILLED</span>
+                    {elseif isset($vo.status) && $vo.status eq 'CANCELED'}
+                    <span class="layui-badge layui-bg-gray">CANCELED</span>
+                    {elseif isset($vo.status) && $vo.status eq 'REJECTED'}
+                    <span class="layui-badge layui-bg-red">REJECTED</span>
+                    {else}
+                    <span class="layui-badge layui-bg-gray">{$vo.status|default='-'}</span>
+                    {/if}
+                </td>
+                <td style="font-size:12px;">{$vo.created_at|default='-'}</td>
+            </tr>
+            {/foreach}
+            {if empty($recent_orders)}
+            <tr><td colspan="14" style="text-align:center;color:#999;">暂无订单记录</td></tr>
+            {/if}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="scarb-dash-two-col">
+        <div class="scarb-dash-col scarb-dash-panel">
+            <div class="scarb-reward-hero-title">持有币种</div>
+            <table class="layui-table" lay-skin="line" style="font-size:11px;">
+                <thead>
+                <tr>
+                    <th>平台</th>
+                    <th style="text-align:right;">USDT 钱包</th>
+                    <th style="text-align:right;">USDT 净值</th>
+                    <th style="text-align:right;">USDC 钱包</th>
+                    <th style="text-align:right;">USDC 净值</th>
+                    <th style="text-align:right;">BFUSD</th>
+                </tr>
+                </thead>
+                <tbody>
+                {foreach $wallet_rows as $wr}
+                <tr>
+                    <td>{$wr.platform|default='-'}</td>
+                    <td class="mono" style="text-align:right;">{$wr.usdt_fmt|default='0'}</td>
+                    <td class="mono" style="text-align:right;">{$wr.usdt_net_fmt|default='-'}</td>
+                    <td class="mono" style="text-align:right;">{$wr.usdc_fmt|default='0'}</td>
+                    <td class="mono" style="text-align:right;">{$wr.usdc_net_fmt|default='-'}</td>
+                    <td class="mono" style="text-align:right;">{$wr.bfusd_fmt|default='0'}</td>
+                </tr>
+                {/foreach}
+                {if empty($wallet_rows)}
+                <tr><td colspan="6" style="text-align:center;color:#999;">暂无 UNIFIED 资产快照</td></tr>
+                {/if}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="scarb-dash-col scarb-dash-panel">
+            <div class="scarb-reward-hero-title">手续费</div>
+            <div style="margin:0 0 8px;color:#888;font-size:12px;">
+                手续费合计：
+                {if empty($commission_totals_by_account)}
+                <span class="mono">—</span>
+                {else}
+                {foreach $commission_totals_by_account as $t}
+                <span class="mono">{$t.detail_text}</span>
+                {/foreach}
+                {/if}
+            </div>
+            <table class="layui-table" lay-skin="line" style="font-size:12px;">
+                <thead>
+                <tr>
+                    <th>手续费币种</th>
+                    <th style="text-align:right;">关联订单数</th>
+                    <th style="text-align:right;">手续费合计</th>
+                </tr>
+                </thead>
+                <tbody>
+                {foreach $commission_list as $vo}
+                <tr>
+                    <td>{$vo.commission_asset|default='-'}</td>
+                    <td class="mono" style="text-align:right;">{$vo.order_count|default='0'}</td>
+                    <td class="mono" style="text-align:right;">{$vo.commission_sum_fmt|default='0'}</td>
+                </tr>
+                {/foreach}
+                {if empty($commission_list)}
+                <tr><td colspan="3" style="text-align:center;color:#999;">暂无订单手续费数据</td></tr>
+                {/if}
+                </tbody>
+            </table>
+            {include file="common/pagination_footer"}
+        </div>
+    </div>
+
+    {literal}
+    <script type="text/javascript">
+    (function () {
+        function renderOneScarbRewardChart(el) {
+            if (!el || !window.echarts) {
+                return null;
+            }
+            var chartPayload = {};
+            try {
+                chartPayload = JSON.parse(el.getAttribute('data-payload') || '{}');
+            } catch (e) {
+                chartPayload = {};
+            }
+            var barGreen = '#3ba272';
+            var rewardAsset = el.getAttribute('data-reward-asset') || '';
+            function makeBarLabel(asset) {
+                return {
+                    show: true,
+                    position: 'top',
+                    color: '#555',
+                    fontSize: 10,
+                    formatter: function (params) {
+                        var v = params.value;
+                        if (v === null || v === undefined || Number(v) === 0) {
+                            return '';
+                        }
+                        var n = Number(v);
+                        if (!isFinite(n)) {
+                            return '';
+                        }
+                        var qty = n.toFixed(8).replace(/\.?0+$/, '');
+                        qty = qty === '' ? '0' : qty;
+                        var unit = asset || params.seriesName || rewardAsset || '';
+                        return unit ? qty + ' ' + unit : qty;
+                    }
+                };
+            }
+            var rawSeries = chartPayload.series || [];
+            var series = [];
+            for (var i = 0; i < rawSeries.length; i++) {
+                var s = rawSeries[i];
+                var assetName = s.name || rewardAsset;
+                series.push({
+                    name: s.name,
+                    type: 'bar',
+                    data: s.data,
+                    barMaxWidth: 40,
+                    itemStyle: { color: barGreen },
+                    label: makeBarLabel(assetName)
+                });
+            }
+            if (series.length === 0) {
+                series.push({
+                    name: rewardAsset || '奖励',
+                    type: 'bar',
+                    data: [0, 0, 0, 0, 0, 0, 0],
+                    barMaxWidth: 40,
+                    itemStyle: { color: barGreen },
+                    label: makeBarLabel(rewardAsset)
+                });
+            }
+            var labels = chartPayload.labels || [];
+            if (labels.length === 0) {
+                labels = ['—', '—', '—', '—', '—', '—', '—'];
+            }
+            var inst = window.echarts.getInstanceByDom(el);
+            if (inst) {
+                inst.dispose();
+            }
+            inst = window.echarts.init(el);
+            inst.setOption({
+                color: [barGreen],
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                legend: { show: false },
+                grid: { left: 56, right: 24, top: 44, bottom: 32 },
+                xAxis: {
+                    type: 'category',
+                    data: labels,
+                    axisLine: { lineStyle: { color: '#ccc' } },
+                    axisLabel: { color: '#666', fontSize: 11 }
+                },
+                yAxis: {
+                    type: 'value',
+                    splitLine: { lineStyle: { color: '#f0f0f0' } },
+                    axisLabel: { color: '#888', fontSize: 11 }
+                },
+                series: series
+            });
+            window.setTimeout(function () { inst.resize(); }, 50);
+            window.setTimeout(function () { inst.resize(); }, 300);
+            return inst;
+        }
+
+        function renderScarbRewardCharts() {
+            var nodes = document.querySelectorAll('.scarb-reward-chart');
+            if (!nodes.length || !window.echarts) {
+                return false;
+            }
+            var instances = [];
+            for (var n = 0; n < nodes.length; n++) {
+                var inst = renderOneScarbRewardChart(nodes[n]);
+                if (inst) {
+                    instances.push(inst);
+                }
+            }
+            if (!window.__scarbRewardChartResize) {
+                window.__scarbRewardChartResize = true;
+                window.addEventListener('resize', function () {
+                    for (var r = 0; r < nodes.length; r++) {
+                        var chart = window.echarts.getInstanceByDom(nodes[r]);
+                        if (chart && !chart.isDisposed()) {
+                            chart.resize();
+                        }
+                    }
+                });
+            }
+            return instances.length > 0;
+        }
+
+        function bootChart() {
+            if (renderScarbRewardCharts()) {
+                return;
+            }
+            var _define = window.define;
+            window.define = undefined;
+            var s = document.createElement('script');
+            s.src = '/static/plugs/echarts/echarts.min.js';
+            s.onload = function () {
+                window.define = _define;
+                window.setTimeout(renderScarbRewardCharts, 0);
+            };
+            s.onerror = function () {
+                window.define = _define;
+                var els = document.querySelectorAll('.scarb-reward-chart');
+                for (var i = 0; i < els.length; i++) {
+                    els[i].innerHTML = '<p style="text-align:center;color:#999;padding:80px 0;">图表加载失败，请刷新重试</p>';
+                }
+            };
+            document.head.appendChild(s);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootChart);
+        } else {
+            bootChart();
+        }
+    })();
+    </script>
+    {/literal}
+    {/if}
+</div>
+{/block}
+
+{block name="script"}
+{include file="common/pagination_assets"}
+<script>
+layui.use('element', function () {
+    var selectedId = '{$selected_account_id|default=0}';
+    $(document).on('click', '.scarb-dash-tab-link', function (e) {
+        e.preventDefault();
+        var aid = $(this).data('account-id');
+        if (!aid || String(aid) === String(selectedId)) {
+            return;
+        }
+        location.hash = '#/scarb/dashboard/index.html?exchange_account_id=' + aid;
+    });
+});
+</script>
+{/literal}
+{/block}

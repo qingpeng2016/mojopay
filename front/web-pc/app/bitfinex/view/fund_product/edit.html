@@ -1,0 +1,70 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <label class="layui-form-label">产品</label>
+            <div class="layui-input-block">
+                <input type="text" value="{$vo.product_name|default=''} ({$vo.product_code|default=''})" class="layui-input layui-disabled" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">挂单中</label>
+            <div class="layui-input-block" style="padding-top:9px;">
+                <span class="mono">{$vo.cash_pending_fmt|default='0'}</span>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">在借</label>
+            <div class="layui-input-block" style="padding-top:9px;">
+                <span class="mono">{$vo.cash_lending_fmt|default='0'}</span>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">可投总金额</label>
+            <div class="layui-input-block">
+                <input name="cash_available" value="{$vo.cash_available_fmt|default='0'}" required
+                       placeholder="对应 fund_products.cash_available" class="layui-input mono">
+                <div class="layui-form-mid layui-word-aux">
+                    保存后同步重算「剩余可用」= 可投总金额 − 挂单中 − 在借
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">剩余可用(预览)</label>
+            <div class="layui-input-block" style="padding-top:9px;">
+                <span class="mono" id="fp-cash-free-preview">{$vo.cash_available_free_fmt|default='0'}</span>
+            </div>
+        </div>
+        <div class="hr-line-dashed"></div>
+        <input type="hidden" name="id" value="{$vo.id|default=''}">
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">保存</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function () {
+    layui.form.render();
+    var pending = parseFloat('{$vo.cash_pending_raw|default="0"}') || 0;
+    var lending = parseFloat('{$vo.cash_lending_raw|default="0"}') || 0;
+    function trimPreview(n) {
+        if (!isFinite(n)) return '0';
+        var s = n.toFixed(8);
+        s = s.replace(/\.?0+$/, '');
+        return s === '' ? '0' : s;
+    }
+    $('input[name="cash_available"]').on('input', function () {
+        var avail = parseFloat($(this).val());
+        if (!isFinite(avail)) {
+            $('#fp-cash-free-preview').text('—');
+            return;
+        }
+        $('#fp-cash-free-preview').text(trimPreview(avail - pending - lending));
+    });
+});
+</script>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>

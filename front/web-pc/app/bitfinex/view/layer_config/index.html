@@ -1,0 +1,77 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    <p class="layui-text" style="margin-bottom:12px;color:#666;">
+        配置 — 资金分层参数
+    </p>
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:70px;">币种</th>
+            <th style="width:90px;">层级</th>
+            <th style="width:80px;text-align:right;">占比</th>
+            <th style="min-width:160px;">利率阶梯</th>
+            <th style="min-width:200px;">期限配置</th>
+            <th style="width:150px;">更新时间</th>
+            <th style="width:160px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td>
+                {if isset($vo.symbol) && $vo.symbol eq 'fUST'}
+                <span class="layui-badge layui-bg-orange">fUST</span>
+                {elseif isset($vo.symbol) && $vo.symbol eq 'fUSD'}
+                <span class="layui-badge layui-bg-blue">fUSD</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$vo.symbol|default='-'}</span>
+                {/if}
+            </td>
+            <td>{$vo.layer_code_label|default='-'}</td>
+            <td class="mono" style="text-align:right;">{$vo.weight_ratio_fmt|default='0.0000'}</td>
+            <td class="mono json-cell" title="{$vo.rate_multipliers_display}">{$vo.rate_multipliers_display}</td>
+            <td class="mono json-cell" title="{$vo.period_days_display}">{$vo.period_days_display}</td>
+            <td style="font-size:12px;">{$vo.updated_at|default='-'}</td>
+            <td>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn-primary"
+                        data-modal='{:url("detail")}?id={$vo.id}' data-title="展示分层参数">
+                    <i class="layui-icon">&#xe705;</i> 展示
+                </button>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn-normal"
+                        data-modal='{:url("edit")}?id={$vo.id}' data-title="修改分层参数">
+                    <i class="layui-icon">&#xe642;</i> 修改
+                </button>
+            </td>
+        </tr>
+        {/foreach}
+        {if empty($list)}
+        <tr><td colspan="7" style="text-align:center;color:#999;">暂无分层配置（请确认 db_bitfinex 已导入 funding_config_layer）</td></tr>
+        {/if}
+        </tbody>
+    </table>
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.json-cell {
+    font-size: 12px;
+    max-width: 320px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.45;
+    vertical-align: top;
+}
+</style>
+{/block}

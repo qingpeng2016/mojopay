@@ -1,0 +1,11 @@
+{extend name="../../admin/view/main"}{block name="button"}<button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">刷新</button>{/block}
+{block name="content"}<div class="think-box-shadow table-block">{include file="sports_active_event/index_search"}
+{if $error}<div class="layui-bg-red" style="padding:12px 16px;color:#fff;margin-bottom:12px;border-radius:6px">ClickHouse 查询失败：{$error}</div>{/if}
+<table class="layui-table" lay-skin="line"><thead><tr>
+{foreach $columns as $col}<th title="{$col}">{$labels[$col]}</th>{/foreach}
+</tr></thead><tbody>
+{foreach $list as $vo}<tr>{foreach $columns as $col}<td>{$vo._display[$col]}</td>{/foreach}</tr>{/foreach}
+</tbody></table>{empty name='list'}<span class="notdata">没有记录</span>{else}{$pagehtml|raw|default=''}{/empty}</div>{/block}
+{block name="script"}<style>.table-block{padding:18px;overflow-x:auto;border-radius:8px}.table-block table{min-width:1200px}.table-block th,.table-block td{white-space:nowrap;vertical-align:middle}.table-block tbody tr:hover{background:#f8fbfb}.notdata{display:block;text-align:center;padding:36px;color:#999}.table-block .pagination{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:20px 0 4px;padding:0;list-style:none}.table-block .pagination li a,.table-block .pagination li span{display:inline-block;min-width:36px;padding:6px 10px;border:1px solid #ddd;border-radius:2px;background:#fff;color:#666;text-align:center;text-decoration:none;box-sizing:border-box}.table-block .pagination li.active span{background:#009688;border-color:#009688;color:#fff}.table-block .pagination li a:hover{border-color:#009688;color:#009688}.table-block .pagination li.disabled span{background:#f5f5f5;color:#999}</style>
+<script>layui.use(['form'],function(){layui.form.render('select');$('.form-search').on('submit',function(e){e.preventDefault();e.stopPropagation();var p=$(this).serialize();location.hash='#/backtest/sports_active_event/index.html'+(p?'?'+p:'');return false;});});</script>
+{/block}

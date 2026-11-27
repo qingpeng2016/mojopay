@@ -1,0 +1,26 @@
+<div class="layui-card" style="box-shadow:none;">
+    <div class="layui-card-body">
+        <table class="layui-table" lay-skin="line">
+            <tbody>
+            <tr><td style="width:160px;color:#888;">ID</td><td>{$vo.id|default='-'}</td></tr>
+            <tr><td style="color:#888;">申购 ID</td><td>{$vo.subscription_id|default='-'}</td></tr>
+            <tr><td style="color:#888;">客户</td><td>#{$vo.client_id|default='-'} {$vo.client_name|default=''}</td></tr>
+            <tr><td style="color:#888;">产品</td><td class="mono">{$vo.product_code|default='-'} · {$vo.product_name|default=''}</td></tr>
+            <tr><td style="color:#888;">计提日</td><td>{$vo.accrual_date|default='-'}</td></tr>
+            <tr><td style="color:#888;">当日应计利息</td><td class="mono">{$vo.interest_day_amount_fmt|default='0'}</td></tr>
+            <tr><td style="color:#888;">GUARANTEED 计息本金</td><td class="mono">{$vo.guaranteed_principal_base_fmt|default='0'}</td></tr>
+            <tr><td style="color:#888;">锁定年化快照</td><td class="mono">{$vo.guaranteed_annual_rate_fmt|default='-'}</td></tr>
+            <tr><td style="color:#888;">FLOATING 份额</td><td class="mono">{$vo.floating_shares_base_fmt|default='-'}</td></tr>
+            <tr><td style="color:#888;">FLOATING NAV</td><td class="mono">{$vo.floating_nav_per_share_fmt|default='-'}</td></tr>
+            <tr><td style="color:#888;">FLOATING 市值</td><td class="mono">{$vo.floating_market_value_fmt|default='-'}</td></tr>
+            <tr><td style="color:#888;">状态</td><td>{$vo.status|default='-'}</td></tr>
+            <tr><td style="color:#888;">计算时间</td><td>{$vo.calculated_at|default='-'}</td></tr>
+            <tr><td style="color:#888;">创建 / 更新</td><td>{$vo.created_at|default='-'} / {$vo.updated_at|default='-'}</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; word-break: break-all; }
+</style>

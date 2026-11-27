@@ -1,0 +1,103 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">渠道</label>
+            <div class="layui-input-block">
+                <select name="vendor" class="layui-select">
+                    <option value="">请选择渠道（可选）</option>
+                    {foreach $vendors as $vendor}
+                    <option value="{$vendor}" {if isset($vo.vendor) and $vo.vendor eq $vendor}selected{/if}>{$vendor}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">账号类型</label>
+            <div class="layui-input-block">
+                <select name="account_type" class="layui-select" required>
+                    <option value="">请选择账号类型</option>
+                    {foreach $account_types as $type}
+                    <option value="{$type}" {if isset($vo.account_type) and $vo.account_type eq $type}selected{/if}>{$type}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">市场账号ID</label>
+            <div class="layui-input-block">
+                <input name="market_account_id" value='{$vo.market_account_id|default=""}' required placeholder="请输入市场账号ID" class="layui-input" maxlength="20">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">描述</label>
+            <div class="layui-input-block">
+                <textarea name="desc" placeholder="请输入账号描述" class="layui-textarea" maxlength="255">{$vo.desc|default=""}</textarea>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">总资金余额</label>
+            <div class="layui-input-block">
+                <input name="balance" value='{$vo.balance|default="0.00000000"}' placeholder="请输入总资金余额" class="layui-input" type="number" step="0.00000001" min="0">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">可用资金</label>
+            <div class="layui-input-block">
+                <input name="available_balance" value='{$vo.available_balance|default="0.00000000"}' placeholder="请输入可用资金" class="layui-input" type="number" step="0.00000001" min="0">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">冻结资金</label>
+            <div class="layui-input-block">
+                <input name="frozen_balance" value='{$vo.frozen_balance|default="0.00000000"}' placeholder="请输入冻结资金" class="layui-input" type="number" step="0.00000001" min="0">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                <select name="status" class="layui-select">
+                    {foreach $statuses as $key=>$item}
+                    <option value="{$key}" {if isset($vo.status) and $vo.status eq $key}selected{elseif !isset($vo.status) and $key eq 'Normal'}selected{/if}>{$item}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">详细信息</label>
+            <div class="layui-input-block">
+                <textarea name="info" placeholder="请输入账号详细信息（JSON格式）" class="layui-textarea">{$vo.info|default=""}</textarea>
+                <div class="layui-form-mid layui-word-aux">
+                    可选，用于存储账号的额外信息，建议使用JSON格式
+                </div>
+            </div>
+        </div>
+
+        <div class="hr-line-dashed"></div>
+        {notempty name='vo.id'}<input type='hidden' value='{$vo.id}' name='id'>{/notempty}
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type='submit'>保存数据</button>
+            <button class="layui-btn layui-btn-danger" type='button' data-confirm="确定要取消编辑吗？" data-close>取消编辑</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function(){
+    var form = layui.form;
+    
+    // 表单提交监听
+    form.on('submit(*)', function(data) {
+        console.log('Form data:', data.field);
+        return true;
+    });
+});
+</script>

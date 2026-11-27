@@ -1,0 +1,70 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+    <div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">ID</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <input name="id" value="{$get.id|default=''}" placeholder="主键精确匹配" class="layui-input" type="number" min="1">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">市场ID</label>
+            <div class="layui-input-inline" style="width:160px;">
+                <input name="market_id" value="{$get.market_id|default=''}" placeholder="平台 market_id 精确" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">conditionId</label>
+            <div class="layui-input-inline" style="width:180px;">
+                <input name="condition_id" value="{$get.condition_id|default=''}" placeholder="0x 链上 conditionId 精确" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">平台</label>
+            <div class="layui-input-inline" style="width:130px;">
+                <select name="platform" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $platforms as $key=>$label}
+                    <option value="{$key}" {if isset($get.platform) && $get.platform==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">是否活跃</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <select name="is_active" class="layui-select">
+                    <option value="">全部</option>
+                    <option value="1" {if isset($get.is_active) && $get.is_active=='1'}selected{/if}>活跃</option>
+                    <option value="0" {if isset($get.is_active) && $get.is_active=='0'}selected{/if}>不活跃</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">问题关键词</label>
+            <div class="layui-input-inline">
+                <input name="question" value="{$get.question|default=''}" placeholder="模糊匹配市场问题" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">创建时间</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <input name="date_range" value="{$get.date_range|default=''}" placeholder="开始日期 - 结束日期" class="layui-input" id="mkt-date-range">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form', 'laydate'], function () {
+    layui.form.render('select');
+    layui.laydate.render({
+        elem: '#mkt-date-range',
+        type: 'date',
+        range: ' - ',
+        format: 'yyyy-MM-dd'
+    });
+});
+</script>

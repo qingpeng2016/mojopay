@@ -1,0 +1,227 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="fh-page">
+    {if !empty($alerts)}
+    <div class="fh-block">
+        <div class="fh-block-title">告警区</div>
+        <div class="fh-alert-list">
+            {foreach $alerts as $alert}
+            <div class="fh-alert fh-alert-{$alert.level|default='danger'}{if !empty($alert.demo)} fh-alert-demo{/if}">
+                <span class="fh-alert-dot"></span>
+                <span class="fh-alert-label">{$alert.label|default='告警'}</span>
+                <span class="fh-alert-text">{$alert.text|default=''}</span>
+            </div>
+            {/foreach}
+        </div>
+    </div>
+    {/if}
+
+    <div class="fh-block fh-block-section">
+        <div class="fh-block-title">概览卡片 — 总数据</div>
+        <div class="fh-summary-grid fh-summary-grid-4">
+            <div class="fh-stat-card">
+                <div class="fh-stat-label">总活跃客户数</div>
+                <div class="fh-stat-value mono">{$summary.active_clients|default='0'}</div>
+                <div class="fh-stat-hint">来源: ACTIVE subscription 去重 client_id</div>
+            </div>
+            <div class="fh-stat-card">
+                <div class="fh-stat-label">当前市况 r_last</div>
+                <div class="fh-stat-value mono">{$summary.r_last_fmt|default='-'}</div>
+                <div class="fh-stat-hint">来源: Bitfinex API</div>
+            </div>
+            <div class="fh-stat-card">
+                <div class="fh-stat-label">FRR</div>
+                <div class="fh-stat-value mono">{$summary.frr_fmt|default='-'}</div>
+                <div class="fh-stat-hint">来源: Bitfinex API</div>
+            </div>
+            <div class="fh-stat-card">
+                <div class="fh-stat-label">总 AUM</div>
+                <div class="fh-stat-value mono">{$summary.aum_fmt|default='-'}</div>
+                <div class="fh-stat-hint">= Σ 各池 cash_available</div>
+            </div>
+        </div>
+        <div class="fh-summary-grid fh-summary-grid-4">
+            <div class="fh-stat-card">
+                <div class="fh-stat-label">当日新申购金额</div>
+                <div class="fh-stat-value mono">{$summary.subscribe_today_fmt|default='-'}</div>
+                <div class="fh-stat-hint">= 当日 ACTIVE subscription 的 Σ principal</div>
+            </div>
+            <div class="fh-stat-card">
+                <div class="fh-stat-label">当日到期赎回金额</div>
+                <div class="fh-stat-value mono">{$summary.redeem_today_fmt|default='-'}</div>
+                <div class="fh-stat-hint">= 当日 remaining_date=today 且 REDEEMED 的 Σ payout</div>
+            </div>
+            <div class="fh-stat-card">
+                <div class="fh-stat-label">资金利用率</div>
+                <div class="fh-stat-value fh-stat-value-green mono">{$summary.utilization_fmt|default='0.00%'}</div>
+                <div class="fh-stat-hint">= Σ 在借 / Σ cash_available × 100%</div>
+            </div>
+            <div class="fh-stat-card">
+                <div class="fh-stat-label">MJ总利润</div>
+                <div class="fh-stat-value fh-stat-value-green mono">{$summary.total_profit_fmt|default='-'}</div>
+                <div class="fh-stat-hint">= 保底 Σ(池实际收益−保底负债) + 浮动 Σ(池实际收益×2%)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="fh-block fh-block-section">
+        <div class="fh-block-title">概览卡片 — 产品明细（按产品类型/期限，一池一卡）</div>
+        {if empty($product_cards)}
+        <div class="fh-empty">暂无 active 产品数据</div>
+        {else}
+        <div class="fh-product-grid">
+            {foreach $product_cards as $card}
+            <div class="fh-product-card">
+                <div class="fh-product-head">
+                    <span class="fh-product-name">{$card.product_name|default=''}</span>
+                    <span class="fh-badge {$card.type_badge_class|default='fh-badge-float'}">{$card.product_type_label|default=''}</span>
+                </div>
+
+                <div class="fh-product-metrics">
+                    <div class="fh-metric">
+                        <div class="fh-metric-label">活跃客户数</div>
+                        <div class="fh-metric-value mono">{$card.active_clients|default='0'}</div>
+                    </div>
+                    <div class="fh-metric fh-metric-right">
+                        <div class="fh-metric-label">AUM</div>
+                        <div class="fh-metric-value mono">{$card.aum_fmt|default='-'}</div>
+                    </div>
+                    <div class="fh-metric">
+                        <div class="fh-metric-label">NAV per share</div>
+                        <div class="fh-metric-value fh-metric-value-sm mono">{$card.nav_fmt|default='—'}</div>
+                    </div>
+                    <div class="fh-metric fh-metric-right">
+                        <div class="fh-metric-label">近 7 天年化</div>
+                        <div class="fh-metric-value fh-metric-value-green mono">{$card.annual_7d_fmt|default='0.0%'}</div>
+                    </div>
+                </div>
+
+                <div class="fh-bar-section">
+                    <div class="fh-bar-label">cash_available / 在借 / 挂单</div>
+                    <div class="fh-stack-bar">
+                        <span class="fh-stack-seg fh-seg-idle" style="width:{$card.cash_idle_pct|default='0'}%;"></span>
+                        <span class="fh-stack-seg fh-seg-lend" style="width:{$card.cash_lend_pct|default='0'}%;"></span>
+                        <span class="fh-stack-seg fh-seg-pend" style="width:{$card.cash_pend_pct|default='0'}%;"></span>
+                    </div>
+                    <div class="fh-stack-legend">
+                        <span><i class="fh-dot fh-dot-idle"></i>闲置 {$card.cash_idle_fmt|default='-'}</span>
+                        <span><i class="fh-dot fh-dot-lend"></i>在借 {$card.cash_lending_fmt|default='-'}</span>
+                        <span><i class="fh-dot fh-dot-pend"></i>挂单 {$card.cash_pending_fmt|default='-'}</span>
+                    </div>
+                </div>
+
+                <div class="fh-bar-section fh-util-section">
+                    <div class="fh-util-head">
+                        <span class="fh-bar-label">资金利用率</span>
+                        <span class="fh-util-pct fh-util-{$card.util_bar_tone|default='ok'} mono">{$card.utilization_fmt|default='0.00%'}</span>
+                    </div>
+                    <div class="fh-util-track">
+                        <span class="fh-util-fill fh-util-{$card.util_bar_tone|default='ok'}" style="width:{$card.utilization_pct|default='0'}%;"></span>
+                    </div>
+                </div>
+
+                <div class="fh-product-footer">
+                    <div class="fh-footer-item">
+                        <span class="fh-footer-label">当日新申购</span>
+                        <span class="fh-footer-value fh-footer-green mono">{$card.subscribe_today_fmt|default='-'}</span>
+                    </div>
+                    <div class="fh-footer-item fh-footer-item-right">
+                        <span class="fh-footer-label">当日到期赎回</span>
+                        <span class="fh-footer-value fh-footer-red mono">{$card.redeem_today_fmt|default='-'}</span>
+                    </div>
+                </div>
+            </div>
+            {/foreach}
+        </div>
+        {/if}
+    </div>
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.fh-page { background: #f5f6f8; margin: -12px -15px 0; padding: 16px 18px 24px; min-height: calc(100vh - 120px); box-sizing: border-box; }
+.fh-block { margin-bottom: 18px; }
+.fh-block-section { margin-top: 28px; }
+.fh-block-title { font-size: 17px; font-weight: 700; color: #262626; margin-bottom: 14px; }
+.fh-alert-list { display: flex; flex-direction: column; gap: 8px; }
+.fh-alert { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; border-radius: 8px; line-height: 1.55; font-size: 13px; }
+.fh-alert-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+.fh-alert-danger { background: #fff1f0; border: 1px solid #ffccc7; }
+.fh-alert-danger .fh-alert-dot, .fh-alert-danger .fh-alert-label { color: #cf1322; }
+.fh-alert-danger .fh-alert-text { color: #434343; }
+.fh-alert-warning { background: #fffbe6; border: 1px solid #ffe58f; }
+.fh-alert-warning .fh-alert-dot, .fh-alert-warning .fh-alert-label { color: #d48806; }
+.fh-alert-warning .fh-alert-text { color: #595959; }
+.fh-alert-label { font-weight: 700; white-space: nowrap; }
+.fh-alert-label::after { content: '：'; }
+.fh-alert-demo { opacity: 0.72; }
+.fh-summary-grid { display: grid; gap: 12px; margin-bottom: 12px; }
+.fh-summary-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fh-summary-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 0; }
+.fh-stat-card { background: #fff; border: 1px solid #eceef2; border-radius: 10px; padding: 16px 18px; min-height: 108px; box-sizing: border-box; }
+.fh-stat-label { font-size: 12px; color: #8c8c8c; margin-bottom: 8px; }
+.fh-stat-value { font-size: 28px; font-weight: 700; color: #262626; line-height: 1.2; }
+.fh-stat-value-green { color: #389e0d; }
+.fh-stat-hint { margin-top: 10px; font-size: 11px; color: #bfbfbf; line-height: 1.45; }
+.fh-product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.fh-product-card { background: #fff; border: 1px solid #eceef2; border-radius: 10px; padding: 16px 18px; box-sizing: border-box; }
+.fh-product-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.fh-product-name { font-size: 15px; font-weight: 700; color: #262626; }
+.fh-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 20px; }
+.fh-badge-float { background: #e6f4ff; color: #1677ff; }
+.fh-badge-guar { background: #fff7e6; color: #d46b08; }
+.fh-product-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin-bottom: 14px; }
+.fh-metric-right { text-align: right; }
+.fh-metric-label { font-size: 12px; color: #8c8c8c; margin-bottom: 4px; }
+.fh-metric-value { font-size: 22px; font-weight: 700; color: #262626; line-height: 1.2; }
+.fh-metric-value-sm { font-size: 16px; font-weight: 600; }
+.fh-metric-value-green { color: #389e0d; font-size: 18px; }
+.fh-bar-section { margin-bottom: 12px; }
+.fh-bar-label { font-size: 12px; color: #8c8c8c; margin-bottom: 6px; }
+.fh-stack-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: #f0f0f0; }
+.fh-stack-seg { display: block; height: 100%; min-width: 0; }
+.fh-seg-idle { background: #bfbfbf; }
+.fh-seg-lend { background: #1677ff; }
+.fh-seg-pend { background: #722ed1; }
+.fh-stack-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; font-size: 12px; color: #595959; }
+.fh-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+.fh-dot-idle { background: #bfbfbf; }
+.fh-dot-lend { background: #1677ff; }
+.fh-dot-pend { background: #722ed1; }
+.fh-util-section { margin-bottom: 14px; }
+.fh-util-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.fh-util-pct { font-size: 13px; font-weight: 700; }
+.fh-util-ok { color: #389e0d; }
+.fh-util-warn { color: #d48806; }
+.fh-util-track { height: 10px; border-radius: 999px; background: #f0f0f0; overflow: hidden; }
+.fh-util-fill { display: block; height: 100%; border-radius: 999px; }
+.fh-util-fill.fh-util-ok { background: #52c41a; }
+.fh-util-fill.fh-util-warn { background: #faad14; }
+.fh-product-footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
+.fh-footer-item { display: flex; flex-direction: column; gap: 4px; }
+.fh-footer-item-right { align-items: flex-end; text-align: right; }
+.fh-footer-label { font-size: 12px; color: #8c8c8c; }
+.fh-footer-value { font-size: 15px; font-weight: 700; }
+.fh-footer-green { color: #389e0d; }
+.fh-footer-red { color: #cf1322; }
+.fh-empty { padding: 40px; text-align: center; color: #999; background: #fff; border: 1px dashed #d9d9d9; border-radius: 10px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+@media (max-width: 1400px) {
+    .fh-summary-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fh-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+    .fh-summary-grid-4, .fh-summary-grid-3, .fh-product-grid { grid-template-columns: 1fr; }
+}
+</style>
+{/block}

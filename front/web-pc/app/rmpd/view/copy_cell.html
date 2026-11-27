@@ -1,0 +1,69 @@
+<!--
+  RMPD 通用：点击表格单元格即复制其完整值。
+  - 被截断的字段（带 title 的 span）复制的是 title 里的完整内容，而非省略号版本。
+  - 按钮 / 勾选框 / 链接 / 输入框所在处不触发复制，不干扰原有操作。
+  - 兼容 http 内网（navigator.clipboard 不可用时回退 execCommand）。
+  用法：各列表页在 script 区块内用 include 标签引入本文件（file="copy_cell"）。
+  注意：勿在本注释内书写带花括号的模板标签，模板引擎会解析 HTML 注释内的标签。
+-->
+<script>
+layui.use(['layer'], function () {
+    var $ = window.$ || layui.jquery;
+    var L = (window.top && window.top.layer) ? window.top.layer : layui.layer;
+
+    function doCopy(text) {
+        text = (text == null ? '' : text).toString();
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(
+                function () { L.msg('已复制', {icon: 1, time: 800}); },
+                fallback
+            );
+        } else {
+            fallback();
+        }
+        function fallback() {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.top = '-9999px';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            var ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+            L.msg(ok ? '已复制' : '复制失败，请手动选择', {icon: ok ? 1 : 2, time: 1000});
+        }
+    }
+
+    // 命名空间事件 + 先 off 再 on：后台 SPA 每次重载本页都会重跑此脚本，
+    // 不去重会让点击叠加触发多次复制 / 多次提示。
+    $(document).off('click.rmpdCopy').on('click.rmpdCopy', '.think-box-shadow td', function (e) {
+        // 交互元素（按钮 / 勾选 / 链接 / 输入）所在处跳过，保留其原有行为。
+        if ($(e.target).closest('a, button, input, textarea, label, select, .layui-btn').length) return;
+        var $td = $(this);
+        // 整格含交互控件（操作按钮 / 勾选框 / 下拉）的单元格不参与复制：
+        // 点这类格的空白处会把按钮文字拼成"通过拒绝"之类的垃圾值。
+        if ($td.find('button, input, select, .layui-btn').length) return;
+        // 优先取带非空 title 的元素值（被截断字段的完整内容就在 title 里）。
+        // 排除链接 / 按钮：它们的 title 是"在 X 打开"之类的操作提示，不是单元格数据，
+        // 不能当成复制内容（否则点未截断的问题文字会误复制链接提示）。
+        var $titled = $td.find('[title]').not('a, button, .layui-btn').filter(function () {
+            return ($(this).attr('title') || '').length > 0;
+        }).first();
+        var val = $titled.length ? $titled.attr('title') : $td.text();
+        val = (val || '').replace(/\s+/g, ' ').trim();
+        if (!val || val === '-' || val === '…') return; // 空值 / 占位符不复制
+        doCopy(val);
+    });
+});
+</script>
+<style>
+/* 单元格提示可点复制；交互元素保持手型指针 */
+.think-box-shadow td { cursor: cell; }
+.think-box-shadow td a,
+.think-box-shadow td button,
+.think-box-shadow td input,
+.think-box-shadow td label,
+.think-box-shadow td .layui-btn { cursor: pointer; }
+</style>

@@ -1,0 +1,35 @@
+<div class="layui-card" style="box-shadow:none;">
+    <div class="layui-card-body">
+        <table class="layui-table" lay-skin="line">
+            <tbody>
+            <tr><td style="width:140px;color:#888;">赎回 ID</td><td>{$vo.id|default='-'}</td></tr>
+            <tr><td style="color:#888;">申购 ID</td><td>{$vo.subscription_id|default='-'}</td></tr>
+            <tr><td style="color:#888;">客户</td><td>#{$vo.client_id|default='-'} {$vo.client_name|default=''}</td></tr>
+            <tr><td style="color:#888;">产品编码</td><td class="mono">{$vo.product_code|default='-'}</td></tr>
+            <tr><td style="color:#888;">产品名称</td><td>{$vo.product_name|default='-'}</td></tr>
+            <tr><td style="color:#888;">赎回类型</td><td>{$vo.redemption_type_label|default='-'}</td></tr>
+            <tr><td style="color:#888;">兑付金额</td><td class="mono">{$vo.redemption_amount_fmt|default='0'}</td></tr>
+            <tr><td style="color:#888;">申请份额</td><td class="mono">{$vo.floating_request_shares_fmt|default='-'}</td></tr>
+            <tr><td style="color:#888;">计划兑付日</td><td>{$vo.due_date|default='-'}</td></tr>
+            <tr><td style="color:#888;">状态</td><td>{$vo.status_label|default='-'}</td></tr>
+            <tr><td style="color:#888;">提交时间</td><td>{$vo.requested_at|default='-'}</td></tr>
+            <tr><td style="color:#888;">兑付时间</td><td>{$vo.settled_at|default='-'}</td></tr>
+            <tr><td style="color:#888;">备注</td><td>{$vo.remark|default='-'}</td></tr>
+            <tr><td style="color:#888;">创建时间</td><td>{$vo.created_at|default='-'}</td></tr>
+            <tr><td style="color:#888;">更新时间</td><td>{$vo.updated_at|default='-'}</td></tr>
+            </tbody>
+        </table>
+        {if !empty($vo.can_delete)}
+        <div style="margin-top:16px;text-align:right;">
+            <button type="button" class="layui-btn layui-btn-danger layui-btn-sm"
+                    data-confirm="确定删除赎回记录 #{$vo.id|default=''} 吗？"
+                    data-action='{:url("remove_redemption")}'
+                    data-value="id#{$vo.id|default=''}">删除</button>
+        </div>
+        {/if}
+    </div>
+</div>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; word-break: break-all; }
+</style>

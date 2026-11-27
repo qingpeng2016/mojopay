@@ -1,0 +1,92 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+    <div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">市场对ID</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <input name="id" value="{$get.id|default=''}" placeholder="精确匹配" class="layui-input" type="number" min="1">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:130px;">
+                <select name="status" class="layui-select" id="mp-status">
+                    <option value="">全部</option>
+                    {foreach $statuses as $key=>$label}
+                    <option value="{$key}" {if isset($get.status) && $get.status==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">依赖类型</label>
+            <div class="layui-input-inline" style="width:160px;">
+                <select name="dependency_type" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $dep_types as $key=>$label}
+                    <option value="{$key}" {if isset($get.dependency_type) && $get.dependency_type==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">来源</label>
+            <div class="layui-input-inline" style="width:150px;">
+                <select name="detect_source" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $detect_sources as $key=>$label}
+                    <option value="{$key}" {if isset($get.detect_source) && $get.detect_source==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">平台A</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="platform_a" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $platforms as $key=>$label}
+                    <option value="{$key}" {if isset($get.platform_a) && $get.platform_a==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">平台B</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="platform_b" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $platforms as $key=>$label}
+                    <option value="{$key}" {if isset($get.platform_b) && $get.platform_b==$key}selected{/if}>{$label}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">问题关键词</label>
+            <div class="layui-input-inline">
+                <input name="question" value="{$get.question|default=''}" placeholder="模糊匹配市场A/B问题" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">创建时间</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <input name="date_range" value="{$get.date_range|default=''}" placeholder="开始日期 - 结束日期" class="layui-input" id="mp-date-range">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form', 'laydate'], function () {
+    layui.form.render('select');
+    layui.laydate.render({
+        elem: '#mp-date-range',
+        type: 'date',
+        range: ' - ',
+        format: 'yyyy-MM-dd'
+    });
+});
+</script>

@@ -1,0 +1,19 @@
+{extend name="../../admin/view/main"}
+{block name="button"}<a href="/admin.html#/backtest/bot_schedule_config/index.html" class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon layui-icon-return"></i> 返回列表</a>{/block}
+{block name="content"}
+<form class="layui-form think-box-shadow schedule-form" action="{:request()->url()}" data-auto="true" method="post">
+    <input type="hidden" name="id" value="{$vo.id|default=''}">
+    <div class="layui-form-item"><label class="layui-form-label">策略族名</label><div class="layui-input-block">
+        {if isset($vo.id)}<div class="layui-form-mid">{:htmlentities((string)$vo.strategy_name, ENT_QUOTES, 'UTF-8')}</div>{else}<input name="strategy_name" required maxlength="50" value="{:htmlentities((string)($vo['strategy_name']??''), ENT_QUOTES, 'UTF-8')}" class="layui-input" placeholder="例如 quick_market">{/if}
+    </div></div>
+    <div class="layui-form-item"><label class="layui-form-label">任务名</label><div class="layui-input-block">{if isset($vo.id)}<div class="layui-form-mid">{:htmlentities((string)$vo.task_name, ENT_QUOTES, 'UTF-8')}</div>{else}<input name="task_name" required maxlength="100" class="layui-input" placeholder="例如 market_generate">{/if}</div></div>
+    <div class="layui-form-item"><label class="layui-form-label">执行间隔</label><div class="layui-input-block"><input type="number" name="interval_seconds" min="0.001" step="any" required value="{$vo.interval_seconds|default='60'}" class="layui-input"><div class="layui-form-mid layui-word-aux">秒</div></div></div>
+    <div class="layui-form-item"><label class="layui-form-label">并发数</label><div class="layui-input-block"><input type="number" name="concurrency" min="1" step="1" value="{$vo.concurrency|default=''}" placeholder="留空表示不限制" class="layui-input"></div></div>
+    <div class="layui-form-item"><label class="layui-form-label">任务描述</label><div class="layui-input-block"><input name="description" maxlength="500" value="{:htmlentities((string)($vo['description']??''), ENT_QUOTES, 'UTF-8')}" class="layui-input"></div></div>
+    <div class="layui-form-item"><label class="layui-form-label">任务开关</label><div class="layui-input-block"><select name="is_enabled"><option value="1" {if ($vo.is_enabled??1)==1}selected{/if}>启用</option><option value="0" {if ($vo.is_enabled??1)==0}selected{/if}>禁用</option></select></div></div>
+    <div class="layui-form-item"><label class="layui-form-label">策略开关</label><div class="layui-input-block"><select name="is_strategy_enabled"><option value="1" {if ($vo.is_strategy_enabled??1)==1}selected{/if}>启用</option><option value="0" {if isset($vo.is_strategy_enabled) && $vo.is_strategy_enabled==0}selected{/if}>禁用</option></select></div></div>
+    <div class="layui-form-item"><label class="layui-form-label">仅主实例运行</label><div class="layui-input-block"><select name="is_primary_machine_run"><option value="0" {if ($vo.is_primary_machine_run??0)==0}selected{/if}>否</option><option value="1" {if ($vo.is_primary_machine_run??0)==1}selected{/if}>是</option></select></div></div>
+    <div class="layui-form-item"><div class="layui-input-block"><button type="submit" class="layui-btn"><i class="layui-icon layui-icon-ok"></i> 保存</button></div></div>
+</form>
+{/block}
+{block name="script"}<style>.schedule-form{max-width:690px;padding:24px}.schedule-form .layui-input-block{max-width:470px}.schedule-form .layui-form-mid{float:none}</style><script>layui.use('form',function(){layui.form.render('select');});</script>{/block}

@@ -1,0 +1,224 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    {include file="accounts/index_search"}
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width: 80px;">ID</th>
+            <th style="width: 120px;">渠道</th>
+            <th style="width: 180px;">账号类型</th>
+            <th style="width: 150px;">市场账号ID</th>
+            <th style="width: 200px;">描述</th>
+            <th style="width: 140px;">总资金余额</th>
+            <th style="width: 140px;">可用资金</th>
+            <th style="width: 140px;">冻结资金</th>
+            <th style="width: 100px;">状态</th>
+            <th style="width: 500px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $key=>$vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td>
+                {if empty($vo.vendor)}
+                <span style="color: #999;">-</span>
+                {elseif $vo.vendor eq 'POLYMARKET'}
+                <span class="layui-badge layui-bg-blue">POLYMARKET</span>
+                {elseif $vo.vendor eq 'FOREGATE'}
+                <span class="layui-badge layui-bg-cyan">FOREGATE</span>
+                {else}
+                <span class="layui-badge" style="background-color: #9C27B0;">{$vo.vendor}</span>
+                {/if}
+            </td>
+            <td>
+                {if $vo.account_type eq 'COLLECTION'}
+                <span class="layui-badge layui-bg-orange">COLLECTION</span>
+                {elseif $vo.account_type eq 'MARKET_MAKING_FOREGATE'}
+                <span class="layui-badge layui-bg-green">MARKET_MAKING_FOREGATE</span>
+                {elseif $vo.account_type eq 'MARKET_MAKING_POLYMARKET'}
+                <span class="layui-badge layui-bg-blue">MARKET_MAKING_POLYMARKET</span>
+                {else}
+                <span class="layui-badge" style="background-color: #607D8B;">{$vo.account_type}</span>
+                {/if}
+            </td>
+            <td>{$vo.market_account_id}</td>
+            <td title="{$vo.desc}">
+                {if strlen($vo.desc) > 25}
+                {:substr($vo.desc, 0, 25)}...
+                {else}
+                {$vo.desc}
+                {/if}
+            </td>
+            <td style="font-family: monospace;">{$vo.balance}</td>
+            <td style="font-family: monospace;">{$vo.available_balance}</td>
+            <td style="font-family: monospace;">{$vo.frozen_balance}</td>
+            <td>
+                {if $vo.status eq 'Normal'}
+                <span class="layui-btn layui-btn-sm layui-bg-green" style="padding: 0 10px; border: none;">Normal</span>
+                {elseif $vo.status eq 'Disabled'}
+                <span class="layui-btn layui-btn-sm layui-bg-red" style="padding: 0 10px; border: none;">Disabled</span>
+                {elseif $vo.status eq 'Maintenance'}
+                <span class="layui-btn layui-btn-sm layui-bg-orange" style="padding: 0 10px; border: none;">Maintenance</span>
+                {else}
+                <span class="layui-btn layui-btn-sm layui-bg-gray" style="padding: 0 10px; border: none;">{$vo.status}</span>
+                {/if}
+            </td>
+            <td>
+                <button class="layui-btn layui-btn-sm layui-bg-green" 
+                        data-modal='{:url("view")}?id={$vo.id}'>
+                    <i class="layui-icon">&#xe702;</i> 查看
+                </button>
+                <button class="layui-btn layui-btn-sm layui-btn-normal" 
+                        data-modal='{:url("edit")}?id={$vo.id}'>
+                    <i class="layui-icon">&#xe642;</i> 编辑
+                </button>
+                <button class="layui-btn layui-btn-sm layui-btn-danger" 
+                        data-confirm="确定要删除这个账号吗？" 
+                        data-action='{:url("remove")}' 
+                        data-value="id#{$vo.id}">
+                    <i class="layui-icon">&#xe640;</i> 删除
+                </button>
+            </td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有记录哦</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['layer', 'laydate'], function(){
+    var layer = layui.layer;
+    var laydate = layui.laydate;
+    
+    // 页面加载完成后的初始化
+    layer.msg('账号管理页面加载完成', {icon: 1, time: 2000});
+    
+    // 日期范围选择
+    laydate.render({
+        elem: '#date_range',
+        range: true,
+        format: 'yyyy-MM-dd'
+    });
+    
+    // 分页按钮点击优化
+    $(document).ready(function() {
+        // 为分页按钮添加点击事件，让整个按钮区域都可以点击
+        $('.pagination li a').on('click', function(e) {
+            // 阻止默认事件，使用自定义跳转
+            e.preventDefault();
+            var href = $(this).attr('href');
+            if (href && href !== '#') {
+                window.location.href = href;
+            }
+        });
+    });
+});
+</script>
+
+<style>
+/* 分页样式修复 */
+.layui-card-body .pagination,
+.think-box-shadow .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.layui-card-body .pagination li,
+.think-box-shadow .pagination li {
+    display: inline-block;
+    margin: 0 2px;
+    position: relative;
+}
+
+/* 分页按钮基础样式 */
+.layui-card-body .pagination li a,
+.layui-card-body .pagination li span,
+.think-box-shadow .pagination li a,
+.think-box-shadow .pagination li span {
+    display: inline-block;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #666;
+    text-decoration: none;
+    border-radius: 2px;
+    cursor: pointer;
+    min-width: 36px;
+    text-align: center;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    line-height: 1.2;
+}
+
+/* 当前页码样式 - 确保有颜色区分 */
+.layui-card-body .pagination li.active span,
+.think-box-shadow .pagination li.active span {
+    background: #009688 !important;
+    color: #fff !important;
+    border-color: #009688 !important;
+    cursor: default;
+}
+
+/* 可点击页码样式 */
+.layui-card-body .pagination li a:hover,
+.think-box-shadow .pagination li a:hover {
+    background: #f2f2f2;
+    border-color: #009688;
+    color: #009688;
+}
+
+/* 禁用状态样式 */
+.layui-card-body .pagination li.disabled span,
+.think-box-shadow .pagination li.disabled span {
+    background: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+    border-color: #ddd;
+}
+
+/* 确保分页按钮有足够的点击区域 */
+.layui-card-body .pagination li a,
+.think-box-shadow .pagination li a {
+    position: relative;
+    z-index: 1;
+}
+
+/* 当前页码样式增强 */
+.layui-card-body .pagination li.active,
+.think-box-shadow .pagination li.active {
+    position: relative;
+}
+
+.layui-card-body .pagination li.active::before,
+.think-box-shadow .pagination li.active::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: #009688;
+    border-radius: 4px;
+    z-index: -1;
+}
+</style>
+{/block}

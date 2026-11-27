@@ -1,0 +1,187 @@
+{extend name="../../admin/view/main"}{block name="button"}
+<div class="layui-btn-group">
+    <a href="/admin.html#/backtest/hedge/index.html" class="layui-btn layui-btn-sm layui-btn-primary">返回列表</a>
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon">&#xe669;</i> 刷新</button>
+    <button id="btn-auto" class="layui-btn layui-btn-sm layui-btn-warm">自动刷新：{$refreshMs|default=1000/1000}s</button>
+</div>
+{/block}{block name="content"}
+<div id="detail-content" class="think-box-shadow" data-refresh-ms="{$refreshMs|default=1000}" style="padding:16px;">
+
+    <fieldset class="layui-elem-field layui-field-title"><legend>盘口概要</legend></fieldset>
+    <div class="kv-grid">
+        <span class="kv-item"><span class="kv-k">盘口编号</span><span class="kv-v">{$row.market_no}</span></span>
+        <span class="kv-item"><span class="kv-k">标的</span><span class="kv-v">{$row.symbol}</span></span>
+        <span class="kv-item"><span class="kv-k">时长</span><span class="kv-v">{$row.in_duration}</span></span>
+        <span class="kv-item"><span class="kv-k">执行实例</span><span class="kv-v">{$row.machine_name}</span></span>
+    </div>
+    <div class="kv-grid">
+        <span class="kv-item"><span class="kv-k">幂等键</span><span class="kv-v">{$row.hedge_id}</span></span>
+        <span class="kv-item"><span class="kv-k">市场ID</span><span class="kv-v"><a href="/admin.html#/backtest/market/index.html?id={$row.f_market_id}" class="market-id-link">{$row.f_market_id}</a></span></span>
+        <span class="kv-item"><span class="kv-k">决策时刻</span><span class="kv-v">{$row.calc_time}</span></span>
+        <span class="kv-item"><span class="kv-k">对冲序号</span><span class="kv-v">{$row.calc_seq}</span></span>
+    </div>
+
+    <!-- ① 对冲输入（hedge.Snapshot 全量） -->
+    <div class="module-box">
+    <fieldset class="layui-elem-field layui-field-title"><legend>① 对冲输入（hedge.Snapshot 全量）</legend></fieldset>
+    <table class="layui-table module-table" lay-skin="line">
+        <thead><tr><th>字段</th><th>含义</th><th>取值</th></tr></thead>
+        <tbody>
+        {foreach $inputs as $k=>$label}
+        <tr>
+            <td><code>{$k}</code></td>
+            <td style="color:#666;">{$label}</td>
+            <td>
+                {if $k == 'in_s_history' && is_array($row[$k])}
+                    <span class="val-cell hover-full" title="{$row.in_s_history_full}" data-copy="{$row.in_s_history_full}">{$row.in_s_history_full}</span>
+                {elseif $k == 'in_strikes' && is_array($row[$k])}
+                    <span class="val-cell hover-full" title="{$row.in_strikes_full}" data-copy="{$row.in_strikes_full}">{$row.in_strikes_full}</span>
+                {elseif in_array($k, ['in_iv_strike_lo','in_iv_strike_hi','in_iv_lo','in_iv_hi'])}
+                    <span class="val-cell">{$row[$k]}</span>
+                {else}
+                    <span class="val-cell">{$row[$k]}</span>
+                {/if}
+            </td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    </div>
+
+    <!-- ② state（有状态递推闭环：下帧回填输入 _old） -->
+    <div class="module-box">
+    <fieldset class="layui-elem-field layui-field-title"><legend>② state（有状态递推闭环）</legend></fieldset>
+    <table class="layui-table module-table" lay-skin="line">
+        <thead><tr><th>字段</th><th>含义</th><th>值</th></tr></thead>
+        <tbody>
+        {foreach $stateKeys as $sk}
+        <tr>
+            <td><code>{$sk}</code></td>
+            <td style="color:#666;">{$stateLabels[$sk] ?? '-'}</td>
+            <td><span class="val-cell">{$row[$sk]}</span></td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    </div>
+
+    <!-- ③ 订单明细（f_hedge_order：每单一行 + 独立成交回执） -->
+    <div class="module-box">
+    <fieldset class="layui-elem-field layui-field-title"><legend>③ 订单明细（{:count($orders)} 个订单）</legend></fieldset>
+    {if !empty($orders)}
+        {foreach $orders as $o}
+        <fieldset class="layui-elem-field layui-field-title"><legend>订单 #{$o.ord_seq} · {$o.ord_platform}/{$o.ord_market}</legend></fieldset>
+        <table class="layui-table module-table" lay-skin="line">
+            <thead><tr><th>字段</th><th>取值</th></tr></thead>
+            <tbody>
+            <tr><td>方向 side</td><td>{$o.ord_side|default='-'}</td></tr>
+            <tr><td>单型 type</td><td>{$o.ord_type|default='-'}</td></tr>
+            {if !empty($o.ord_symbol)}<tr><td>标的 symbol</td><td>{$o.ord_symbol}</td></tr>{/if}
+            {if !empty($o.ord_quantity)}<tr><td>数量 quantity</td><td>{$o.ord_quantity}</td></tr>{/if}
+            {if !empty($o.ord_legs)}
+            <tr>
+                <td>期权腿 legs</td>
+                <td>
+                    <table class="layui-table inner-table" lay-skin="line">
+                        <thead><tr><th>instrument</th><th>option_type</th><th>strike</th><th>side</th><th>amount</th><th>price</th></tr></thead>
+                        <tbody>
+                        {foreach $o.ord_legs as $leg}
+                        <tr>
+                            <td><code>{$leg.instrument|default='-'}</code></td>
+                            <td>{$leg.option_type|default='-'}</td>
+                            <td>{$leg.strike|default='-'}</td>
+                            <td>{$leg.side|default='-'}</td>
+                            <td>{$leg.amount|default='-'}</td>
+                            <td>{$leg.price|default='-'}</td>
+                        </tr>
+                        {/foreach}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            {/if}
+            <tr><td>成交状态 ack_status</td><td>
+                {if $o.ack_status == 'FILLED'}<span class="layui-badge layui-bg-green">{$o.ack_status}</span>
+                {elseif $o.ack_status == 'PARTIAL'}<span class="layui-badge layui-bg-orange">{$o.ack_status}</span>
+                {elseif $o.ack_status == 'PENDING'}<span class="layui-badge layui-bg-blue">{$o.ack_status}</span>
+                {else}<span class="layui-badge layui-bg-gray">{$o.ack_status|default='-'}</span>{/if}
+            </td></tr>
+            <tr><td>成交价 ack_price</td><td>{$o.ack_price}</td></tr>
+            <tr><td>原始下单量 ack_orig_qty</td><td>{$o.ack_orig_qty}</td></tr>
+            <tr><td>真实成交量 ack_executed_qty</td><td>{$o.ack_executed_qty}</td></tr>
+            <tr><td>成交计价额 ack_quote_qty</td><td>{$o.ack_quote_qty}</td></tr>
+            <tr><td>交易所订单号</td><td><code>{$o.ack_ext_order_id|default='-'}</code></td></tr>
+            </tbody>
+        </table>
+        {/foreach}
+    {else}
+        <span class="color-desc">无订单明细</span>
+    {/if}
+    </div>
+
+    <!-- ④ 元信息 -->
+    <div class="module-box">
+    <fieldset class="layui-elem-field layui-field-title"><legend>④ 元信息</legend></fieldset>
+    <table class="layui-table module-table" lay-skin="line">
+        <thead><tr><th>字段</th><th>含义</th><th>取值</th></tr></thead>
+        <tbody>
+        {foreach $metaFields as $k=>$label}
+        <tr>
+            <td><code>{$k}</code></td>
+            <td style="color:#666;">{$label}</td>
+            <td><span class="val-cell">{$row[$k]}</span></td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    </div>
+
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.market-id-link { color:#009688; cursor:pointer; font-weight:bold; }
+.kv-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:#e6e6e6; border:1px solid #e6e6e6; margin-bottom:12px; }
+.kv-grid .kv-item { display:flex; align-items:stretch; background:#fff; min-width:0; }
+.kv-k { background:#f2f2f2; color:#666; padding:6px 10px; font-size:12px; display:flex; align-items:center; justify-content:center; width:96px; flex:0 0 96px; white-space:nowrap; }
+.kv-v { background:#fff; padding:6px 10px; font-size:12px; color:#333; display:flex; align-items:center; min-width:0; word-break:break-all; }
+.kv-v .layui-badge { margin:0 4px; }
+code { background:#f7f7f7; padding:1px 6px; border-radius:3px; font-size:12px; color:#c7254e; }
+.layui-elem-field legend { font-size:15px; font-weight:bold; }
+.module-box { border:1px solid #e8e8e8; border-radius:4px; padding:14px 18px 4px; margin-bottom:20px; background:#fcfcfc; }
+.module-box .layui-elem-field { margin-top:0; margin-bottom:12px; }
+.module-table { margin:0; background:#fff; width:100%; table-layout:fixed; }
+.module-table th, .module-table td { vertical-align:top; }
+.module-table th:nth-child(1), .module-table th:nth-child(2), .module-table th:nth-child(3) { width:33.33%; }
+.module-table td:nth-child(3) { white-space:nowrap; overflow:hidden; }
+.val-cell { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:help; }
+.module-table td, .module-table th { border-right:1px solid #f2f2f2; }
+.module-table td:last-child, .module-table th:last-child { border-right:0; }
+.inner-table { margin:0; background:#fff; }
+.inner-table th { font-size:12px; }
+</style>
+<script>
+// 自动刷新（详情页用于观察对冲实时落库）
+(function () {
+    var el = document.getElementById('detail-content');
+    var btn = document.getElementById('btn-auto');
+    var ms = parseInt(el.getAttribute('data-refresh-ms') || '1000', 10);
+    var timer = null;
+    function toggle() {
+        if (timer) {
+            clearInterval(timer); timer = null;
+            btn.classList.remove('layui-btn-warm');
+            btn.textContent = '自动刷新：关';
+        } else {
+            timer = setInterval(function () {
+                if (!document.hidden) { location.reload(); }
+            }, ms);
+            btn.classList.add('layui-btn-warm');
+            btn.textContent = '自动刷新：{$refreshMs|default=1000/1000}s';
+        }
+    }
+    btn.onclick = toggle;
+})();
+</script>
+{/block}

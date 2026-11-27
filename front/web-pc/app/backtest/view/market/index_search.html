@@ -1,0 +1,90 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+    <div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">盘口编号</label>
+            <div class="layui-input-inline" style="width:240px;">
+                <input name="market_no" value="{$get.market_no|default=''}" placeholder="模糊匹配 market_no" class="layui-input" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">Trace ID</label>
+            <div class="layui-input-inline" style="width:240px;">
+                <input name="trace_id" value="{$get.trace_id|default=''}" placeholder="模糊匹配 trace_id" class="layui-input" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">标的</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="symbol" class="layui-select">
+                    <option value="">全部</option>
+                    <option value="BTCUSDT" {if isset($get.symbol) && $get.symbol=='BTCUSDT'}selected{/if}>BTCUSDT</option>
+                    <option value="ETHUSDT" {if isset($get.symbol) && $get.symbol=='ETHUSDT'}selected{/if}>ETHUSDT</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="status" class="layui-select">
+                    <option value="">全部</option>
+                    <option value="pending" {if isset($get.status) && $get.status=='pending'}selected{/if}>未开盘</option>
+                    <option value="active" {if isset($get.status) && $get.status=='active'}selected{/if}>已开盘</option>
+                    <option value="close" {if isset($get.status) && $get.status=='close'}selected{/if}>已关闭</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">配置ID</label>
+            <div class="layui-input-inline" style="width:100px;">
+                <input name="f_config_id" value="{$get.f_config_id|default=''}" placeholder="f_config_id" class="layui-input" type="number">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">定价平台</label>
+            <div class="layui-input-inline" style="width:130px;">
+                <select name="in_pricing_source_platform" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $sourcePlatforms as $p}
+                    <option value="{$p}" {if isset($get.in_pricing_source_platform) && $get.in_pricing_source_platform==$p}selected{/if}>{$p}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">定价类型</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <select name="in_pricing_source_type" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $sourceTypes as $t}
+                    <option value="{$t}" {if isset($get.in_pricing_source_type) && $get.in_pricing_source_type==$t}selected{/if}>{$t}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">结算平台</label>
+            <div class="layui-input-inline" style="width:130px;">
+                <select name="in_settlement_source_platform" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $sourcePlatforms as $p}
+                    <option value="{$p}" {if isset($get.in_settlement_source_platform) && $get.in_settlement_source_platform==$p}selected{/if}>{$p}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">结算类型</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <select name="in_settlement_source_type" class="layui-select">
+                    <option value="">全部</option>
+                    {foreach $sourceTypes as $t}
+                    <option value="{$t}" {if isset($get.in_settlement_source_type) && $get.in_settlement_source_type==$t}selected{/if}>{$t}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,44 @@
+<div class="layui-card" style="box-shadow:none;">
+    <div class="layui-card-body">
+        <table class="layui-table" lay-skin="line">
+            <tbody>
+            <tr><td style="width:140px;color:#888;">ID</td><td>{$vo.id|default='-'}</td></tr>
+            <tr><td style="color:#888;">币种</td><td class="mono">{$vo.symbol|default='-'}</td></tr>
+            <tr><td style="color:#888;">Position ID</td><td class="mono">{$vo.position_id|default='-'}</td></tr>
+            <tr><td style="color:#888;">Side</td><td>{$vo.side|default='-'}</td></tr>
+            <tr><td style="color:#888;">金额</td><td class="mono">{$vo.amount_fmt|default='-'}</td></tr>
+            <tr><td style="color:#888;">利率</td><td class="mono">{$vo.rate_fmt|default='-'}</td></tr>
+            <tr><td style="color:#888;">期限(天)</td><td>{$vo.period_days|default='0'}</td></tr>
+            <tr><td style="color:#888;">状态</td><td>{$vo.status|default='-'}</td></tr>
+            <tr><td style="color:#888;">生命周期</td><td>{$vo.lifecycle|default='-'}</td></tr>
+            <tr><td style="color:#888;">Rate Type</td><td>{$vo.rate_type|default='-'}</td></tr>
+            <tr><td style="color:#888;">交易对</td><td class="mono">{$vo.position_pair|default='-'}</td></tr>
+            <tr><td style="color:#888;">Order ID</td><td class="mono">{$vo.order_id|default='0'}</td></tr>
+            <tr><td style="color:#888;">累计利息</td><td class="mono">{$vo.interest_accrued_fmt|default='0'}</td></tr>
+            {if isset($vo.fee_fmt)}
+            <tr><td style="color:#888;">Fee</td><td class="mono">{$vo.fee_fmt}</td></tr>
+            {/if}
+            {if isset($vo.profit_fmt)}
+            <tr><td style="color:#888;">Profit</td><td class="mono">{$vo.profit_fmt}</td></tr>
+            {/if}
+            <tr><td style="color:#888;">月化收益率</td><td class="mono">{$vo.monthly_yield_rate_fmt|default='0'}</td></tr>
+            <tr><td style="color:#888;">年化率</td><td class="mono">{$vo.annual_yield_rate_fmt|default='0.00%'}</td></tr>
+            <tr><td style="color:#888;">MTS Create</td><td>{$vo.mts_create_fmt|default='-'} <span style="color:#999;">({$vo.mts_create|default='0'})</span></td></tr>
+            <tr><td style="color:#888;">MTS Update</td><td>{$vo.mts_update_fmt|default='-'} <span style="color:#999;">({$vo.mts_update|default='0'})</span></td></tr>
+            <tr><td style="color:#888;">MTS Opening</td><td>{$vo.mts_opening_fmt|default='-'} <span style="color:#999;">({$vo.mts_opening|default='0'})</span></td></tr>
+            <tr><td style="color:#888;">MTS Last Payout</td><td>{$vo.mts_last_payout_fmt|default='-'} <span style="color:#999;">({$vo.mts_last_payout|default='0'})</span></td></tr>
+            <tr><td style="color:#888;">创建时间</td><td>{$vo.created_at|default='-'}</td></tr>
+            <tr><td style="color:#888;">更新时间</td><td>{$vo.updated_at|default='-'}</td></tr>
+            {if isset($vo.interest_ledger_json_display)}
+            <tr><td style="color:#888;vertical-align:top;">Interest Ledger</td><td><pre class="json-pre mono">{$vo.interest_ledger_json_display|raw}</pre></td></tr>
+            {/if}
+            <tr><td style="color:#888;vertical-align:top;">Raw JSON</td><td><pre class="json-pre mono">{$vo.raw_row_json_display|raw}</pre></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; word-break: break-all; }
+.json-pre { margin: 0; padding: 8px 10px; background: #fafafa; border: 1px solid #eee; border-radius: 4px; white-space: pre-wrap; font-size: 12px; line-height: 1.5; max-height: 280px; overflow: auto; }
+</style>

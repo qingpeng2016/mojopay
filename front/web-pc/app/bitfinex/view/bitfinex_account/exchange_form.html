@@ -1,0 +1,87 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off" id="bwa-exchange-form">
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <label class="layui-form-label">账号</label>
+            <div class="layui-input-block">
+                <input type="text" value="#{$account_id} {$vo.account_name|default=''}" class="layui-input layui-disabled" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">可用余额</label>
+            <div class="layui-input-block" style="padding-top:8px;font-size:12px;line-height:1.7;" id="bwa-ex-balance-hint">-</div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">兑换方向</label>
+            <div class="layui-input-block">
+                <select name="direction" lay-filter="bwa-direction" required>
+                    <option value="usd_to_usdt">USD → USDT</option>
+                    <option value="usdt_to_usd">USDT → USD</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">兑换金额</label>
+            <div class="layui-input-block">
+                <input name="amount" required placeholder="须小于等于 Exchange 可用余额" class="layui-input mono" id="bwa-ex-amount">
+                <div class="layui-form-mid layui-word-aux">Exchange 可用：<span class="mono" id="bwa-ex-available">0</span></div>
+            </div>
+        </div>
+        <div class="hr-line-dashed"></div>
+        <input type="hidden" name="account_id" value="{$account_id}">
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">提交兑换</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function () {
+    var form = layui.form;
+    var balances = {$balances_json|raw} || {};
+
+    function fmt(n) {
+        return (Number(n) || 0).toFixed(8).replace(/\.?0+$/, '') || '0';
+    }
+
+    function available() {
+        var direction = $('[name=direction]').val() || 'usd_to_usdt';
+        var source = direction === 'usdt_to_usd' ? 'USDT' : 'USD';
+        var row = balances[source] || {};
+        return Number(row.exchange || 0);
+    }
+
+    function refreshHint() {
+        var usd = Number((balances.USD && balances.USD.exchange) || 0);
+        var usdt = Number((balances.USDT && balances.USDT.exchange) || 0);
+        $('#bwa-ex-balance-hint').html(
+            'USD Exchange=<b class="mono">' + fmt(usd) + '</b><br>' +
+            'USDT Exchange=<b class="mono">' + fmt(usdt) + '</b>'
+        );
+        $('#bwa-ex-available').text(fmt(available()));
+    }
+
+    form.render();
+    form.on('select(bwa-direction)', refreshHint);
+    refreshHint();
+
+    $('#bwa-exchange-form').on('submit', function (e) {
+        var amt = Number($('#bwa-ex-amount').val() || 0);
+        var avail = available();
+        if (!(amt > 0)) {
+            layer.msg('兑换金额必须大于 0', {icon: 0});
+            e.preventDefault();
+            return false;
+        }
+        if (amt > avail + 1e-12) {
+            layer.msg('Exchange 余额不足，当前可用 ' + fmt(avail), {icon: 0});
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>

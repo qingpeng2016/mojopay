@@ -1,0 +1,292 @@
+{extend name="../../admin/view/main"}{block name="button"}
+<div class="layui-btn-group">
+    <a href="/admin.html#/backtest/market/index.html" class="layui-btn layui-btn-sm layui-btn-primary">返回列表</a>
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon">&#xe669;</i> 刷新</button>
+    <button id="btn-auto" class="layui-btn layui-btn-sm layui-btn-warm">自动刷新：{$refreshSec}s</button>
+</div>
+{/block}{block name="content"}
+<div id="detail-content" class="think-box-shadow" data-refresh-ms="{$refreshMs|default=1000}" style="padding:16px;">
+
+    <fieldset class="layui-elem-field layui-field-title"><legend>盘口概要</legend></fieldset>
+    <div class="kv-grid">
+        <span class="kv-item"><span class="kv-k">盘口编号</span><span class="kv-v">{$row.market_no}</span></span>
+        <span class="kv-item"><span class="kv-k">标的</span><span class="kv-v">{$row.symbol}</span></span>
+        <span class="kv-item"><span class="kv-k">状态</span><span class="kv-v">
+            {if $row.status == 'active'}<span class="layui-badge layui-bg-green">已开盘</span>
+            {elseif $row.status == 'pending'}<span class="layui-badge layui-bg-orange">未开盘</span>
+            {else}<span class="layui-badge layui-bg-gray">已关闭</span>{/if}
+        </span></span>
+        <span class="kv-item"><span class="kv-k">结算</span><span class="kv-v">
+            {if $row.settle_result == 'up'}<span class="layui-badge layui-bg-blue">UP 赢</span>
+            {elseif $row.settle_result == 'down'}<span class="layui-badge layui-bg-red">DOWN 赢</span>
+            {elseif $row.settle_result == 'draw'}<span class="layui-badge layui-bg-orange">平局</span>
+            {else}<span class="color-desc">未结算</span>{/if}
+        </span></span>
+    </div>
+    <div class="kv-grid">
+        <span class="kv-item"><span class="kv-k">开盘时间</span><span class="kv-v">{$row.open_time}</span></span>
+        <span class="kv-item"><span class="kv-k">过期时间</span><span class="kv-v">{$row.expiry_time}</span></span>
+        <span class="kv-item"><span class="kv-k">结算价</span><span class="kv-v">{if $row.settle_price > 0}{$row.settle_price}{else}-{/if}</span></span>
+        <span class="kv-item"><span class="kv-k">铺单次数</span><span class="kv-v">{$row.calc_seq}</span></span>
+    </div>
+
+    <!-- ① 铺单档位（Up/Down 切换，置顶） -->
+    <div class="module-box">
+    <fieldset class="layui-elem-field layui-field-title"><legend>① 铺单档位（分方向）</legend></fieldset>
+    <div class="dir-toggle">
+        <button type="button" class="layui-btn layui-btn-sm dir-btn active" data-dir="up">UP 方向</button>
+        <button type="button" class="layui-btn layui-btn-sm layui-btn-primary dir-btn" data-dir="down">DOWN 方向</button>
+    </div>
+    <div class="book-wrap book-dir" data-dir="up">
+        <div class="book-side-label">卖单 ASKS <span class="book-hint">价格降序 · 向上滚看更高档</span></div>
+        <div class="book-table-head"><span>价格</span><span>数量</span></div>
+        <div class="book-scroll book-scroll-reverse">
+        <table class="layui-table module-table book-table" lay-skin="line">
+            <tbody>
+            {foreach $row.up_asks as $lv}
+            <tr><td><span class="val-cell" title="{$lv.price}" data-copy="{$lv.price}">{$lv.price}</span></td><td><span class="val-cell" title="{$lv.size}" data-copy="{$lv.size}">{$lv.size}</span></td></tr>
+            {/foreach}
+            </tbody>
+        </table>
+        </div>
+        <div class="book-side-label">买单 BIDS <span class="book-hint">价格降序 · 向下滚看更低档</span></div>
+        <div class="book-table-head"><span>价格</span><span>数量</span></div>
+        <div class="book-scroll">
+        <table class="layui-table module-table book-table" lay-skin="line">
+            <tbody>
+            {foreach $row.up_bids as $lv}
+            <tr><td><span class="val-cell" title="{$lv.price}" data-copy="{$lv.price}">{$lv.price}</span></td><td><span class="val-cell" title="{$lv.size}" data-copy="{$lv.size}">{$lv.size}</span></td></tr>
+            {/foreach}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    <div class="book-wrap book-dir" data-dir="down" style="display:none;">
+        <div class="book-side-label">卖单 ASKS <span class="book-hint">价格降序 · 向上滚看更高档</span></div>
+        <div class="book-table-head"><span>价格</span><span>数量</span></div>
+        <div class="book-scroll book-scroll-reverse">
+        <table class="layui-table module-table book-table" lay-skin="line">
+            <tbody>
+            {foreach $row.down_asks as $lv}
+            <tr><td><span class="val-cell" title="{$lv.price}" data-copy="{$lv.price}">{$lv.price}</span></td><td><span class="val-cell" title="{$lv.size}" data-copy="{$lv.size}">{$lv.size}</span></td></tr>
+            {/foreach}
+            </tbody>
+        </table>
+        </div>
+        <div class="book-side-label">买单 BIDS <span class="book-hint">价格降序 · 向下滚看更低档</span></div>
+        <div class="book-table-head"><span>价格</span><span>数量</span></div>
+        <div class="book-scroll">
+        <table class="layui-table module-table book-table" lay-skin="line">
+            <tbody>
+            {foreach $row.down_bids as $lv}
+            <tr><td><span class="val-cell" title="{$lv.price}" data-copy="{$lv.price}">{$lv.price}</span></td><td><span class="val-cell" title="{$lv.size}" data-copy="{$lv.size}">{$lv.size}</span></td></tr>
+            {/foreach}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    </div>
+
+    <!-- ② 输入参数 -->
+    <div class="module-box">
+    <fieldset class="layui-elem-field layui-field-title"><legend>② 输入参数（{:count($inputs)} 个策略入参）</legend></fieldset>
+    <table class="layui-table module-table" lay-skin="line">
+        <thead><tr><th>字段</th><th>含义</th><th>取值</th></tr></thead>
+        <tbody>
+        {foreach $inputs as $k=>$label}
+        <tr>
+            <td><code>{$k}</code></td>
+            <td style="color:#666;">
+                {$label}
+                {if $k == 'in_basis_samples' && is_array($row[$k])}<span class="layui-badge layui-bg-gray" style="margin-left:6px;">{:count($row[$k])} 组 [bn,cl]</span>{/if}
+            </td>
+            <td>
+                {if is_array($row[$k])}
+                    {if $k == 'in_s_history'}
+                        <span class="val-cell hover-full" title="{$row.in_s_history_full}" data-copy="{$row.in_s_history_full}">{$row.in_s_history_full}</span>
+                    {elseif $k == 'in_basis_samples'}
+                        <span class="val-cell hover-full" title="{$row.in_basis_samples_full}" data-copy="{$row.in_basis_samples_full}">{$row.in_basis_samples_full}</span>
+                    {else}
+                        <span class="val-cell hover-full" title="{:json_encode($row[$k])}" data-copy="{:json_encode($row[$k])}">{:json_encode($row[$k])}</span>
+                    {/if}
+                {else}
+                    {if in_array($k, ['in_iv_strike_lo','in_iv_strike_hi','in_iv_lo','in_iv_hi'])}
+                        <span class="val-cell">{$row[$k]}</span>
+                    {elseif in_array($k, ['in_q','in_q_cap'])}
+                        <span class="val-cell">{$row[$k]}</span>
+                        {if in_array($row.status, ['pending','active'])}
+                        <button type="button" class="layui-btn layui-btn-xs layui-btn-warm edit-q-btn" data-id="{$row.id}" data-field="{$k}" style="margin-left:8px;">编辑</button>
+                        {/if}
+                    {else}
+                        <span class="val-cell">{$row[$k]}</span>
+                    {/if}
+                {/if}
+            </td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    </div>
+
+    <!-- ③ state（有状态递推闭环：与 commonData 平级，下帧回填输入 _old） -->
+    <div class="module-box">
+    <fieldset class="layui-elem-field layui-field-title"><legend>③ state（有状态递推闭环）</legend></fieldset>
+    <table class="layui-table module-table" lay-skin="line">
+        <thead><tr><th>字段</th><th>含义</th><th>值</th></tr></thead>
+        <tbody>
+        {foreach $stateKeys as $sk}
+        <tr>
+            <td><code>{$sk}</code></td>
+            <td style="color:#666;">{$stateLabels[$sk] ?? '-'}</td>
+            <td><span class="val-cell">{$row[$sk]}</span></td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    </div>
+
+    <!-- ④ commonData -->
+    <div class="module-box">
+    <fieldset class="layui-elem-field layui-field-title"><legend>④ commonData（{:count($cdKeys)} 个因子）</legend></fieldset>
+    <table class="layui-table module-table" lay-skin="line">
+        <thead><tr><th>因子</th><th>含义</th><th>值</th></tr></thead>
+        <tbody>
+        {foreach $cdKeys as $ck}
+        <tr>
+            <td><code>{$ck}</code></td>
+            <td style="color:#666;">{$cdLabels[$ck] ?? '-'}</td>
+            <td>
+                {if is_array($row[$ck])}
+                    {if empty($row[$ck])}<span class="layui-badge layui-bg-gray">空</span>
+                    {else}<span class="val-cell hover-full" title="{$row[$ck]|json_encode}" data-copy="{$row[$ck]|json_encode}">{$row[$ck]|json_encode}</span>{/if}
+                {else}
+                    <span class="val-cell">{$row[$ck]}</span>
+                {/if}
+            </td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    </div>
+
+    {include file="shared/quick_market_payloads"}
+
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.kv-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:#e6e6e6; border:1px solid #e6e6e6; margin-bottom:12px; }
+.kv-grid .kv-item { display:flex; align-items:stretch; background:#fff; min-width:0; }
+.kv-k { background:#f2f2f2; color:#666; padding:6px 10px; font-size:12px; display:flex; align-items:center; justify-content:center; width:96px; flex:0 0 96px; white-space:nowrap; }
+.kv-v { background:#fff; padding:6px 10px; font-size:12px; color:#333; display:flex; align-items:center; min-width:0; word-break:break-all; }
+.kv-v .layui-badge { margin:0 4px; }
+code { background:#f7f7f7; padding:1px 6px; border-radius:3px; font-size:12px; color:#c7254e; }
+.layui-elem-field legend { font-size:15px; font-weight:bold; }
+.module-box { border:1px solid #e8e8e8; border-radius:4px; padding:14px 18px 4px; margin-bottom:20px; background:#fcfcfc; }
+.module-box .layui-elem-field { margin-top:0; margin-bottom:12px; }
+.module-table { margin:0; background:#fff; width:100%; table-layout:fixed; }
+.module-table th, .module-table td { vertical-align:top; }
+.module-table th:nth-child(1), .module-table th:nth-child(2), .module-table th:nth-child(3) { width:33.33%; }
+.module-table td:nth-child(3) { white-space:nowrap; overflow:hidden; }
+.val-cell { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:help; }
+.module-table td, .module-table th { border-right:1px solid #f2f2f2; }
+.module-table td:last-child, .module-table th:last-child { border-right:0; }
+.book-wrap { border:1px solid #e8e8e8; border-radius:4px; overflow:hidden; }
+.book-side-label { padding:7px 12px; font-size:13px; font-weight:bold; background:#fafafa; border-bottom:1px solid #e8e8e8; }
+.book-hint { font-size:11px; font-weight:normal; color:#999; margin-left:6px; }
+.book-table td { padding:6px 10px !important; height:32px; line-height:20px; box-sizing:border-box; }
+.book-table-head { display:flex; background:#f7f7f7; font-weight:bold; color:#666; font-size:13px; border-bottom:1px solid #e8e8e8; }
+.book-table-head span { flex:1; padding:6px 10px; box-sizing:border-box; }
+.book-scroll { max-height:240px; overflow:auto; }
+.book-scroll-reverse { display:flex; flex-direction:column-reverse; }
+.book-scroll-reverse .book-table { flex-shrink:0; width:100%; }
+.hover-full { font-size:11px; color:#888; cursor:help; border-bottom:1px dotted #999; }
+.dir-toggle { margin-bottom:10px; }
+.dir-toggle .dir-btn.active { background:#009688; color:#fff; border-color:#009688; }
+</style>
+<script>
+/*! Up/Down 方向切换：切换显示对应方向的盘口；自动刷新整块替换后经 MutationObserver 恢复选中方向 */
+(function () {
+    var box = document.getElementById('detail-content');
+    var cur = 'up';
+    function apply() {
+        var btns = box.querySelectorAll('.dir-btn');
+        btns.forEach(function (b) {
+            var on = b.getAttribute('data-dir') === cur;
+            b.classList.toggle('active', on);
+            b.classList.toggle('layui-btn-primary', !on);
+        });
+        box.querySelectorAll('.book-dir').forEach(function (d) {
+            d.style.display = d.getAttribute('data-dir') === cur ? '' : 'none';
+        });
+    }
+    box.addEventListener('click', function (e) {
+        var btn = e.target.closest('.dir-btn');
+        if (!btn) return;
+        cur = btn.getAttribute('data-dir');
+        apply();
+    });
+    apply();
+    // 自动刷新(script.js)整块替换 innerHTML 后，重新应用当前方向
+    if (window.MutationObserver) {
+        new MutationObserver(function () { apply(); }).observe(box, { childList: true, subtree: true });
+    }
+})();
+
+/*! 编辑盘口参数（Q / Q_cap）：弹窗输入新值 → POST saveParam 更新 V2 盘口待用参数
+    （回测下一轮铺单生效）。用 document 事件委托，自动刷新整块替换 innerHTML 后按钮依然可用。
+    ⚠ 本页由 SPA 每次进入都 .html() 注入并执行内联脚本，若直接 .on('click') 会在 document 上
+    累积多个 handler：点一次「编辑」弹出多个叠加弹窗，点确定/取消/右上角 X 要多次才能全部关闭。
+    因此必须用命名空间先 off 再 on，保证全局始终只有一个 handler。 */
+layui.use(['layer', 'jquery'], function () {
+    var layer = layui.layer, $ = layui.jquery;
+    var fieldLabels = { in_q: '净敞口 Q', in_q_cap: '单边持仓限额 Q_cap' };
+    var saving = false; // 防重复提交（同一弹窗连点确定只发一次请求）
+    $(document).off('click.qEdit').on('click.qEdit', '.edit-q-btn', function () {
+        var btn = $(this);
+        var marketId = btn.attr('data-id');
+        var field = btn.attr('data-field');
+        var current = btn.closest('td').find('.val-cell').first().text().trim();
+        layer.prompt({
+            title: '编辑 ' + (fieldLabels[field] || field),
+            value: current,
+            formType: 0,
+            area: ['320px', '180px']
+        }, function (val, index) {
+            val = val.trim();
+            if (val === '' || isNaN(val)) {
+                layer.msg('请输入数值', { icon: 2 });
+                // layui 同步模式：确定按钮回调返回值不影响关闭，弹窗保留等待重新输入
+                return;
+            }
+            if (saving) {
+                layer.msg('正在保存，请稍候…', { icon: 0 });
+                return;
+            }
+            saving = true;
+            $.ajax({
+                url: '/backtest/market/saveParam.html',
+                type: 'POST',
+                data: { id: marketId, field: field, value: val },
+                dataType: 'json',
+                success: function (res) {
+                    saving = false;
+                    if (res && res.code === 1) {
+                        layer.close(index);
+                        btn.closest('td').find('.val-cell').first().text(val);
+                        layer.msg(res.info || '已更新', { icon: 1 });
+                    } else {
+                        layer.msg((res && res.info) || '更新失败', { icon: 2 });
+                    }
+                },
+                error: function () {
+                    saving = false;
+                    layer.msg('请求失败，请重试', { icon: 2 });
+                }
+            });
+        });
+    });
+});
+</script>
+{/block}

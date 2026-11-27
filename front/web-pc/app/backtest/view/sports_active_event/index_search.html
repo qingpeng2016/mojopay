@@ -1,0 +1,9 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get"><div class="layui-form-item">
+<div class="layui-inline"><label class="layui-form-label">联赛 ID</label><div class="layui-input-inline"><input name="league_id" value="{$get.league_id|default=''}" class="layui-input"></div></div>
+<div class="layui-inline"><label class="layui-form-label">联赛名称</label><div class="layui-input-inline"><input name="league_name" value="{$get.league_name|default=''}" class="layui-input"></div></div>
+<div class="layui-inline"><label class="layui-form-label">赛事 ID</label><div class="layui-input-inline"><input name="event_id" value="{$get.event_id|default=''}" class="layui-input"></div></div>
+<div class="layui-inline"><label class="layui-form-label">赛事名称</label><div class="layui-input-inline"><input name="event_name" value="{$get.event_name|default=''}" class="layui-input"></div></div>
+<div class="layui-inline"><label class="layui-form-label">盘口(玩法)</label><div class="layui-input-inline"><input name="market_key" value="{$get.market_key|default=''}" class="layui-input"></div></div>
+<div class="layui-inline"><label class="layui-form-label">运动类型</label><div class="layui-input-inline" style="width:130px"><select name="sport"><option value="">全部</option>{foreach ['football','basketball','esports'] as $v}<option value="{$v}" {if ($get.sport??'')==$v}selected{/if}>{$v}</option>{/foreach}</select></div></div>
+<div class="layui-inline"><label class="layui-form-label">赛事状态</label><div class="layui-input-inline" style="width:130px"><input name="event_status" value="{$get.event_status|default=''}" class="layui-input" placeholder="如 upcoming/live"></div></div>
+<button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div></form>

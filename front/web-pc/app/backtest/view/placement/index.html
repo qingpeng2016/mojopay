@@ -1,0 +1,77 @@
+{extend name="../../admin/view/main"}{block name="button"}
+<div class="layui-btn-group">
+    <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="window.location.href='{:url('export')}?'+$('.form-search').serialize()">导出CSV</button>
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon">&#xe669;</i> 刷新</button>
+</div>
+{/block}{block name="content"}
+<div class="think-box-shadow table-block" style="padding:16px;">
+    {include file="placement/index_search"}
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            {foreach $columns as $col}
+            <th style="min-width:{$col.width}px;" class="th-two-line" title="{$col.label|nl2br}">{$col.label}</th>
+            {/foreach}
+            <th style="width:70px;">详情</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            {foreach $columns as $col}
+            {if $col.type == 'status'}
+            <td>
+                {if $vo[$col.key] == 'active'}<span class="layui-badge layui-bg-green">已开盘</span>
+                {elseif $vo[$col.key] == 'pending'}<span class="layui-badge layui-bg-orange">未开盘</span>
+                {else}<span class="layui-badge layui-bg-gray">已关闭</span>{/if}
+            </td>
+            {elseif $col.type == 'settle'}
+            <td>
+                {if $vo[$col.key] == 'up'}<span class="layui-badge layui-bg-blue">UP 赢</span>
+                {elseif $vo[$col.key] == 'down'}<span class="layui-badge layui-bg-red">DOWN 赢</span>
+                {elseif $vo[$col.key] == 'draw'}<span class="layui-badge layui-bg-orange">平局</span>
+                {else}<span class="color-desc">-</span>{/if}
+            </td>
+            {elseif $col.type == 'market_link'}
+            <td><a href="/admin.html#/backtest/market/index.html?id={$vo[$col.key]}" class="market-id-link" title="查看对应市场信息">{$vo[$col.key]}</a></td>
+            {elseif $col.type == 'iv'}
+            <td>{$vo[$col.key]}</td>
+            {elseif $col.type == 'json'}
+            <td><span class="json-cell hover-full" title="{$vo[$col.full_key]}" data-copy="{$vo[$col.full_key]}">{$vo[$col.full_key]}</span></td>
+            {else}
+            <td>{$vo[$col.key]}</td>
+            {/if}
+            {/foreach}
+            <td><a href="/admin.html#/backtest/placement/detail.html?id={$vo.id}" class="detail-link">查看</a></td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有记录哦</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+.table-block { overflow-x: auto; }
+.market-id-link, .detail-link { color:#009688; cursor:pointer; font-weight:bold; }
+.market-id-link:hover, .detail-link:hover { text-decoration:underline; }
+.hover-full { font-size:12px; color:#555; cursor:help; border-bottom:1px dotted #999; }
+.json-cell { display:inline-block; max-width:118px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+.table-block .layui-table { min-width: 7000px; }
+.table-block .layui-table th, .table-block .layui-table td { white-space: nowrap; }
+/* 表头"中文\n英文"两行显示：pre 只在 \n 处换行，宽度不足时撑开表格而非竖排 */
+.th-two-line { white-space: pre !important; line-height: 1.4; text-align: center; }
+.pagination { display:flex; justify-content:center; flex-wrap:wrap; margin:20px 0; padding:0; list-style:none; }
+.pagination li { display:inline-block; margin:0 2px; }
+.pagination li a, .pagination li span {
+    display:inline-block; padding:6px 10px; border:1px solid #ddd; background:#fff;
+    color:#666; text-decoration:none; border-radius:2px; cursor:pointer; min-width:36px; text-align:center;
+}
+.pagination li.active span { background:#009688; color:#fff; border-color:#009688; }
+.pagination li a:hover { background:#f2f2f2; border-color:#009688; color:#009688; }
+.pagination li.disabled span { background:#f5f5f5; color:#999; cursor:not-allowed; }
+</style>
+{/block}

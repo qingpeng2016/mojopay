@@ -1,0 +1,77 @@
+{extend name="../../admin/view/main"}
+{block name="style"}
+<style>
+.table-block { overflow-x: auto; }
+.table-block .scarb-list-table { table-layout: fixed; width: 100%; min-width: 1000px; }
+.table-block .scarb-list-table th,
+.table-block .scarb-list-table td { white-space: nowrap; vertical-align: middle; }
+.table-block .scarb-list-table .col-num,
+.table-block .scarb-list-table th.col-num { text-align: right; }
+</style>
+{/block}
+{block name="button"}<button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon">&#xe669;</i> 刷新</button>{/block}
+{block name="content"}
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">ID</label><div class="layui-input-inline" style="width:80px;"><input name="id" value="{$get.id|default=''}" class="layui-input" placeholder="精确"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">时间</label><div class="layui-input-inline" style="width:200px;"><input name="date_range" value="{$get.date_range|default=''}" class="layui-input" id="dt-range"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号ID</label><div class="layui-input-inline" style="width:90px;"><input name="exchange_account_id" value="{$get.exchange_account_id|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">状态</label><div class="layui-input-inline" style="width:100px;"><select name="status"><option value="">全部</option>{foreach $statuses as $k=>$v}<option value="{$k}" {if isset($get.status) && $get.status==$k}selected{/if}>{$v}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10 scarb-list-table" lay-skin="line" style="font-size:12px;">
+<colgroup>
+    <col style="width:56px"><col style="width:64px"><col style="width:72px"><col style="width:72px">
+    <col style="width:130px"><col style="width:130px"><col style="width:88px"><col style="width:160px"><col style="width:88px">
+</colgroup>
+<thead>
+<tr>
+    <th>ID</th>
+    <th>账号</th>
+    <th>From</th>
+    <th>To</th>
+    <th class="col-num">兑出量</th>
+    <th class="col-num">兑入量</th>
+    <th>状态</th>
+    <th>创建时间</th>
+    <th>操作</th>
+</tr>
+</thead>
+<tbody>
+{foreach $list as $vo}
+<tr>
+    <td>{$vo.id}</td>
+    <td>{$vo.exchange_account_id}</td>
+    <td>{$vo.from_asset}</td>
+    <td>{$vo.to_asset}</td>
+    <td class="mono col-num">{$vo.from_qty_fmt}</td>
+    <td class="mono col-num">{$vo.to_qty_fmt|default='-'}</td>
+    <td>
+{if $vo.status == 'SUCCESS'}
+<span class="layui-btn layui-btn-xs layui-bg-green" style="padding:0 10px;border:none;cursor:default;">SUCCESS</span>
+{elseif $vo.status == 'INIT' || $vo.status == 'PENDING'}
+<span class="layui-btn layui-btn-xs layui-bg-gray" style="padding:0 10px;border:none;cursor:default;">{$vo.status}</span>
+{else}
+<span class="layui-btn layui-btn-xs layui-bg-red" style="padding:0 10px;border:none;cursor:default;">{$vo.status}</span>
+{/if}
+    </td>
+    <td>{$vo.created_at}</td>
+    <td class="nowrap">
+{if !empty($vo.show_confirm)}
+<a class="layui-btn layui-btn-xs layui-btn-normal"
+   data-action="{:url('confirm')}"
+   data-value="id#{$vo.id}"
+   data-confirm="是否确认已兑换">确认</a>
+{else}
+<span style="color:#ccc;">—</span>
+{/if}
+    </td>
+</tr>
+{/foreach}
+{if empty($list)}<tr><td colspan="9" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}
+</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>
+{/block}
+{block name="script"}{include file="common/pagination_assets"}<script>layui.use(['form','laydate'],function(){layui.form.render('select');layui.laydate.render({elem:'#dt-range',type:'date',range:' - '});});</script>{/block}

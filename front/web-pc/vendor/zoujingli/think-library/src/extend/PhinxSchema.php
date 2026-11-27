@@ -1,0 +1,592 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * +----------------------------------------------------------------------
+ * | ThinkAdmin Plugin for ThinkAdmin
+ * +----------------------------------------------------------------------
+ * | 版权所有 2014~2026 ThinkAdmin [ thinkadmin.top ]
+ * +----------------------------------------------------------------------
+ * | 官方网站: https://thinkadmin.top
+ * +----------------------------------------------------------------------
+ * | 开源协议 ( https://mit-license.org )
+ * | 免责声明 ( https://thinkadmin.top/disclaimer )
+ * | 会员特权 ( https://thinkadmin.top/vip-introduce )
+ * +----------------------------------------------------------------------
+ * | gitee 代码仓库：https://gitee.com/zoujingli/ThinkAdmin
+ * | github 代码仓库：https://github.com/zoujingli/ThinkAdmin
+ * +----------------------------------------------------------------------
+ */
+
+namespace think\admin\extend;
+
+use Phinx\Db\Adapter\AdapterInterface;
+use Phinx\Db\Adapter\AdapterWrapper;
+use Phinx\Db\Adapter\MysqlAdapter;
+use Phinx\Db\Adapter\SQLiteAdapter;
+use Phinx\Db\Adapter\TablePrefixAdapter;
+use Phinx\Db\Table\Column;
+use Phinx\Util\Literal;
+
+/**
+ * 数据表结构读取与迁移字段转换.
+ * 使用通用类型描述字段，并通过选项保留 MySQL / SQLite 原始定义及兼容约束.
+ * @class PhinxSchema
+ */
+class PhinxSchema
+{
+    /**
+     * 筛选并去重待导出的物理表名，排除忽略项及 SQLite 内部表.
+     * @param object $connect 提供 getConfig 接口的数据库连接
+     * @param string[] $tables 待导出的物理表名
+     * @param string[] $ignore 要忽略的物理表名或去前缀后的逻辑表名
+     * @return string[] 保持原顺序且下标连续的物理表名
+     */
+    public static function exportTables($connect, array $tables, array $ignore = []): array
+    {
+        return array_values(array_filter(array_unique($tables), function ($table) use ($connect, $ignore) {
+            return !in_array($table, $ignore, true)
+                && !in_array(self::logicalName($connect, $table), $ignore, true)
+                && ($connect->getConfig('type') !== 'sqlite' || strpos($table, 'sqlite_') !== 0);
+        }));
+    }
+
+    /**
+     * 移除物理表名开头的连接前缀，供迁移在目标环境重新应用前缀.
+     * @param object $connect 提供 getConfig 接口的数据库连接
+     * @param string $table 物理表名
+     * @return string 去除匹配前缀后的逻辑表名
+     */
+    public static function logicalName($connect, string $table): string
+    {
+        $prefix = (string)$connect->getConfig('prefix');
+        return $prefix !== '' && strpos($table, $prefix) === 0 ? substr($table, strlen($prefix)) : $table;
+    }
+
+    /**
+     * 为缺少 Literal 或列排序规则接口的旧版 Phinx 补充列定义能力.
+     * 保留适配器包装关系及原 PDO 连接，普通列仍由父适配器编译.
+     * @param AdapterInterface $adapter 当前迁移适配器，可包含多层包装
+     * @param array<int, array> $fields 原始字段配置，每项为 [名称, 类型, 选项（可选）]
+     * @return AdapterInterface 支持所需字段定义的原适配器或兼容适配器
+     */
+    public static function compatibleAdapter(AdapterInterface $adapter, array $fields): AdapterInterface
+    {
+        if (self::supportsLiteral()) {
+            return $adapter;
+        }
+        if ($adapter instanceof AdapterWrapper) {
+            $copy = clone $adapter;
+            $copy->setAdapter(self::compatibleAdapter($adapter->getAdapter(), $fields));
+            return $copy;
+        }
+        if ($adapter instanceof MysqlAdapter) {
+            return new PhinxMysqlColumns($adapter, $fields);
+        }
+        if ($adapter instanceof SQLiteAdapter) {
+            return new PhinxSqliteColumns($adapter, $fields);
+        }
+        return $adapter;
+    }
+
+    /**
+     * 读取适配器的 dry-run 状态，兼容未提供该接口的旧版本.
+     * @param AdapterInterface $adapter 迁移适配器
+     * @return bool 未提供 dry-run 接口时返回 false
+     */
+    public static function isDryRun(AdapterInterface $adapter): bool
+    {
+        return method_exists($adapter, 'isDryRunEnabled') && $adapter->isDryRunEnabled();
+    }
+
+    /**
+     * 拒绝重建被外键引用的 SQLite 表，避免删除原表时触发级联操作.
+     * @param AdapterInterface $adapter 已解包的 SQLite 迁移适配器
+     * @param string $name 已解析前后缀的物理表名
+     * @throws \RuntimeException 存在引用目标表的外键，包括自引用
+     */
+    public static function validateSqliteReferences(AdapterInterface $adapter, string $name): void
+    {
+        // 事务中不能临时关闭外键，重建被引用表可能触发级联删除。
+        foreach ($adapter->fetchAll("SELECT name FROM sqlite_master WHERE type = 'table'") as $table) {
+            foreach ($adapter->fetchAll('PRAGMA foreign_key_list(' . self::quote($table['name']) . ')') as $foreign) {
+                if (strcasecmp($foreign['table'], $name) === 0) {
+                    throw new \RuntimeException("sqlite 表 {$name} 被外键引用，请通过专用迁移变更字段");
+                }
+            }
+        }
+    }
+
+    /**
+     * 解析迁移实际使用的适配器和物理表名，兼容多层前后缀包装.
+     * @param AdapterInterface $adapter 当前迁移适配器
+     * @param string $table 包装适配器接收的表名
+     * @return array{0:AdapterInterface,1:string} [最内层适配器, 应用各层前后缀后的物理表名]
+     */
+    public static function connection(AdapterInterface $adapter, string $table): array
+    {
+        while ($adapter instanceof AdapterWrapper) {
+            if ($adapter instanceof TablePrefixAdapter) {
+                $table = $adapter->getAdapterTableName($table);
+            }
+            $adapter = $adapter->getAdapter();
+        }
+        return [$adapter, $table];
+    }
+
+    /**
+     * 识别实际数据库驱动，优先依据适配器类型以兼容缺少配置项的实例.
+     * @param AdapterInterface $adapter 当前迁移适配器，可包含多层包装
+     * @return string mysql、sqlite 或其他适配器返回的驱动标识
+     */
+    public static function driver(AdapterInterface $adapter): string
+    {
+        [$adapter] = self::connection($adapter, '');
+        // 工厂和直接构造适配器时都允许省略 adapter 选项。
+        if ($adapter instanceof MysqlAdapter) {
+            return 'mysql';
+        }
+        if ($adapter instanceof SQLiteAdapter) {
+            return 'sqlite';
+        }
+        return $adapter->getAdapterType();
+    }
+
+    /**
+     * 读取 MySQL / SQLite 表结构，转换为迁移可用的表、字段及索引配置.
+     * @param object $connect 数据库连接或提供兼容查询接口的对象
+     * @param string $table 包含前缀的物理表名
+     * @return array{0:array,1:array,2:array} [表选项, 字段列表, 索引列表]，字段为 [名称, 类型, 选项]
+     * @throws \RuntimeException 数据表不存在、驱动或结构定义不受支持
+     */
+    public static function read($connect, string $table): array
+    {
+        $driver = strtolower($connect->getConfig('type'));
+        if ($driver === 'sqlite') {
+            return self::readSqlite($connect, $table);
+        }
+        if ($driver !== 'mysql') {
+            throw new \RuntimeException("暂不支持从 {$driver} 生成迁移脚本");
+        }
+        $metadata = $connect->table('information_schema.TABLES')->where([
+            'TABLE_SCHEMA' => $connect->getConfig('database'), 'TABLE_NAME' => $table,
+        ])->find();
+        if (!$metadata) {
+            throw new \RuntimeException("无法读取数据表 {$table}");
+        }
+        $options = ['id' => false, 'engine' => $metadata['ENGINE'], 'collation' => $metadata['TABLE_COLLATION'], 'comment' => $metadata['TABLE_COMMENT']];
+        $fields = [];
+        foreach ($connect->query('SHOW FULL COLUMNS FROM ' . self::quote($table)) as $field) {
+            $fields[] = self::mysqlField($field, $connect, $table);
+        }
+        $indexes = self::mysqlIndexes($connect->query('SHOW INDEX FROM ' . self::quote($table)));
+        if (isset($indexes['PRIMARY'])) {
+            if (!empty($indexes['PRIMARY']['limit']) || !empty($indexes['PRIMARY']['order'])) {
+                throw new \RuntimeException("暂不支持 {$table} 的前缀或降序主键");
+            }
+            $options['primary_key'] = $indexes['PRIMARY']['columns'];
+            unset($indexes['PRIMARY']);
+        }
+        return [$options, $fields, array_values($indexes)];
+    }
+
+    /**
+     * 按索引名汇总 MySQL 索引元数据，保留字段顺序、前缀长度和排序方向.
+     * @param array<int, array<string, mixed>> $rows SHOW INDEX 查询结果
+     * @return array<string, array> 索引名到迁移索引配置的映射，主键使用 PRIMARY 键
+     * @throws \RuntimeException 存在不支持的表达式索引
+     */
+    public static function mysqlIndexes(array $rows): array
+    {
+        $indexes = [];
+        foreach ($rows as $row) {
+            $name = $row['Key_name'];
+            $column = $row['Column_name'];
+            if ($column === null || !empty($row['Expression'])) {
+                throw new \RuntimeException("暂不支持表达式索引 {$name}");
+            }
+            $indexes[$name]['name'] = $name;
+            $indexes[$name]['columns'][(int)$row['Seq_in_index']] = $column;
+            if (empty($row['Non_unique'])) {
+                $indexes[$name]['unique'] = true;
+            }
+            $type = strtolower($row['Index_type'] ?? 'btree');
+            if ($type !== 'btree') {
+                $indexes[$name]['type'] = $type;
+            }
+            if (!empty($row['Sub_part'])) {
+                $indexes[$name]['limit'][$column] = (int)$row['Sub_part'];
+            }
+            if (($row['Collation'] ?? '') === 'D') {
+                $indexes[$name]['order'][$column] = 'DESC';
+            }
+            if (!empty($row['Index_comment'])) {
+                $indexes[$name]['comment'] = $row['Index_comment'];
+            }
+            if (($row['Visible'] ?? 'YES') === 'NO') {
+                $indexes[$name]['visible'] = false;
+            }
+        }
+        foreach ($indexes as &$index) {
+            ksort($index['columns']);
+            $index['columns'] = array_values($index['columns']);
+        }
+        return $indexes;
+    }
+
+    /**
+     * 按目标数据库准备字段类型、默认值和选项，在执行 DDL 前拒绝不支持的专有定义.
+     * 移除迁移专用标记；旧版适配器依赖 compatibleAdapter 预先保存的完整列定义.
+     * @param AdapterInterface $adapter 已经 compatibleAdapter 处理的迁移适配器
+     * @param array<int, array> $fields 原始字段配置，每项为 [名称, 类型, 选项（可选）]
+     * @return array<int, array{0:string,1:Literal|string,2:array}> 可直接交给 Phinx 的字段配置
+     * @throws \RuntimeException 目标数据库不支持字段定义或无法精确保存整数默认值
+     */
+    public static function prepareFields(AdapterInterface $adapter, array $fields): array
+    {
+        [$adapter] = self::connection($adapter, '');
+        $driver = self::driver($adapter);
+        foreach ($fields as &$field) {
+            [$name, $type] = $field;
+            $options = $field[2] ?? [];
+            $mysqlType = $options['mysql_type'] ?? null;
+            $sqliteType = $options['sqlite_type'] ?? null;
+            $literalDefault = !empty($options['default_literal']);
+            $expressionDefault = !empty($options['default_expression']);
+            if ($driver !== 'mysql' && (!empty($options['mysql_only']) || !empty($options['update']))) {
+                throw new \RuntimeException("{$driver} 不支持字段 {$name} 的 MySQL 专有定义 " . ($mysqlType ?? $options['update']));
+            }
+            unset($options['mysql_only'], $options['mysql_type'], $options['sqlite_type'], $options['default_literal'], $options['default_expression']);
+            $default = $options['default'] ?? null;
+            if ($driver === 'sqlite' && $type === 'integer' && is_string($default) && preg_match('/^\d{19,}$/', $default) && (strlen($default) > 19 || strcmp($default, '9223372036854775807') > 0)) {
+                throw new \RuntimeException("sqlite 无法精确保存字段 {$name} 的无符号大整数默认值");
+            }
+            if ($driver === 'sqlite') {
+                // SQLite 不存储字段备注；旧 Phinx 会把备注拼成未转义的 SQL 注释。
+                unset($options['comment'], $options['collation'], $options['encoding'], $options['signed']);
+            }
+            // 旧适配器已保留完整列 SQL，Column 仅承载其认识的通用选项。
+            if (!self::supportsLiteral() && in_array($driver, ['mysql', 'sqlite'], true)) {
+                $valid = array_flip(['limit', 'default', 'null', 'identity', 'precision', 'scale', 'after', 'update', 'comment', 'signed', 'timezone', 'properties', 'values']);
+                $field = [$name, $type, array_intersect_key($options, $valid)];
+                continue;
+            }
+            if (is_string($default) && strpos($default, 'CURRENT_TIMESTAMP') === 0) {
+                if (!$literalDefault && ($expressionDefault || in_array($type, ['timestamp', 'datetime'], true)) && preg_match('/^CURRENT_TIMESTAMP(?:\([0-6]\))?$/', $default)) {
+                    if ($driver === 'sqlite' && preg_match('/\(([1-6])\)$/', $default)) {
+                        throw new \RuntimeException("sqlite 不支持字段 {$name} 的小数秒时间默认表达式");
+                    }
+                    $expression = $driver === 'sqlite' ? 'CURRENT_TIMESTAMP' : $default;
+                    if ($driver === 'mysql' && !in_array($type, ['timestamp', 'datetime'], true)) {
+                        $expression = '(' . $expression . ')';
+                    }
+                    $options['default'] = Literal::from($expression);
+                } else {
+                    $literal = $adapter->getConnection()->quote($default);
+                    if ($driver === 'mysql' && in_array($type, ['text', 'binary', 'json'], true) && version_compare($adapter->getConnection()->getAttribute(\PDO::ATTR_SERVER_VERSION), '8', '>=')) {
+                        $literal = '(' . $literal . ')';
+                    }
+                    $options['default'] = Literal::from($literal);
+                }
+            }
+            if ($driver === 'mysql' && $mysqlType !== null) {
+                // Literal 类型绕过了 Phinx 对 TEXT/BLOB 默认值的表达式包装。
+                if (in_array($type, ['text', 'binary', 'json'], true) && is_string($options['default'] ?? null) && version_compare($adapter->getAttribute(\PDO::ATTR_SERVER_VERSION), '8', '>=')) {
+                    $options['default'] = Literal::from('(' . $adapter->getConnection()->quote($options['default']) . ')');
+                }
+                $type = Literal::from(preg_replace_callback('/^[a-z]+/i', function ($match) { return strtoupper($match[0]); }, $mysqlType));
+                unset($options['signed'], $options['limit'], $options['precision'], $options['scale']);
+                if (stripos($mysqlType, 'bit(') === 0 && is_string($default) && preg_match("/^b'[01]+'$/i", $default)) {
+                    $options['default'] = Literal::from($default);
+                }
+            } elseif (in_array($type, ['decimal', 'float'], true) && isset($options['precision'], $options['scale']) && $options['scale'] === 0) {
+                // 当前 Phinx 的 scale=0 分支会丢弃 precision。
+                $type = Literal::from(strtoupper($type) . '(' . (int)$options['precision'] . ',0)' . ($driver === 'mysql' && isset($options['signed']) && !$options['signed'] ? ' unsigned' : ''));
+                unset($options['signed'], $options['precision'], $options['scale']);
+            }
+            if ($driver === 'sqlite') {
+                if ($sqliteType !== null) {
+                    $type = Literal::from($sqliteType);
+                    unset($options['limit'], $options['precision'], $options['scale']);
+                }
+                // SQLite 的整数本身为 64 位，identity 必须声明成 INTEGER。
+                if (!empty($options['identity'])) {
+                    $type = 'integer';
+                }
+            }
+            $field = [$name, $type, $options];
+        }
+        return $fields;
+    }
+
+    /**
+     * 读取 SQLite 非主键索引，将内部唯一约束名称转换为可迁移的索引名.
+     * @param callable $query 查询回调，接收 SQL 并返回关联数组行列表
+     * @param string $table 已解析前后缀的物理表名
+     * @return array<string, array> 索引名到迁移索引配置的映射
+     * @throws \RuntimeException 存在部分索引、表达式索引或非 BINARY 排序规则
+     */
+    public static function sqliteIndexes(callable $query, string $table): array
+    {
+        $indexes = [];
+        foreach ($query('PRAGMA index_list(' . self::quote($table) . ')') as $row) {
+            if (($row['origin'] ?? '') === 'pk') {
+                continue;
+            }
+            if (!empty($row['partial'])) {
+                throw new \RuntimeException("暂不支持 SQLite 部分索引 {$row['name']}");
+            }
+            $index = ['name' => $row['name'], 'columns' => [], 'unique' => !empty($row['unique'])];
+            foreach ($query('PRAGMA index_xinfo(' . self::quote($row['name']) . ')') as $column) {
+                if (isset($column['key']) && !$column['key']) {
+                    continue;
+                }
+                if ($column['name'] === null || ($column['coll'] ?? 'BINARY') !== 'BINARY') {
+                    throw new \RuntimeException("暂不支持 SQLite 表达式或排序规则索引 {$row['name']}");
+                }
+                $index['columns'][] = $column['name'];
+                if (!empty($column['desc'])) {
+                    $index['order'][$column['name']] = 'DESC';
+                }
+            }
+            // SQLite 保留 sqlite_ 名称给内部约束，导出时换成合法名称。
+            if (strpos($index['name'], 'sqlite_') === 0) {
+                $index['name'] = IndexNameService::generate($table, $index['columns'], $index['unique']);
+            }
+            $indexes[$index['name']] = $index;
+        }
+        return $indexes;
+    }
+
+    /**
+     * 引用单个 MySQL / SQLite 标识符，不解析带点的限定名称.
+     * @param string $name 原始表名、字段名或索引名
+     * @return string 已转义内部反引号的 SQL 标识符
+     */
+    public static function quote(string $name): string
+    {
+        return '`' . str_replace('`', '``', $name) . '`';
+    }
+
+    /**
+     * 检查当前 Phinx 是否同时支持 Literal 和列排序规则接口.
+     * @return bool 是否可以使用原生接口承载完整列定义
+     */
+    private static function supportsLiteral(): bool
+    {
+        return method_exists(Column::class, 'getCollation') && class_exists(Literal::class);
+    }
+
+    /**
+     * 将 MySQL 格式的字段元数据归一化为通用类型，专有语义保存在附加选项中.
+     * @param array<string, mixed> $field SHOW FULL COLUMNS 格式的字段元数据
+     * @param null|object $connect 读取默认表达式原始字面量时使用的数据库连接
+     * @param string $table 读取原始建表语句时使用的物理表名
+     * @return array{0:string,1:string,2:array} [字段名, 通用类型, 字段选项]
+     * @throws \RuntimeException 类型、生成列、不可见列或默认表达式不受支持
+     */
+    private static function mysqlField(array $field, $connect = null, string $table = ''): array
+    {
+        $source = $field['Type'];
+        $extra = $field['Extra'] ?? '';
+        $options = ['default' => $field['Default'], 'null' => $field['Null'] === 'YES', 'comment' => $field['Comment'] ?? ''];
+        if (preg_match('/(?:VIRTUAL|STORED|PERSISTENT) GENERATED|INVISIBLE/i', $extra)) {
+            throw new \RuntimeException("暂不支持生成列或不可见列 {$field['Field']}");
+        }
+        if (!preg_match('/^([a-z]+)(?:\((.*)\))?(?:\s+(unsigned)(?:\s+zerofill)?|\s+zerofill)?$/i', $source, $parts)) {
+            throw new \RuntimeException("无法识别字段 {$field['Field']} 的类型 {$source}");
+        }
+        $base = strtolower($parts[1]);
+        $size = $parts[2] ?? '';
+        $integers = ['tinyint' => 4, 'smallint' => 6, 'mediumint' => 9, 'int' => 11, 'integer' => 11, 'bigint' => 20];
+        $texts = ['tinytext', 'text', 'mediumtext', 'longtext'];
+        if (isset($integers[$base])) {
+            $type = 'integer';
+            $options['limit'] = $size !== '' ? (int)$size : $integers[$base];
+            if (!in_array($base, ['int', 'integer'], true)) {
+                $options['mysql_type'] = $source;
+            }
+        } elseif (in_array($base, $texts, true)) {
+            $type = 'text';
+            if ($base !== 'text') {
+                $options['mysql_type'] = $source;
+            }
+        } elseif (in_array($base, ['varchar', 'char'], true)) {
+            $type = 'string';
+            $options['limit'] = (int)$size;
+            if ($base === 'char') {
+                $options['mysql_type'] = $source;
+            }
+        } elseif (in_array($base, ['binary', 'varbinary', 'tinyblob', 'blob', 'mediumblob', 'longblob', 'bit'], true)) {
+            $type = 'binary';
+            $options['mysql_type'] = $source;
+            if ($base === 'bit') {
+                $options['mysql_only'] = true;
+            }
+        } elseif (in_array($base, ['enum', 'set', 'year'], true)) {
+            $type = $base === 'year' ? 'integer' : 'string';
+            $options['mysql_type'] = $source;
+            $options['mysql_only'] = true;
+        } elseif (in_array($base, ['decimal', 'numeric', 'float', 'double'], true)) {
+            $type = in_array($base, ['decimal', 'numeric'], true) ? 'decimal' : 'float';
+            if ($size !== '') {
+                $dimensions = array_map('intval', explode(',', $size));
+                $options['precision'] = $dimensions[0];
+                $options['scale'] = $dimensions[1] ?? 0;
+            }
+            if ($base === 'double') {
+                $options['mysql_type'] = $source;
+            }
+        } elseif (in_array($base, ['timestamp', 'datetime', 'time', 'date', 'json'], true)) {
+            $type = $base;
+            if ($size !== '') {
+                $options['limit'] = (int)$size;
+            }
+        } else {
+            throw new \RuntimeException("暂不支持字段 {$field['Field']} 的类型 {$source}");
+        }
+        if (preg_match('/\bunsigned\b/i', $source)) {
+            $options['signed'] = false;
+        }
+        if (preg_match('/\bzerofill\b/i', $source)) {
+            $options['mysql_type'] = $source;
+            $options['mysql_only'] = true;
+        }
+        if (stripos($extra, 'auto_increment') !== false) {
+            $options['identity'] = true;
+        }
+        if (!empty($field['Collation'])) {
+            $options['collation'] = $field['Collation'];
+        }
+        $temporal = in_array($base, ['timestamp', 'datetime'], true);
+        $generatedDefault = stripos($extra, 'DEFAULT_GENERATED') !== false;
+        if (($temporal || $generatedDefault) && is_string($options['default']) && preg_match('/^(?:current_timestamp|now)(?:\(([0-6]?)\))?$/i', $options['default'], $match)) {
+            $options['default'] = 'CURRENT_TIMESTAMP' . (isset($match[1]) && $match[1] !== '' ? '(' . $match[1] . ')' : '');
+            if (!$temporal) {
+                $options['default_expression'] = true;
+            }
+        } elseif ($generatedDefault && $options['default'] !== null) {
+            $options['default'] = self::mysqlLiteralDefault($connect, $table, $field['Field']);
+            $options['default_literal'] = true;
+        }
+        if (preg_match('/on update (current_timestamp(?:\([0-6]?\))?)/i', $extra, $match)) {
+            $options['update'] = strtoupper($match[1]);
+        }
+        return [$field['Field'], $type, $options];
+    }
+
+    /**
+     * 从 MySQL 建表语句还原括号内的字符串默认值，仅接受单个字符串常量.
+     * @param null|object $connect 提供 query 接口的数据库连接
+     * @param string $table 包含前缀的物理表名
+     * @param string $column 字段名
+     * @return string 解除 SQL 转义后的原始字符串
+     * @throws \RuntimeException 缺少连接或默认值不是支持的字符串字面量
+     */
+    private static function mysqlLiteralDefault($connect, string $table, string $column): string
+    {
+        // MySQL 8 的 COLUMN_DEFAULT 会额外转义，甚至重编码非 ASCII 字符。
+        // 从建表语句读取完整字面量，仅允许一个字符串常量，拒绝任意表达式。
+        if ($connect !== null) {
+            $definition = $connect->query('SHOW CREATE TABLE ' . self::quote($table));
+            $sql = $definition[0]['Create Table'] ?? '';
+            $literal = "(?:_(?:utf8mb4|utf8mb3|utf8|ascii|binary)\\s*)?'(?:[^'\\\\]|\\\\.|'')*'";
+            $pattern = '/(?:^|\n)[ \t]*' . preg_quote(self::quote($column), '/')
+                . '[ \t]+[a-z]+(?:\(\d+(?:,\d+)?\))?'
+                . '(?:[ \t]+(?:CHARACTER SET [a-z0-9_]+|COLLATE [a-z0-9_]+|NOT NULL|NULL))*'
+                . '[ \t]+DEFAULT[ \t]*\([ \t]*(' . $literal . ')[ \t]*\)/is';
+            if (preg_match($pattern, $sql, $match)) {
+                $value = substr($match[1], strpos($match[1], "'") + 1, -1);
+                // SHOW CREATE 的表达式字面量始终使用反斜线转义，不受读取会话 SQL mode 影响。
+                return preg_replace_callback("/''|\\\\(.)/s", function ($part) {
+                    if ($part[0] === "''") {
+                        return "'";
+                    }
+                    return ['0' => "\0", 'b' => "\x08", 'n' => "\n", 'r' => "\r", 't' => "\t", 'Z' => "\x1a"][$part[1]] ?? $part[1];
+                }, $value);
+            }
+        }
+        throw new \RuntimeException("暂不支持字段 {$column} 的默认表达式");
+    }
+
+    /**
+     * 读取 SQLite 表结构，保留原始类型声明、主键顺序及自增属性.
+     * @param object $connect 提供 query 接口的数据库连接或兼容对象
+     * @param string $table 包含前缀的物理表名
+     * @return array{0:array,1:array,2:array} [表选项, 字段列表, 索引列表]
+     * @throws \RuntimeException 表不存在或包含不支持的约束、字段、默认值及索引
+     */
+    private static function readSqlite($connect, string $table): array
+    {
+        $fields = $primary = [];
+        $options = ['id' => false];
+        $definition = $connect->query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '" . str_replace("'", "''", $table) . "'");
+        $sql = $definition[0]['sql'] ?? '';
+        // 忽略字符串、引号标识符和注释后检查不能无损导出的表级约束。
+        $structure = preg_replace('/\x27(?:\x27\x27|[^\x27])*\x27|"(?:""|[^"])*"|`(?:``|[^`])*`|\[[^\]]*\]|--[^\n]*|\/\*.*?\*\//s', '', $sql);
+        if (preg_match('/\bWITHOUT\s+ROWID\b|\bSTRICT\s*$|\bCHECK\s*\(|\bREFERENCES\b|\bPRIMARY\s+KEY\s+DESC\b|\bCOLLATE\b|\bON\s+CONFLICT\b/i', $structure)) {
+            throw new \RuntimeException("暂不支持 SQLite 表 {$table} 的专有表约束");
+        }
+        $columns = $connect->query('PRAGMA table_xinfo(' . self::quote($table) . ')');
+        if (!$columns) {
+            throw new \RuntimeException("无法读取数据表 {$table}");
+        }
+        foreach ($columns as $column) {
+            if (!empty($column['hidden'])) {
+                throw new \RuntimeException("暂不支持 SQLite 生成列 {$column['name']}");
+            }
+            $type = strtolower($column['type']);
+            $type = strtr($type, ['_text' => '', '_blob' => '', '_integer' => '']);
+            $type = preg_replace('/^(?:tinyinteger|smallinteger|biginteger|integer)$/', 'bigint', $type);
+            $type = preg_replace('/^boolean$/', 'tinyint', $type);
+            $type = preg_replace('/^real$/', 'float', $type);
+            $default = $column['dflt_value'];
+            $literalDefault = false;
+            $expressionDefault = false;
+            if ($default !== null) {
+                if (preg_match("/^'(.*)'$/s", $default, $match)) {
+                    $default = str_replace("''", "'", $match[1]);
+                    $literalDefault = true;
+                } elseif (strtoupper($default) === 'NULL') {
+                    $default = null;
+                } elseif (strtoupper($default) === 'CURRENT_TIMESTAMP') {
+                    $default = 'CURRENT_TIMESTAMP';
+                    $expressionDefault = true;
+                } elseif (!is_numeric($default)) {
+                    throw new \RuntimeException("暂不支持 SQLite 字段 {$column['name']} 的默认表达式");
+                }
+            }
+            $field = self::mysqlField(['Field' => $column['name'], 'Type' => $type, 'Null' => $column['notnull'] ? 'NO' : 'YES', 'Default' => $default]);
+            // 保留 SQLite 原声明的亲和性和主键语义，通用类型仅用于跨库迁移。
+            $field[2]['sqlite_type'] = $column['type'];
+            if ($field[1] === 'float') {
+                // SQLite 的 REAL/FLOAT/DOUBLE 均为双精度，也不限制声明的小数位数。
+                $field[2]['mysql_type'] = 'double';
+            }
+            if ($literalDefault) {
+                $field[2]['default'] = $default;
+                $field[2]['default_literal'] = true;
+            }
+            if ($expressionDefault) {
+                $field[2]['default_expression'] = true;
+            }
+            if ($column['pk']) {
+                $primary[(int)$column['pk']] = $column['name'];
+            }
+            $fields[] = $field;
+        }
+        if ($primary) {
+            ksort($primary);
+            $options['primary_key'] = array_values($primary);
+            if (count($primary) === 1 && preg_match('/\bAUTOINCREMENT\b/i', $structure)) {
+                foreach ($columns as $i => $column) {
+                    if ($column['pk'] && strcasecmp($column['type'], 'integer') === 0) {
+                        $fields[$i][2]['identity'] = true;
+                    }
+                }
+            }
+        }
+        $indexes = self::sqliteIndexes(function ($sql) use ($connect) { return $connect->query($sql); }, $table);
+        return [$options, $fields, array_values($indexes)];
+    }
+}

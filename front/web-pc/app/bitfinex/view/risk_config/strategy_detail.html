@@ -1,0 +1,23 @@
+<div class="layui-card" style="box-shadow:none;">
+    <div class="layui-card-body">
+        <table class="layui-table" lay-skin="line">
+            <tbody>
+            <tr><td style="width:140px;color:#888;">分组</td><td><code>{$vo.group_name|default='-'}</code></td></tr>
+            <tr><td style="color:#888;">参数键</td><td class="mono">{$vo.item_key|default='-'}</td></tr>
+            <tr><td style="color:#888;">说明</td><td>{$vo.description|default='-'}</td></tr>
+            <tr><td style="color:#888;">参数值</td><td class="mono">{$vo.item_value|default='-'}</td></tr>
+            <tr><td style="color:#888;">值类型</td><td>{$vo.value_type|default='-'}</td></tr>
+            <tr><td style="color:#888;">启用</td><td>{if isset($vo.is_enabled) && $vo.is_enabled eq 1}是{else}否{/if}</td></tr>
+            <tr><td style="color:#888;">创建时间</td><td>{$vo.created_at|default='-'}</td></tr>
+            <tr><td style="color:#888;">更新时间</td><td>{$vo.updated_at|default='-'}</td></tr>
+            {if isset($vo.show_value_hint) && $vo.show_value_hint eq 1}
+            <tr><td style="color:#888;">备注</td><td style="color:#666;font-size:12px;">{$vo.value_hint|default=''}</td></tr>
+            {/if}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; word-break: break-all; }
+</style>

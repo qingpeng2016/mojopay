@@ -1,0 +1,123 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    <p class="layui-text" style="margin-bottom:12px;color:#666;">
+        全局策略 — <code>funding_config_strategy</code>（<code>placement</code> / <code>risk</code>）
+    </p>
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:50px;">ID</th>
+            <th style="width:90px;">分组</th>
+            <th style="width:220px;">参数键</th>
+            <th style="width:240px;">说明</th>
+            <th style="width:120px;">参数值</th>
+            <th style="width:70px;">类型</th>
+            <th style="width:70px;">启用</th>
+            <th style="width:150px;">更新时间</th>
+            <th style="width:160px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $strategyList as $vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td><code>{$vo.group_name|default='-'}</code></td>
+            <td class="mono">{$vo.item_key|default='-'}</td>
+            <td>{$vo.description|default='-'}</td>
+            <td class="mono" title="{$vo.item_value|htmlspecialchars}">{$vo.item_value|default='-'}</td>
+            <td><span class="layui-badge layui-bg-gray">{$vo.value_type|default='-'}</span></td>
+            <td>
+                {if isset($vo.is_enabled) && $vo.is_enabled eq 1}
+                <span class="layui-badge layui-bg-green">是</span>
+                {else}
+                <span class="layui-badge">否</span>
+                {/if}
+            </td>
+            <td style="font-size:12px;">{$vo.updated_at|default='-'}</td>
+            <td>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn-primary"
+                        data-modal='{:url("detail")}?scope=strategy&id={$vo.id}' data-title="展示策略参数">
+                    <i class="layui-icon">&#xe705;</i> 展示
+                </button>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn-normal"
+                        data-modal='{:url("edit")}?scope=strategy&id={$vo.id}' data-title="修改策略参数">
+                    <i class="layui-icon">&#xe642;</i> 修改
+                </button>
+            </td>
+        </tr>
+        {/foreach}
+        {if empty($strategyList)}
+        <tr><td colspan="9" style="text-align:center;color:#999;">暂无 placement/risk 组参数</td></tr>
+        {/if}
+        </tbody>
+    </table>
+
+    <p class="layui-text" style="margin:28px 0 12px;color:#666;">
+        全局策略 — <code>funding_config_strategy</code>（<code>placement</code> / <code>risk</code>）
+    </p>
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:50px;">ID</th>
+            <th style="width:90px;">分组</th>
+            <th style="width:220px;">参数键</th>
+            <th style="width:240px;">说明</th>
+            <th style="width:120px;">参数值</th>
+            <th style="width:70px;">类型</th>
+            <th style="width:70px;">启用</th>
+            <th style="width:150px;">更新时间</th>
+            <th style="width:160px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $strategyList as $vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td><code>{$vo.group_name|default='-'}</code></td>
+            <td class="mono">{$vo.item_key|default='-'}</td>
+            <td>{$vo.description|default='-'}</td>
+            <td class="mono" title="{$vo.item_value|htmlspecialchars}">{$vo.item_value|default='-'}</td>
+            <td><span class="layui-badge layui-bg-gray">{$vo.value_type|default='-'}</span></td>
+            <td>
+                {if isset($vo.is_enabled) && $vo.is_enabled eq 1}
+                <span class="layui-badge layui-bg-green">是</span>
+                {else}
+                <span class="layui-badge">否</span>
+                {/if}
+            </td>
+            <td style="font-size:12px;">{$vo.updated_at|default='-'}</td>
+            <td>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn-primary"
+                        data-modal='{:url("strategyDetail")}?id={$vo.id}' data-title="展示策略参数">
+                    <i class="layui-icon">&#xe705;</i> 展示
+                </button>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn-normal"
+                        data-modal='{:url("strategyEdit")}?id={$vo.id}' data-title="修改策略参数">
+                    <i class="layui-icon">&#xe642;</i> 修改
+                </button>
+            </td>
+        </tr>
+        {/foreach}
+        {if empty($strategyList)}
+        <tr><td colspan="9" style="text-align:center;color:#999;">暂无 placement/risk 组参数</td></tr>
+        {/if}
+        </tbody>
+    </table>
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>
+{/block}

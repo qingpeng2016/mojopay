@@ -1,0 +1,114 @@
+{extend name="../../admin/view/main"}
+
+{block name="style"}
+<style>
+.insight-card-pnl-val{font-size:22px;font-weight:700}.insight-pos{color:#009688}.insight-neg{color:#f44336}
+.insight-chart-rank-row{--insight-body-h:540px;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:15px;align-items:flex-start}
+.insight-panel-card{padding:16px;display:flex;flex-direction:column;min-height:0;box-sizing:border-box}
+.insight-chart-stack{height:var(--insight-body-h);display:flex;flex-direction:column;gap:14px;min-height:0}
+.insight-echart-wrap{flex:1;display:flex;flex-direction:column;min-height:0}.insight-echart-title{font-size:12px;color:#888;margin-bottom:6px}.insight-echart{flex:1;width:100%;min-height:120px}
+.insight-rank-scroll{max-height:var(--insight-body-h);overflow-y:auto;overflow-x:hidden;padding-right:4px}.insight-rank-scroll::-webkit-scrollbar{width:6px}.insight-rank-scroll::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+.insight-kpi-row{display:flex;flex-wrap:wrap;align-items:stretch}.insight-kpi-row>.layui-col-md3{float:none!important;display:flex;box-sizing:border-box}.insight-kpi-card{flex:1;width:100%;min-height:136px;padding:22px 14px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.insight-range-wrap{display:flex;align-items:center;gap:6px;width:100%;height:38px;padding:0 10px;border:1px solid #e6e6e6;border-radius:2px;background:#fff;box-sizing:border-box;cursor:pointer}.insight-range-input{flex:1;min-width:0;width:0;height:36px;border:0;outline:0;background:transparent;cursor:pointer}
+.outcome-id-row{display:flex;align-items:center;justify-content:center;min-width:0}.outcome-id-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.outcome-copy-target{color:#1e9fff;cursor:pointer}.outcome-copy-target:hover{color:#007acc;text-decoration:underline}
+@media(min-width:992px){.insight-kpi-row>.layui-col-md3{width:20%}}@media(max-width:991px){.insight-chart-rank-row{grid-template-columns:1fr}.insight-kpi-row>.layui-col-md3{width:100%}}
+</style>
+{/block}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <!-- data-table-refresh 只对 layui 表格生效，本页是服务端渲染的静态表，改用 admin.js 的 $.form.reload()。 -->
+    <button data-page-refresh class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon">&#xe669;</i> 刷新</button>
+    <a class="layui-btn layui-btn-sm layui-btn-normal" data-open="{:url('FastbookData/accountPnl')}" data-title="快盘用户账号 PNL"><i class="layui-icon">&#xe63c;</i> 查看 PNL 明细</a>
+</div>
+{/block}
+
+{block name="content"}
+<!-- 与对冲策略数据洞察相同的趋势 + 排行结构；SO 不展示未对冲模块。 -->
+<div class="insight-chart-rank-row margin-bottom-15">
+    <div class="think-box-shadow insight-panel-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div><span style="font-size:15px;font-weight:600;">全局趋势图</span><div style="font-size:11px;color:#999;margin-top:2px;">全局 · FOREGATE FASTBOOK · 不限市场状态 · 已排除做市商账号；「日」按 UTC 小时，「周/月」按 UTC 自然日。</div></div>
+            <div id="chart-tabs" style="display:inline-flex;background:#f1f2f3;border-radius:6px;padding:3px;">
+                <button type="button" class="chart-tab-btn active" data-period="day" title="当日 0–23 点，按小时聚合" style="padding:4px 14px;border:none;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.12);">日</button>
+                <button type="button" class="chart-tab-btn" data-period="week" title="过去 7 个自然日（含今日）" style="padding:4px 14px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:13px;color:#666;">周</button>
+                <button type="button" class="chart-tab-btn" data-period="month" title="过去 30 个自然日（含今日）" style="padding:4px 14px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:13px;color:#666;">月</button>
+            </div>
+        </div>
+        <div class="insight-chart-stack">
+            <div class="insight-echart-wrap"><div class="insight-echart-title">PNL 累计曲线</div><div id="chart-cumulative" class="insight-echart"></div></div>
+            <div class="insight-echart-wrap"><div class="insight-echart-title">分档 PNL（绿正红负；「日」为每小时）</div><div id="chart-period" class="insight-echart"></div></div>
+        </div>
+    </div>
+    <div class="think-box-shadow insight-panel-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div><span style="font-size:15px;font-weight:600;">排行榜</span><div style="font-size:11px;color:#999;margin-top:2px;">全局 · 按市场（Outcome ID）· PNL 排序</div></div>
+            <div id="rank-tabs" style="display:inline-flex;background:#f1f2f3;border-radius:6px;padding:3px;">
+                <button type="button" class="rank-tab-btn active" data-period="day" title="过去 1 个自然日（含今日）" style="padding:4px 12px;border:none;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.12);">日</button>
+                <button type="button" class="rank-tab-btn" data-period="week" title="过去 7 个自然日（含今日）" style="padding:4px 12px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:13px;color:#666;">周</button>
+                <button type="button" class="rank-tab-btn" data-period="month" title="过去 30 个自然日（含今日）" style="padding:4px 12px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:13px;color:#666;">月</button>
+            </div>
+        </div>
+        <div class="insight-rank-scroll">
+            <div style="margin-bottom:14px;"><div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#009688;">Top 10 盈利</div><div id="rank-top"></div></div>
+            <div><div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#f44336;">Top 10 亏损</div><div id="rank-bottom"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="think-box-shadow margin-bottom-15" style="padding:16px;">
+    <div style="font-size:15px;font-weight:600;margin-bottom:6px;">维度切换器</div>
+    <div style="font-size:12px;color:#999;margin-bottom:12px;">仅影响下方核心指标卡片；快盘页面固定 FOREGATE FASTBOOK，按 Outcome 结束时间归属，自动排除配置账号 {$excluded_accounts|default='（未配置）'}。公司快盘 PNL=-SUM(剩余客户 PNL)，不含手续费；手续费收入按相同数据范围汇总剩余账号的买卖手续费。</div>
+    <form id="insight-form" class="layui-form" onsubmit="return false">
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label" style="width:60px;">时间范围</label>
+            <div class="layui-input-inline" style="width:280px;"><div id="range-wrap" class="insight-range-wrap"><i class="layui-icon">&#xe637;</i><input readonly id="range-trigger" class="insight-range-input" value="{$range_start} - {$range_end}"></div></div>
+            <input type="hidden" name="range_start" id="range-start" value="{$range_start}"><input type="hidden" name="range_end" id="range-end" value="{$range_end}">
+        </div>
+        <div class="layui-form-item layui-inline"><button type="submit" class="layui-btn layui-btn-normal layui-btn-sm">应用筛选</button></div>
+    </form>
+</div>
+
+<div class="layui-row layui-col-space15 insight-kpi-row">
+    <div class="layui-col-md3"><div class="think-box-shadow insight-kpi-card"><div style="color:#888;font-size:12px;margin-bottom:8px;">公司快盘总 PNL（不含手续费）</div><div id="card-total" class="insight-card-pnl-val {if (float)$cards.total_pnl lt 0}insight-neg{else}insight-pos{/if}">${$cards.total_pnl_fmt}</div></div></div>
+    <div class="layui-col-md3"><div class="think-box-shadow insight-kpi-card"><div style="color:#888;font-size:12px;margin-bottom:8px;">手续费收入</div><div id="card-fees" class="insight-card-pnl-val insight-pos">${$cards.fee_revenue_fmt}</div></div></div>
+    <div class="layui-col-md3"><div class="think-box-shadow insight-kpi-card"><div style="color:#888;font-size:12px;margin-bottom:8px;">平均每市场 PNL</div><div id="card-avg" class="insight-card-pnl-val">${$cards.avg_pnl_fmt}</div><div id="card-count" style="font-size:11px;color:#aaa;margin-top:4px;">{$cards.outcome_count} 个市场</div></div></div>
+    <div class="layui-col-md3"><div class="think-box-shadow insight-kpi-card"><div style="color:#888;font-size:12px;margin-bottom:8px;">盈利市场占比</div><div id="card-win" style="font-size:18px;font-weight:700;color:#009688;">盈利: {$cards.win_count} ({$cards.win_pct_fmt}%)</div><div id="card-lose" style="font-size:14px;color:#f44336;margin-top:4px;">亏损: {$cards.lose_count} ({$cards.lose_pct_fmt}%)</div></div></div>
+    <div class="layui-col-md3"><div class="think-box-shadow insight-kpi-card"><div style="color:#888;font-size:12px;margin-bottom:8px;">最大单市场亏损</div><div id="card-max-loss" style="font-size:22px;font-weight:700;color:#f44336;">${$cards.max_loss_fmt}</div><div class="outcome-id-row" style="font-size:11px;margin-top:4px;max-width:100%;"><span id="card-max-loss-id" class="outcome-id-text{if !empty($cards.max_loss_id)} outcome-copy-target{/if}" data-outcome-id="{:htmlspecialchars($cards['max_loss_id'] ?? '', ENT_QUOTES, 'UTF-8')}" title="{$cards.max_loss_id}">Outcome ID：{if !empty($cards.max_loss_id_short)}{$cards.max_loss_id_short}{else}-{/if}</span></div></div></div>
+</div>
+
+<script type="application/json" id="insight-chart-data">{$chart_data_json|raw}</script>
+<script type="application/json" id="insight-rank-data">{$rank_data_json|raw}</script>
+{/block}
+
+{block name="script"}
+<script>
+var CARDS_URL='{:url("cards")}';var PERIOD_URL='{:url("period")}';
+layui.use(['form','laydate'],function(){
+    // 刷新：后台 Hash 路由下重新加载当前内容区（重跑卡片、趋势与排行）；整页直开时退化为整页刷新。
+    document.querySelectorAll('[data-page-refresh]').forEach(function(btn){
+        btn.addEventListener('click',function(){try{jQuery.form.reload();}catch(e){location.reload();}});
+    });
+    var form=layui.form,laydate=layui.laydate,chartData=JSON.parse(document.getElementById('insight-chart-data').textContent||'{}'),rankData=JSON.parse(document.getElementById('insight-rank-data').textContent||'{}'),pending={},cumChart=null,periodChart=null,activeChartPeriod='day',activeRankPeriod='day';
+    var startEl=document.getElementById('range-start'),endEl=document.getElementById('range-end'),trigger=document.getElementById('range-trigger');
+    laydate.render({elem:'#range-trigger',type:'date',range:true,format:'yyyy-MM-dd',value:startEl.value+' - '+endEl.value,done:function(value){var m=value.match(/^(\d{4}-\d{2}-\d{2})\s+-\s+(\d{4}-\d{2}-\d{2})$/);if(m){startEl.value=m[1];endEl.value=m[2];trigger.value=m[1]+' - '+m[2];}}});
+    document.getElementById('range-wrap').onclick=function(e){if(e.target!==trigger)trigger.click();};form.render();
+    function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function activate(group,period){var horizontalPadding=group.id==='chart-tabs'?'14px':'12px';group.querySelectorAll('button').forEach(function(btn){var on=btn.dataset.period===period;btn.style.cssText='padding:4px '+horizontalPadding+';border:none;border-radius:4px;cursor:pointer;font-size:13px;background:'+(on?'#fff':'transparent')+';box-shadow:'+(on?'0 1px 3px rgba(0,0,0,.12)':'none')+';color:'+(on?'#333':'#666')+';font-weight:'+(on?'500':'normal')+';';btn.classList.toggle('active',on);});}
+    function renderRanks(period){var d=rankData[period]||{top:[],bottom:[]};[['rank-top',d.top],['rank-bottom',d.bottom]].forEach(function(pair){var el=document.getElementById(pair[0]),items=pair[1];if(!items.length){el.innerHTML='<div style="color:#ccc;font-size:12px;">暂无数据</div>';return;}el.innerHTML=items.map(function(item,i){var pnl=parseFloat(item.pnl),oid=String(item.outcome_id||'-'),shortId=oid.length>24?oid.substring(0,12)+'…'+oid.substring(oid.length-8):oid;return '<div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #f5f5f5;font-size:12px;"><span style="color:#999;min-width:28px;">#'+(i+1)+'</span><span class="outcome-id-text outcome-copy-target" data-outcome-id="'+esc(oid)+'" style="flex:1;" title="'+esc(oid)+'">'+esc(shortId)+'</span><span style="min-width:72px;text-align:right;color:'+(pnl>=0?'#009688':'#f44336')+';font-weight:600;">'+(pnl>=0?'+$':'-$')+Math.abs(pnl).toFixed(2)+'</span></div>';}).join('');});}
+    function fallbackCopy(text){var input=document.createElement('textarea');input.value=text;input.setAttribute('readonly','readonly');input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);input.select();var ok=document.execCommand('copy');document.body.removeChild(input);return ok;}
+    function copyOutcome(text){if(!text||text==='-')return;var done=function(){layui.layer.msg('市场 Outcome ID 已复制',{time:1000,icon:1});};if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(done,function(){fallbackCopy(text)?done():layui.layer.msg('复制失败，请手动复制');});}else{fallbackCopy(text)?done():layui.layer.msg('复制失败，请手动复制');}}
+    function ensure(period,done){if(chartData[period]&&rankData[period]){done(true);return;}if(pending[period]){pending[period].push(done);return;}pending[period]=[done];var ok=false;$.ajax({ url:PERIOD_URL,data:{period:period},dataType:'json',success:function(res){if(res.code===1&&res.data){chartData[period]=res.data.chart;rankData[period]=res.data.rank;ok=true;}else layui.layer.msg(res.info||res.msg||'加载失败');},error:function(){layui.layer.msg('加载失败，请重试');},complete:function(){var callbacks=pending[period]||[];delete pending[period];callbacks.forEach(function(cb){cb(ok);});}});}
+    function yAxis(){return {type:'value',scale:true,splitNumber:5,splitLine:{lineStyle:{color:'rgba(0,0,0,.08)',type:'dashed'}},axisLabel:{fontSize:10}};}
+    function options(d,line){return {grid:{top:8,bottom:28,left:14,right:10,containLabel:true},tooltip:{trigger:'axis'},xAxis:{type:'category',data:d.labels,axisLabel:{fontSize:10,rotate:d.labels.length>=20?45:30,interval:0}},yAxis:yAxis(),series:[line?{type:'line',data:d.cum,smooth:true,symbol:'none',lineStyle:{color:'#3949ab'},areaStyle:{color:'rgba(57,73,171,.08)'}}:{type:'bar',data:d.daily.map(function(v){return {value:v,itemStyle:{color:v>=0?'rgba(0,150,136,.75)':'rgba(244,67,54,.75)'}};})}]};}
+    function draw(period){if(!cumChart||!periodChart||!chartData[period])return;cumChart.setOption(options(chartData[period],true),true);periodChart.setOption(options(chartData[period],false),true);requestAnimationFrame(function(){cumChart.resize();periodChart.resize();});}
+    function chartLoading(loading){if(!cumChart||!periodChart)return;if(loading){cumChart.showLoading();periodChart.showLoading();}else{cumChart.hideLoading();periodChart.hideLoading();}}
+    var chartTabs=document.getElementById('chart-tabs'),rankTabs=document.getElementById('rank-tabs');activate(chartTabs,'day');activate(rankTabs,'day');renderRanks('day');
+    document.addEventListener('click',function(e){var target=e.target.closest('.outcome-copy-target');if(target)copyOutcome(target.dataset.outcomeId||'');});
+    chartTabs.addEventListener('click',function(e){var btn=e.target.closest('.chart-tab-btn');if(!btn||!chartTabs.contains(btn))return;activeChartPeriod=btn.dataset.period;activate(chartTabs,activeChartPeriod);if(chartData[activeChartPeriod]){draw(activeChartPeriod);return;}chartLoading(true);ensure(activeChartPeriod,function(ok){chartLoading(false);if(ok&&activeChartPeriod===btn.dataset.period)draw(activeChartPeriod);});});
+    rankTabs.addEventListener('click',function(e){var btn=e.target.closest('.rank-tab-btn');if(!btn||!rankTabs.contains(btn))return;activeRankPeriod=btn.dataset.period;activate(rankTabs,activeRankPeriod);if(rankData[activeRankPeriod]){renderRanks(activeRankPeriod);return;}var loadIdx=layui.layer.load(2,{shade:false});ensure(activeRankPeriod,function(ok){layui.layer.close(loadIdx);if(ok&&activeRankPeriod===btn.dataset.period)renderRanks(activeRankPeriod);});});
+    (function(){var old=window.define;window.define=undefined;var s=document.createElement('script');s.src='/static/plugs/echarts/echarts.min.js';s.onload=function(){window.define=old;cumChart=echarts.init(document.getElementById('chart-cumulative'));periodChart=echarts.init(document.getElementById('chart-period'));if(chartData[activeChartPeriod])draw(activeChartPeriod);else ensure(activeChartPeriod,function(ok){if(ok)draw(activeChartPeriod);});window.addEventListener('resize',function(){cumChart.resize();periodChart.resize();});};s.onerror=function(){window.define=old;layui.layer.msg('图表组件加载失败，请刷新重试');};document.head.appendChild(s);})();
+    document.getElementById('insight-form').onsubmit=function(e){e.preventDefault();var btn=this.querySelector('button[type=submit]'),old=btn.textContent;btn.disabled=true;btn.textContent='查询中…';$.ajax({ url:CARDS_URL,data:{range_start:startEl.value,range_end:endEl.value},dataType:'json',success:function(res){if(res.code!==1||!res.data){layui.layer.msg(res.info||res.msg||'查询失败');return;}var d=res.data,total=document.getElementById('card-total');total.textContent='$'+d.total_pnl_fmt;total.className='insight-card-pnl-val '+(parseFloat(d.total_pnl)<0?'insight-neg':'insight-pos');document.getElementById('card-fees').textContent='$'+d.fee_revenue_fmt;document.getElementById('card-avg').textContent='$'+d.avg_pnl_fmt;document.getElementById('card-count').textContent=d.outcome_count+' 个市场';document.getElementById('card-win').textContent='盈利: '+d.win_count+' ('+d.win_pct_fmt+'%)';document.getElementById('card-lose').textContent='亏损: '+d.lose_count+' ('+d.lose_pct_fmt+'%)';document.getElementById('card-max-loss').textContent='$'+d.max_loss_fmt;var outcome=d.max_loss_id_short||'',fullOutcome=d.max_loss_id||'',idEl=document.getElementById('card-max-loss-id');idEl.textContent='Outcome ID：'+(outcome||'-');idEl.dataset.outcomeId=fullOutcome;idEl.title=fullOutcome;idEl.classList.toggle('outcome-copy-target',!!fullOutcome);},error:function(){layui.layer.msg('查询失败，请重试');},complete:function(){btn.disabled=false;btn.textContent=old;}});};
+});
+</script>
+{/block}

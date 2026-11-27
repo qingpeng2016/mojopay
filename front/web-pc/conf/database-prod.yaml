@@ -1,0 +1,224 @@
+﻿mysql:
+  type: mysql
+  hostname: ''   # 通过 DB_HOST 环境变量设置
+  database: ''   # 通过 DB_DATABASE 环境变量设置
+  username: ''   # 通过 DB_USERNAME 环境变量设置
+  password: ''   # 通过 DB_PASSWORD 环境变量设置
+  hostport: ''   # 通过 DB_PORT 环境变量设置
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+sqlite:
+  type: sqlite
+  charset: utf8
+  trigger_sql: true
+  deploy: 0
+  suffix: ''
+  prefix: ''
+  hostname: ''
+  hostport: ''
+  username: ''
+  password: ''
+
+db_pay2:
+  type: mysql
+  hostname: ''
+  database: ''
+  username: ''
+  password: ''
+  hostport: ''
+  charset: utf8mb4
+  prefix: ''
+
+db_pay3:
+  type: mysql
+  hostname: ''
+  database: ''
+  username: ''
+  password: ''
+  hostport: ''
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+# 快盘回测专用库（fgmm_f_backtest）：f_market_config / f_market / f_placement 三表，连 45.45 生产 MySQL
+db_f_backtest:
+  type: mysql
+  hostname: ''   # 通过 DB_HOST_F_BACKTEST 环境变量设置（回测库独立部署 45.45，不跟随主库 DB_HOST）
+  database: 'fgmm_f_backtest'  # 回测库 schema 名，写死不读 env
+  username: ''   # 通过 DB_USERNAME_F_BACKTEST 环境变量设置
+  password: ''   # 通过 DB_PASSWORD_F_BACKTEST 环境变量设置（敏感信息放 k8s Secret，不进 yaml）
+  hostport: ''   # 通过 DB_PORT_F_BACKTEST 环境变量设置
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+# 快盘策略打包参数库（fgmm_f_data）：placement_params 铺单参数表（SO 文件配置页用）。
+# 与 db_f_backtest 同一 host/port/账号/密码（由 DB_*_F_BACKTEST 注入），这里只配置不同的 schema。
+db_f_data:
+  type: mysql
+  hostname: ''              # 复用 DB_HOST_F_BACKTEST（见 config/database.php）
+  database: 'fgmm_f_data'   # schema 名写死不读 env
+  username: ''              # 复用 DB_USERNAME_F_BACKTEST
+  password: ''              # 复用 DB_PASSWORD_F_BACKTEST
+  hostport: ''              # 复用 DB_PORT_F_BACKTEST
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+# SO 策略只读库：密码由 DB_PASSWORD_SO_DATA 环境变量注入。
+db_fastbook:
+  type: mysql
+  hostname: 10.100.0.35
+  database: fgmm_so_data
+  username: uat_so
+  password: ''
+  hostport: 3306
+  charset: utf8mb4
+
+db_rmpd:
+  type: mysql
+  hostname: ''
+  database: ''
+  username: ''
+  password: ''
+  hostport: ''
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+db_bitfinex:
+  type: mysql
+  hostname: ''
+  database: ''
+  username: ''   # 可选 DB_USERNAME_BITFINEX，否则用 DB_USERNAME
+  password: ''   # 可选 DB_PASSWORD_BITFINEX，否则用 DB_PASSWORD
+  hostport: ''
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+db_arbopp:
+  type: mysql
+  hostname: ''
+  database: ''
+  username: ''   # 可选 DB_USERNAME_ARBOPP，否则用 DB_USERNAME
+  password: ''   # 可选 DB_PASSWORD_ARBOPP，否则用 DB_PASSWORD
+  hostport: ''
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+db_sc_arb:
+  type: mysql
+  hostname: ''
+  database: ''
+  username: ''   # 可选 DB_USERNAME_SC_ARB，否则用 DB_USERNAME
+  password: ''   # 可选 DB_PASSWORD_SC_ARB，否则用 DB_PASSWORD
+  hostport: ''
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+db_fgmm_runtime:
+  type: mysql
+  hostname: ''   # 通过 DB_HOST 环境变量设置（与主库共用）
+  database: 'uat_fgmm_runtime'  # 控制库 schema 名，写死不读 env（保持现状；如需改名直接改这里 + 发版）
+  username: ''   # 可选 DB_USERNAME_FGMM_RUNTIME，否则用 DB_USERNAME
+  password: ''   # 可选 DB_PASSWORD_FGMM_RUNTIME，否则用 DB_PASSWORD
+  hostport: ''   # 通过 DB_PORT 环境变量设置
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+clickhouse:
+  addr: "10.100.0.31:9000"
+  database: "fgmm_data"
+  user: "default"
+  password: ""
+
+external_api:
+  login_url: https://devgenesis.foregate.com/api/loginApi
+  public_key: MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCochIaKWEh6IIK1pJQcJPsYhZ2AJmGNc12XeC2lsj3dHkMO9vGrXN4ZJiN3qNLlO3hERtY0UZdN8Uz18zoiL60XoOclMuuwf1TwiMA3/4Vy2NOaQdX/RgLQ8XiRobVPLMe/JTteZ6eoPrWVC5jf4kdWD7LWwgdWrnzGs/4UiWnsQIDAQAB
+
+fund_api:
+  base_url: http://fgmm-strategy-bitfinex-app:9994
+  auth_key: qlfz6P3gNgFEclOFBvV0bpGTs9ffMZia
+  timeout_seconds: 30
+
+# Jenkins 构建触发（SO 文件配置页「热更新」按钮用）
+# 触发 Tony 提供的策略包 .so 构建任务。生产环境建议用环境变量覆盖：
+#   JENKINS_URL / JENKINS_USER / JENKINS_TOKEN
+jenkins:
+  url: "http://alb-0mkm6q15oqmyyr72a9.ap-southeast-1.alb.aliyuncsslbintl.com/jenkins/job/fgmm-f-strategy-so/build"
+  user: "tony"
+  token: "114e8e7149c7c6b9ba0c55e5961c6877ec"
+
+# 体育做市对冲测试回测服务地址（SO调用按钮内部 HTTP 调用用）
+# 后台通过 http://<host>:<port> 直接调用回测服务内部接口（运维确认内部直连）。
+so_service:
+  host: "fgmm-f-backtest"
+  port: "8088"

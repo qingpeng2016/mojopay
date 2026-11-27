@@ -1,0 +1,29 @@
+<form class="layui-form layui-card" action="{:url('export')}" method="get" data-auto="true">
+    <div class="layui-card-body padding-left-40">
+        <div class="layui-form-item">
+            <label class="label-required-prev">确认导出范围</label>
+            <div class="layui-input-block">
+                <p class="help-block">系统将根据您在列表页选择的搜索条件导出数据。</p>
+            </div>
+        </div>
+
+        {foreach $get as $key=>$val}
+        <input type="hidden" name="{$key}" value="{$val}">
+        {/foreach}
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">导出格式</label>
+            <div class="layui-input-block">
+                <input type="radio" name="format" value="csv" title="CSV (推荐)" checked>
+                <input type="radio" name="format" value="excel" title="Excel" disabled>
+            </div>
+        </div>
+    </div>
+
+    <div class="hr-line-dashed"></div>
+
+    <div class="layui-form-item text-center">
+        <button class="layui-btn" type="submit">立即生成并下载</button>
+        <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+    </div>
+</form>

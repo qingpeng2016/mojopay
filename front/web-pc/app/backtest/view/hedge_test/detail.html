@@ -1,0 +1,102 @@
+{extend name="../../admin/view/main"}
+{block name="button"}
+<div class="layui-btn-group">
+    <a href="/admin.html#/backtest/hedge_test/index.html" class="layui-btn layui-btn-sm layui-btn-primary">返回列表</a>
+</div>
+{/block}
+{block name="content"}
+<div class="hedge-detail">
+    <div class="detail-card">
+        <div class="info-box">
+            <div class="info-head">
+                <span class="sec-label">基本信息</span>
+            </div>
+            <div class="info-row info-row-inline">
+                <div class="info-cell"><span class="info-k">ID</span><span class="info-v">{$vo.id}</span></div>
+                <div class="info-cell"><span class="info-k">名称</span><span class="info-v">{$vo.name|default='-'}</span></div>
+                <div class="info-cell"><span class="info-k">耗时(ms)</span><span class="info-v" id="calc-time">{$vo.calc_time_ms|default='-'}</span></div>
+                <div class="info-cell"><span class="info-k">更新时间</span><span class="info-v" id="updated-at">{$vo.updated_at|default='-'}</span></div>
+                <div class="info-actions">
+                    <button id="btn-call" class="layui-btn layui-btn-normal layui-btn-sm">SO调用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="io-row">
+            <section class="form-card io-col">
+                <h3>① SO 输入（JSON，可编辑）</h3>
+                <p class="help">整段 JSON 透传给 libsports-hedge.so。点上方基本信息栏右侧「SO调用」会先以当前内容保存输入，再调用 SO 并回填输出（右侧即时显示）。</p>
+                <textarea id="so-input" class="layui-textarea code-area">{$vo.so_input|default=''}</textarea>
+            </section>
+            <section class="form-card io-col">
+                <h3>② SO 输出（调用后返回）</h3>
+                <p class="help">点击「SO调用」后此处即时显示 SO 返回结果，无需下拉。</p>
+                <textarea id="so-output" class="layui-textarea code-area" readonly placeholder="点击基本信息栏右侧「SO调用」生成">{if $vo.so_output}{$vo.so_output}{/if}</textarea>
+            </section>
+        </div>
+    </div>
+</div>
+{/block}
+{block name="script"}
+<style>
+.hedge-detail{max-width:1280px;margin:0 auto}
+/* 整块统一一个背景框：基本信息 + SO输入 + SO输出 都在里面 */
+.detail-card{border:1px solid #edf0f5;border-radius:8px;background:#fff;overflow:hidden;margin-bottom:16px}
+.sec-label{font-size:13px;font-weight:600;color:#333}
+.info-box{border:none;border-bottom:1px solid #edf0f5;padding:10px 16px 14px}
+.info-row{display:flex;gap:8px 18px;padding:8px 0;flex-wrap:wrap}
+.info-cell{display:flex;align-items:center;min-width:0;flex:1 1 160px}
+/* SO调用按钮：与具体信息同一行，推到最右边并垂直居中 */
+.info-actions{flex:0 0 auto;display:flex;align-items:center;margin-left:auto}
+.info-k{color:#8b93a1;font-size:12px;flex:0 0 auto;margin-right:8px;white-space:nowrap}
+/* 短字段：单行 + 超长省略，绝不被撑出框 */
+.info-v{color:#333;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 输入输出左右两栏：同一行、等高；点 SO调用 即时在右栏看到结果，无需下拉 */
+.io-row{display:flex;align-items:stretch;flex-wrap:wrap}
+.io-col{flex:1 1 440px;min-width:0;display:flex;flex-direction:column}
+.io-col + .io-col{border-left:1px solid #edf0f5}
+.form-card{border:none;border-radius:0;padding:18px 22px;margin-bottom:0}
+.form-card h3{margin:0 0 12px;font-size:16px;border-left:4px solid #16baaa;padding-left:10px}
+.help{color:#8b93a1;margin:0 0 12px;flex:0 0 auto}
+.code-area{font-family:Monaco,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;white-space:pre;overflow:auto;flex:1 1 auto;min-height:360px}
+/* 基本信息行：标题靠左，SO调用按钮靠右，同一行 */
+.info-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0}
+/* 窄屏：两栏改为上下堆叠（分隔线由竖线变横线） */
+@media (max-width: 900px){
+    .io-row{flex-direction:column}
+    .io-col + .io-col{border-left:none;border-top:1px solid #edf0f5}
+}
+</style>
+<script>
+layui.use(['layer'], function () {
+    var layer = layui.layer;
+    var id = {$vo.id};
+    function postJSON(url, data) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: new URLSearchParams(data).toString()
+        }).then(function (r) { return r.json(); });
+    }
+    document.getElementById('btn-call').addEventListener('click', function () {
+        var btn = this; var input = document.getElementById('so-input').value;
+        btn.disabled = true; layer.load(1);
+        postJSON('{:url("soCall")}', {id: id, so_input: input}).then(function (res) {
+            layer.closeAll('loading'); btn.disabled = false;
+            if (res.code == 1) {
+                document.getElementById('so-output').value = res.so_output || '';
+                if (res.calc_time !== undefined) {
+                    document.getElementById('calc-time').textContent = (res.calc_time / 1000).toFixed(3);
+                }
+                if (res.updated_at !== undefined) {
+                    document.getElementById('updated-at').textContent = res.updated_at;
+                }
+                layer.msg(res.info || '调用成功', {icon: res.biz_error ? 2 : 1, time: res.biz_error ? 3000 : 200});
+            } else {
+                layer.msg(res.info || '调用失败', {icon: 2, time: 1500});
+            }
+        }).catch(function () { layer.closeAll('loading'); btn.disabled = false; layer.msg('请求失败', {icon: 2}); });
+    });
+});
+</script>
+{/block}

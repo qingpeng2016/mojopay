@@ -1,0 +1,469 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+    <button id="btn-batch-approve" class="layui-btn layui-btn-sm layui-btn-normal">
+        <i class="layui-icon">&#xe605;</i> 批量通过
+    </button>
+    <button id="btn-batch-reject" class="layui-btn layui-btn-sm layui-btn-danger">
+        <i class="layui-icon">&#xe63a;</i> 批量拒绝
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    {include file="market_pair/index_search"}
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:40px;"><input type="checkbox" id="check-all"></th>
+            <th style="width:55px;">ID</th>
+            <th style="width:130px;">平台(A→B)</th>
+            <th style="width:220px;">市场A问题</th>
+            <th style="width:200px;">市场A描述</th>
+            <th style="width:220px;">市场B问题</th>
+            <th style="width:200px;">市场B描述</th>
+            <th style="width:65px;">有依赖</th>
+            <th style="width:110px;">依赖类型</th>
+            <th style="width:150px;">方向</th>
+            <th style="width:90px;">来源</th>
+            <th style="width:75px;">AI置信度</th>
+            <th style="width:200px;">AI推理</th>
+            <th style="width:80px;">状态</th>
+            <th style="width:90px;">审核操作</th>
+            <th style="width:180px;">审核备注</th>
+            <th style="width:120px;">执行机器</th>
+            <th style="width:140px;">审核时间</th>
+            <th style="width:140px;">创建时间</th>
+            <th style="width:140px;">更新时间</th>
+            <th style="width:130px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td><input type="checkbox" class="row-check" value="{$vo.id}" {if $vo.status neq 'review' AND $vo.status neq 'ai_review' AND $vo.status neq 'monitoring'}disabled{/if}></td>
+            <td>{$vo.id}</td>
+            <td style="font-size:11px;">
+                {php}
+                    $pa = (string)($vo['platform_a'] ?? '');
+                    $pb = (string)($vo['platform_b'] ?? '');
+                    $cross = ($pa !== '' && $pb !== '' && $pa !== $pb);
+                {/php}
+                {if $cross}
+                <span class="layui-badge layui-bg-orange">{$pa}→{$pb}</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$pa|default='-'}</span>
+                {/if}
+            </td>
+            <td>
+                {if mb_strlen($vo.question_a ?? '') > 35}
+                <span title="{$vo.question_a}">{:mb_substr($vo.question_a ?? '', 0, 35)}…</span>
+                {else}
+                {$vo.question_a|default='-'}
+                {/if}
+                {if !empty($vo['url_a'])}
+                <a href="{$vo.url_a}" target="_blank" rel="noopener noreferrer" title="在 {:ucfirst((string)($vo['platform_a'] ?? ''))} 打开市场A" style="margin-left:4px;text-decoration:none;">🔗</a>
+                {/if}
+            </td>
+            <td>
+                {if mb_strlen($vo.description_a ?? '') > 30}
+                <span title="{$vo.description_a}" style="color:#666;font-size:12px;">{:mb_substr($vo.description_a ?? '', 0, 30)}…</span>
+                {else}
+                <span style="color:#666;font-size:12px;">{$vo.description_a|default='-'}</span>
+                {/if}
+            </td>
+            <td>
+                {if mb_strlen($vo.question_b ?? '') > 35}
+                <span title="{$vo.question_b}">{:mb_substr($vo.question_b ?? '', 0, 35)}…</span>
+                {else}
+                {$vo.question_b|default='-'}
+                {/if}
+                {if !empty($vo['url_b'])}
+                <a href="{$vo.url_b}" target="_blank" rel="noopener noreferrer" title="在 {:ucfirst((string)($vo['platform_b'] ?? ''))} 打开市场B" style="margin-left:4px;text-decoration:none;">🔗</a>
+                {/if}
+            </td>
+            <td>
+                {if mb_strlen($vo.description_b ?? '') > 30}
+                <span title="{$vo.description_b}" style="color:#666;font-size:12px;">{:mb_substr($vo.description_b ?? '', 0, 30)}…</span>
+                {else}
+                <span style="color:#666;font-size:12px;">{$vo.description_b|default='-'}</span>
+                {/if}
+            </td>
+            <td>
+                {if ($vo['has_dependency'] ?? 0)}
+                <span class="layui-badge layui-bg-green">是</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">否</span>
+                {/if}
+            </td>
+            <td>
+                {if $vo.dependency_type eq 'subset'}
+                <span class="layui-badge" style="background:#1E9FFF;">子集</span>
+                {elseif $vo.dependency_type eq 'implies'}
+                <span class="layui-badge" style="background:#9900ff;">蕴含</span>
+                {elseif $vo.dependency_type eq 'mutual_exclusive'}
+                <span class="layui-badge layui-bg-orange">互斥</span>
+                {elseif $vo.dependency_type eq 'equivalent'}
+                <span class="layui-badge layui-bg-green">等价</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$vo.dependency_type|default='none'}</span>
+                {/if}
+            </td>
+            <td style="font-size:11px;">{$vo.direction|default='-'}</td>
+            <td>
+                {php}
+                    $ds = (string)($vo['detect_source'] ?? '');
+                    $dsShort = $detect_source_short[$ds] ?? ($ds !== '' ? $ds : '-');
+                    $dsFull  = $detect_sources[$ds] ?? ($ds !== '' ? $ds : '-');
+                {/php}
+                {if $ds eq 'ai'}
+                <span class="layui-badge layui-bg-blue" title="{$dsFull}">AI</span>
+                {elseif strpos($ds, 'rule_') === 0}
+                <span class="layui-badge layui-bg-green" title="{$dsFull}">{$dsShort}</span>
+                {elseif strpos($ds, 'backfill') === 0}
+                <span class="layui-badge layui-bg-cyan" title="{$dsFull}">{$dsShort}</span>
+                {else}
+                <span class="layui-badge layui-bg-gray" title="{$dsFull}">{$dsShort}</span>
+                {/if}
+            </td>
+            <td>{:number_format((float)($vo['confidence'] ?? 0), 2)}</td>
+            <td>
+                {if mb_strlen($vo.reasoning ?? '') > 40}
+                <span title="{$vo.reasoning}">{:mb_substr($vo.reasoning ?? '', 0, 40)}…</span>
+                {else}
+                {$vo.reasoning|default='-'}
+                {/if}
+            </td>
+            <td>
+                {if $vo.status eq 'review'}
+                <span class="layui-badge layui-bg-orange">待复核</span>
+                {elseif $vo.status eq 'ai_review'}
+                <span class="layui-badge layui-bg-blue">AI待复核</span>
+                {elseif $vo.status eq 'monitoring'}
+                <span class="layui-badge layui-bg-green">监控中</span>
+                {elseif $vo.status eq 'rejected'}
+                <span class="layui-badge">已拒绝</span>
+                {elseif $vo.status eq 'expired'}
+                <span class="layui-badge layui-bg-red">已过期</span>
+                {elseif $vo.status eq 'archived'}
+                <span class="layui-badge layui-bg-gray">已归档</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$vo.status}</span>
+                {/if}
+            </td>
+            <td>
+                {if $vo.review_action eq 'approved'}
+                <span class="layui-badge layui-bg-green">通过</span>
+                {elseif $vo.review_action eq 'rejected'}
+                <span class="layui-badge layui-bg-red">拒绝</span>
+                {else}
+                <span style="color:#999;">-</span>
+                {/if}
+            </td>
+            <td>
+                {if mb_strlen($vo.review_note ?? '') > 30}
+                <span title="{$vo.review_note}">{:mb_substr($vo.review_note ?? '', 0, 30)}…</span>
+                {else}
+                {$vo.review_note|default='-'}
+                {/if}
+            </td>
+            <td style="font-size:11px;">{$vo.run_machine_name|default='-'}</td>
+            <td>{$vo.reviewed_at}</td>
+            <td>{$vo.created_at}</td>
+            <td>{$vo.updated_at}</td>
+            <td>
+                {if $vo.status eq 'review' OR $vo.status eq 'ai_review'}
+                <div class="layui-btn-group">
+                    <button class="layui-btn layui-btn-xs layui-btn-normal btn-approve"
+                            data-id="{$vo.id}"
+                            data-qa="{$vo.question_a}"
+                            data-qb="{$vo.question_b}"
+                            data-da="{$vo.description_a|default=''}"
+                            data-db="{$vo.description_b|default=''}"
+                            data-ua="{$vo.url_a|default=''}"
+                            data-ub="{$vo.url_b|default=''}"
+                            data-src="{$vo.detect_source|default=''}"
+                            data-dep="{$vo.dependency_type}"
+                            data-dir="{$vo.direction|default=''}"
+                            data-conf="{$vo.confidence}"
+                            data-lc="{$vo.legal_combinations|default=''}"
+                            data-reason="{$vo.reasoning}">通过</button>
+                    <button class="layui-btn layui-btn-xs layui-btn-danger btn-reject"
+                            data-id="{$vo.id}"
+                            data-qa="{$vo.question_a}"
+                            data-qb="{$vo.question_b}"
+                            data-da="{$vo.description_a|default=''}"
+                            data-db="{$vo.description_b|default=''}"
+                            data-ua="{$vo.url_a|default=''}"
+                            data-ub="{$vo.url_b|default=''}"
+                            data-src="{$vo.detect_source|default=''}"
+                            data-dep="{$vo.dependency_type}"
+                            data-dir="{$vo.direction|default=''}"
+                            data-conf="{$vo.confidence}"
+                            data-lc="{$vo.legal_combinations|default=''}"
+                            data-reason="{$vo.reasoning}">拒绝</button>
+                </div>
+                {elseif $vo.status eq 'monitoring'}
+                <button class="layui-btn layui-btn-xs layui-btn-danger btn-reject"
+                        data-id="{$vo.id}"
+                        data-qa="{$vo.question_a}"
+                        data-qb="{$vo.question_b}"
+                        data-da="{$vo.description_a|default=''}"
+                        data-db="{$vo.description_b|default=''}"
+                        data-ua="{$vo.url_a|default=''}"
+                        data-ub="{$vo.url_b|default=''}"
+                        data-src="{$vo.detect_source|default=''}"
+                        data-dep="{$vo.dependency_type}"
+                        data-dir="{$vo.direction|default=''}"
+                        data-conf="{$vo.confidence}"
+                        data-lc="{$vo.legal_combinations|default=''}"
+                        data-reason="{$vo.reasoning}">拒绝</button>
+                {else}
+                <span style="color:#bbb;font-size:12px;">已处理</span>
+                {/if}
+            </td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有记录哦</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+
+{/block}
+
+{block name="script"}
+{include file="copy_cell"}
+<script>
+layui.use(['layer', 'laydate', 'form'], function () {
+    var $ = window.$ || layui.jquery;
+    // ThinkAdmin 后台是 iframe SPA，弹窗必须用顶层窗口的 layer，
+    // 否则 shade 会覆盖 iframe 内整张弹窗导致按钮不可点。
+    var L = (window.top && window.top.layer) ? window.top.layer : layui.layer;
+
+    var URL_APPROVE = '{:url("approve")}';
+    var URL_REJECT  = '{:url("reject")}';
+
+    $('#check-all').on('change', function () {
+        $('.row-check:not(:disabled)').prop('checked', this.checked);
+    });
+
+    function getCheckedIds() {
+        var ids = [];
+        $('.row-check:checked').each(function () { ids.push($(this).val()); });
+        return ids;
+    }
+
+    function esc(v) {
+        return $('<div>').text(v == null || v === '' ? '-' : String(v)).html();
+    }
+
+    // 生成市场原始链接（url 为空时返回空字符串）；按 url 域名判断平台名，
+    // 跨平台对的 A/B 链接可能分属 Polymarket / Kalshi。
+    // esc() 已对 url 做 HTML 转义，安全用于 href 属性。
+    function linkA(url) {
+        if (url == null || url === '') return '';
+        var label = /kalshi/i.test(url) ? '🔗 Kalshi'
+                  : (/polymarket/i.test(url) ? '🔗 Polymarket' : '🔗 打开');
+        return ' <a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" style="font-size:12px;text-decoration:none;">' + label + '</a>';
+    }
+
+    // 生成市场描述块（描述为空时返回空字符串）。
+    function descHtml(text) {
+        if (text == null || text === '') return '';
+        return '<div style="margin-top:4px;font-size:12px;color:#888;word-break:break-all;line-height:1.5;">描述：' + esc(text) + '</div>';
+    }
+
+    // 把合法组合 legal_combinations 渲染成可读彩色块，替代原始 JSON（满屏 []{}":, 符号）。
+    // 注意：jQuery .data() 对形似 JSON 的属性值会自动 parse 成数组/对象，
+    //       所以这里同时兼容"已是数组"和"仍是字符串"两种情况。
+    function legalCombosHtml(raw) {
+        if (raw == null || raw === '') return '<span style="color:#999;">-</span>';
+        var arr = raw;
+        if (typeof raw === 'string') {
+            try { arr = JSON.parse(raw); }
+            catch (e) { return '<span style="word-break:break-all;">' + esc(raw) + '</span>'; }
+        }
+        if (!Array.isArray(arr) || !arr.length) return '<span style="color:#999;">-</span>';
+        function tag(v) {
+            var color = v === 'YES' ? '#5FB878' : (v === 'NO' ? '#FF5722' : '#999');
+            return '<span style="color:#fff;background:' + color + ';border-radius:2px;padding:0 6px;margin-left:3px;">' + esc(v) + '</span>';
+        }
+        var chips = arr.map(function (c) {
+            var a = (c && c.market_a != null) ? c.market_a : '?';
+            var b = (c && c.market_b != null) ? c.market_b : '?';
+            return '<span style="display:inline-block;margin:3px 8px 3px 0;padding:3px 8px;border:1px solid #e8e8e8;border-radius:4px;background:#fafafa;white-space:nowrap;">'
+                 + 'A' + tag(a) + ' <span style="color:#bbb;">·</span> B' + tag(b)
+                 + '</span>';
+        }).join('');
+        return '<div style="margin-top:4px;">' + chips + '</div>';
+    }
+
+    function buildSingleHtml(d) {
+        return '<div style="padding:16px;">'
+            + '<div class="layui-form">'
+                + '<div class="layui-form-item" style="margin-bottom:8px;">'
+                    + '<div style="font-size:12px;color:#999;margin-bottom:4px;">市场A问题' + linkA(d.ua) + '</div>'
+                    + '<div style="word-break:break-all;line-height:1.5;">' + esc(d.qa) + '</div>'
+                    + descHtml(d.da)
+                + '</div>'
+                + '<div class="layui-form-item" style="margin-bottom:8px;">'
+                    + '<div style="font-size:12px;color:#999;margin-bottom:4px;">市场B问题' + linkA(d.ub) + '</div>'
+                    + '<div style="word-break:break-all;line-height:1.5;">' + esc(d.qb) + '</div>'
+                    + descHtml(d.db)
+                + '</div>'
+                + '<div class="layui-form-item" style="margin-bottom:12px;font-size:13px;">'
+                    + '<span style="margin-right:20px;">依赖类型：' + esc(d.dep) + '</span>'
+                    + '<span style="margin-right:20px;">方向：' + esc(d.dir) + '</span>'
+                    + '<span style="margin-right:20px;">来源：' + esc(d.src) + '</span>'
+                    + '<span>AI置信度：<strong>' + esc(d.conf) + '</strong></span>'
+                + '</div>'
+                + '<div class="layui-form-item" style="margin-bottom:12px;font-size:12px;color:#666;">'
+                    + '合法组合：' + legalCombosHtml(d.lc)
+                + '</div>'
+                + '<div class="layui-form-item" style="margin-bottom:12px;font-size:12px;color:#666;">'
+                    + 'AI推理：<span>' + esc(d.reason) + '</span>'
+                + '</div>'
+                + '<div class="layui-form-item">'
+                    + '<label style="font-size:13px;">审核备注（可选，最多 500 字）</label>'
+                    + '<textarea class="layui-textarea rm-note" style="height:72px;margin-top:6px;" maxlength="500"></textarea>'
+                + '</div>'
+            + '</div>'
+        + '</div>';
+    }
+
+    function buildBatchHtml(count) {
+        return '<div style="padding:16px;">'
+            + '<div class="layui-form">'
+                + '<div style="margin-bottom:12px;font-size:13px;">已选 ' + count + ' 条记录</div>'
+                + '<div class="layui-form-item">'
+                    + '<label style="font-size:13px;">审核备注（可选，最多 500 字）</label>'
+                    + '<textarea class="layui-textarea rm-note" style="height:72px;margin-top:6px;" maxlength="500"></textarea>'
+                + '</div>'
+            + '</div>'
+        + '</div>';
+    }
+
+    function submitReview(url, ids, index, layero, successText, failText) {
+        var note = $(layero).find('.rm-note').val() || '';
+        $.post(url, {ids: ids, review_note: note}, function (res) {
+            L.close(index);
+            L.msg(res.msg || (res.code === 1 ? successText : failText),
+                  {icon: res.code === 1 ? 1 : 2, time: 1500}, function () {
+                if (res.code === 1) location.reload();
+            });
+        }, 'json');
+    }
+
+    function openSingle(btn, opts) {
+        L.open({
+            type: 1,
+            title: opts.title,
+            content: buildSingleHtml({
+                qa:     $(btn).data('qa'),
+                qb:     $(btn).data('qb'),
+                da:     $(btn).data('da'),
+                db:     $(btn).data('db'),
+                ua:     $(btn).data('ua'),
+                ub:     $(btn).data('ub'),
+                src:    $(btn).data('src'),
+                dep:    $(btn).data('dep'),
+                dir:    $(btn).data('dir'),
+                conf:   $(btn).data('conf'),
+                lc:     $(btn).data('lc'),
+                reason: $(btn).data('reason')
+            }),
+            area: ['600px', '600px'],
+            btn: opts.btn,
+            btnAlign: opts.btnAlign,
+            yes: function (index, layero) {
+                submitReview(opts.url, String($(btn).data('id') || ''),
+                             index, layero, opts.successText, opts.failText);
+            }
+        });
+    }
+
+    function openBatch(ids, opts) {
+        L.open({
+            type: 1,
+            title: opts.title + '（已选 ' + ids.length + ' 条）',
+            content: buildBatchHtml(ids.length),
+            area: ['520px', '280px'],
+            btn: opts.btn,
+            btnAlign: opts.btnAlign,
+            yes: function (index, layero) {
+                submitReview(opts.url, ids.join(','),
+                             index, layero, opts.successText, opts.failText);
+            }
+        });
+    }
+
+    // 后台 SPA 每次重新加载本页都会再次执行本段内联脚本，而 $(document) 是常驻对象，
+    // 直接 .on() 会让委托事件层层叠加：点一次"通过/拒绝"会触发 N 个 handler、弹出 N 个
+    // 完全重叠的弹窗，看起来像一个，却要点 N 次 X/取消 才能全部关闭。
+    // 用命名空间事件先 .off() 再 .on()，保证无论脚本执行多少次都只保留一份委托。
+    $(document).off('click.rmpdReview', '.btn-approve').on('click.rmpdReview', '.btn-approve', function () {
+        openSingle(this, {
+            title: '确认审核通过', url: URL_APPROVE,
+            btn: ['确认通过', '取消'],
+            successText: '操作成功', failText: '操作失败'
+        });
+    });
+
+    $(document).off('click.rmpdReview', '.btn-reject').on('click.rmpdReview', '.btn-reject', function () {
+        openSingle(this, {
+            title: '确认拒绝', url: URL_REJECT,
+            btn: ['确认拒绝', '取消'], btnAlign: 'c',
+            successText: '已拒绝', failText: '操作失败'
+        });
+    });
+
+    $('#btn-batch-approve').on('click', function () {
+        var ids = getCheckedIds();
+        if (!ids.length) { L.msg('请先勾选待复核的记录', {icon: 2}); return; }
+        openBatch(ids, {
+            title: '批量审核通过', url: URL_APPROVE,
+            btn: ['确认批量通过', '取消'],
+            successText: '操作完成', failText: '操作失败'
+        });
+    });
+
+    $('#btn-batch-reject').on('click', function () {
+        var ids = getCheckedIds();
+        if (!ids.length) { L.msg('请先勾选待复核的记录', {icon: 2}); return; }
+        openBatch(ids, {
+            title: '批量拒绝', url: URL_REJECT,
+            btn: ['确认批量拒绝', '取消'], btnAlign: 'c',
+            successText: '操作完成', failText: '操作失败'
+        });
+    });
+});
+</script>
+
+<style>
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+/* 日期范围输入框（laydate 只读态）边框默认很淡，明确给出清晰边框，与其他筛选项一致 */
+.form-search input[id$="-date-range"] { border:1px solid #c2c6cc !important; background:#fff !important; }
+/* 列较多，横向滚动避免挤压裁切，保证状态等列完整显示 */
+.table-block { overflow-x: auto; }
+.table-block .layui-table { min-width: 2420px; }
+.table-block .layui-table th,
+.table-block .layui-table td { white-space: nowrap; }
+.table-block .layui-table .layui-badge { white-space: nowrap; }
+.pagination { display:flex; justify-content:center; flex-wrap:wrap; margin:20px 0; padding:0; list-style:none; }
+.pagination li { display:inline-block; margin:0 2px; }
+.pagination li a, .pagination li span {
+    display:inline-block; padding:6px 10px; border:1px solid #ddd;
+    background:#fff; color:#666; text-decoration:none; border-radius:2px;
+    cursor:pointer; min-width:36px; text-align:center;
+}
+.pagination li.active span { background:#009688; color:#fff; border-color:#009688; }
+.pagination li a:hover { background:#f2f2f2; border-color:#009688; color:#009688; }
+.pagination li.disabled span { background:#f5f5f5; color:#999; cursor:not-allowed; }
+</style>
+{/block}

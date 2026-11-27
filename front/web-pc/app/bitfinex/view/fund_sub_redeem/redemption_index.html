@@ -1,0 +1,74 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-modal='{:url("subscribe")}' data-title="新建申购" class="layui-btn layui-btn-sm layui-btn-normal">
+        <i class="layui-icon">&#xe654;</i> 新建申购
+    </button>
+    <a data-open='{:url("index")}' class="layui-btn layui-btn-sm layui-btn-primary">申购记录</a>
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    <div class="fsr-tab-hint">当前：<strong>赎回记录</strong> · <a data-open='{:url("index")}'>切换到申购记录</a></div>
+    {include file="fund_sub_redeem/redemption_search"}
+
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:55px;">ID</th>
+            <th style="width:70px;">申购 ID</th>
+            <th style="width:55px;">客户</th>
+            <th style="width:150px;">产品</th>
+            <th style="width:80px;">类型</th>
+            <th style="width:120px;text-align:right;">兑付金额</th>
+            <th style="width:90px;">状态</th>
+            <th style="width:140px;">提交时间</th>
+            <th style="width:140px;">兑付时间</th>
+            <th style="width:130px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $redemption_list as $vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td>{$vo.subscription_id|default='-'}</td>
+            <td title="{$vo.client_name|default=''}">#{$vo.client_id|default='-'}</td>
+            <td><span class="mono" style="font-size:12px;">{$vo.product_code|default='-'}</span></td>
+            <td>{$vo.redemption_type_label|default='-'}</td>
+            <td class="mono" style="text-align:right;">{$vo.redemption_amount_fmt|default='0'}</td>
+            <td>{$vo.status_label|default='-'}</td>
+            <td style="font-size:12px;">{$vo.requested_at|default='-'}</td>
+            <td style="font-size:12px;">{$vo.settled_at|default='-'}</td>
+            <td>
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-primary"
+                        data-modal='{:url("redemption_detail")}?id={$vo.id}' data-title="赎回详情 #{$vo.id}">详情</button>
+                {if !empty($vo.can_delete)}
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-danger"
+                        data-confirm="确定删除赎回记录 #{$vo.id} 吗？"
+                        data-action='{:url("remove_redemption")}'
+                        data-value="id#{$vo.id}">删除</button>
+                {/if}
+            </td>
+        </tr>
+        {/foreach}
+        {if empty($redemption_list)}
+        <tr><td colspan="10" style="text-align:center;color:#999;">暂无赎回记录</td></tr>
+        {/if}
+        </tbody>
+    </table>
+    {include file="common/pagination_footer"}
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.fsr-tab-hint { margin-bottom: 10px; color: #666; font-size: 13px; }
+</style>
+{include file="common/pagination_assets"}
+{/block}

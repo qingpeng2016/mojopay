@@ -1,0 +1,252 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    {include file="arb_record/index_search"}
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:60px;">ID</th>
+            <th style="width:80px;">市场对ID</th>
+            <th style="width:100px;">A市场ID</th>
+            <th style="width:100px;">B市场ID</th>
+            <th style="width:110px;">依赖类型</th>
+            <th style="width:90px;">A平台</th>
+            <th style="width:90px;">B平台</th>
+            <th style="width:60px;">A腿</th>
+            <th style="width:60px;">B腿</th>
+            <th style="width:85px;">A腿价格</th>
+            <th style="width:85px;">B腿价格</th>
+            <th style="width:75px;">计划量</th>
+            <th style="width:80px;">A成交量</th>
+            <th style="width:80px;">B成交量</th>
+            <th style="width:80px;">暴露量</th>
+            <th style="width:70px;">暴露腿</th>
+            <th style="width:80px;">A净持仓</th>
+            <th style="width:80px;">B净持仓</th>
+            <th style="width:90px;">预估利润</th>
+            <th style="width:95px;">已实现利润</th>
+            <th style="width:95px;">未实现利润</th>
+            <th style="width:90px;">A计划费率bps</th>
+            <th style="width:90px;">B计划费率bps</th>
+            <th style="width:95px;">A实际手续费</th>
+            <th style="width:95px;">B实际手续费</th>
+            <th style="width:95px;">A实际费率bps</th>
+            <th style="width:95px;">B实际费率bps</th>
+            <th style="width:85px;">A滑点</th>
+            <th style="width:85px;">B滑点</th>
+            <th style="width:80px;">价格偏差</th>
+            <th style="width:120px;">偏差来源</th>
+            <th style="width:55px;">重试</th>
+            <th style="width:110px;">状态</th>
+            <th style="width:180px;">失败原因</th>
+            <th style="width:120px;">执行机器</th>
+            <th style="width:80px;">A账户ID</th>
+            <th style="width:80px;">B账户ID</th>
+            <th style="width:75px;">A NegRisk</th>
+            <th style="width:75px;">B NegRisk</th>
+            <th style="width:90px;">A Token</th>
+            <th style="width:90px;">B Token</th>
+            <th style="width:140px;">执行时间</th>
+            <th style="width:140px;">领取时间</th>
+            <th style="width:140px;">单腿暴露时间</th>
+            <th style="width:140px;">创建时间</th>
+            <th style="width:140px;">更新时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td>
+                <a href="/admin.html#/rmpd/market_pair/index.html?id={$vo.market_pair_id}" title="查看该市场对">{$vo.market_pair_id}</a>
+            </td>
+            <td style="font-size:11px;">
+                {if !empty($vo['market_id_a'])}<span title="{$vo.market_id_a}">{:mb_substr((string)$vo['market_id_a'], 0, 12)}…</span>{else}-{/if}
+            </td>
+            <td style="font-size:11px;">
+                {if !empty($vo['market_id_b'])}<span title="{$vo.market_id_b}">{:mb_substr((string)$vo['market_id_b'], 0, 12)}…</span>{else}-{/if}
+            </td>
+            <td>
+                {if $vo.dependency_type eq 'subset'}
+                <span class="layui-badge" style="background:#1E9FFF;">subset</span>
+                {elseif $vo.dependency_type eq 'implies'}
+                <span class="layui-badge" style="background:#9900ff;">implies</span>
+                {elseif $vo.dependency_type eq 'mutual_exclusive'}
+                <span class="layui-badge layui-bg-orange">mutual_exclusive</span>
+                {elseif $vo.dependency_type eq 'equivalent'}
+                <span class="layui-badge layui-bg-green">equivalent</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$vo.dependency_type|default='-'}</span>
+                {/if}
+            </td>
+            <td style="font-size:11px;">{$vo.platform_a|default='-'}</td>
+            <td style="font-size:11px;">{$vo.platform_b|default='-'}</td>
+            <td>
+                {if $vo.side_a eq 'YES'}
+                <span class="layui-badge layui-bg-green">YES</span>
+                {else}
+                <span class="layui-badge" style="background:#ff5722;">NO</span>
+                {/if}
+            </td>
+            <td>
+                {if $vo.side_b eq 'YES'}
+                <span class="layui-badge layui-bg-green">YES</span>
+                {else}
+                <span class="layui-badge" style="background:#ff5722;">NO</span>
+                {/if}
+            </td>
+            <td>{:number_format((float)($vo['price_a'] ?? 0), 4)}</td>
+            <td>{:number_format((float)($vo['price_b'] ?? 0), 4)}</td>
+            <td>{:number_format((float)($vo['quantity'] ?? 0), 2)}</td>
+            <td>{:number_format((float)($vo['fill_qty_a'] ?? 0), 2)}</td>
+            <td>{:number_format((float)($vo['fill_qty_b'] ?? 0), 2)}</td>
+            <td>
+                {php}$xq = (float)($vo['exposure_qty'] ?? 0);{/php}
+                <span style="{if $xq > 0}color:#ff5722;{/if}">{:number_format($xq, 2)}</span>
+            </td>
+            <td style="font-size:11px;">
+                {if !empty($vo['exposed_leg'])}<span class="layui-badge layui-bg-orange">{$vo.exposed_leg}</span>{else}-{/if}
+            </td>
+            <td>{:number_format((float)($vo['net_qty_a'] ?? 0), 2)}</td>
+            <td>{:number_format((float)($vo['net_qty_b'] ?? 0), 2)}</td>
+            <td>
+                {php}$ep = (float)($vo['est_profit'] ?? 0);{/php}
+                <span style="color:{if $ep >= 0}#009688{else}inherit{/if}">
+                    {:number_format($ep, 4)}
+                </span>
+            </td>
+            <td>
+                {php}$rp = (float)($vo['realized_profit'] ?? 0);{/php}
+                {if $rp > 0}
+                <span style="color:#009688;">{:number_format($rp, 4)}</span>
+                {elseif $rp < 0}
+                <span style="color:#ff5722;">{:number_format($rp, 4)}</span>
+                {else}
+                <span>{:number_format($rp, 4)}</span>
+                {/if}
+            </td>
+            <td>
+                {php}$up = (float)($vo['unrealized_profit'] ?? 0);{/php}
+                {if $up > 0}
+                <span style="color:#009688;">{:number_format($up, 4)}</span>
+                {elseif $up < 0}
+                <span style="color:#ff5722;">{:number_format($up, 4)}</span>
+                {else}
+                <span>{:number_format($up, 4)}</span>
+                {/if}
+            </td>
+            <td>{:number_format((float)($vo['fee_bps_a'] ?? 0), 2)}</td>
+            <td>{:number_format((float)($vo['fee_bps_b'] ?? 0), 2)}</td>
+            <td>{:number_format((float)($vo['actual_fee_a'] ?? 0), 4)}</td>
+            <td>{:number_format((float)($vo['actual_fee_b'] ?? 0), 4)}</td>
+            <td>{:number_format((float)($vo['actual_fee_bps_a'] ?? 0), 2)}</td>
+            <td>{:number_format((float)($vo['actual_fee_bps_b'] ?? 0), 2)}</td>
+            <td>
+                {php}$sa = (float)($vo['slippage_a'] ?? 0);{/php}
+                <span style="{if $sa < 0}color:#ff5722;{/if}">{:number_format($sa, 4)}</span>
+            </td>
+            <td>
+                {php}$sb = (float)($vo['slippage_b'] ?? 0);{/php}
+                <span style="{if $sb < 0}color:#ff5722;{/if}">{:number_format($sb, 4)}</span>
+            </td>
+            <td>{:number_format((float)($vo['price_deviation'] ?? 0), 4)}</td>
+            <td style="font-size:11px;">
+                {if !empty($vo['price_deviation_source'])}
+                <span title="{$vo.price_deviation_source}">{:mb_substr((string)$vo['price_deviation_source'], 0, 14)}…</span>
+                {else}-{/if}
+            </td>
+            <td>
+                {php}$rc = (int)($vo['retry_count'] ?? 0);{/php}
+                {if $rc > 0}<span style="color:#ff5722;">{$rc}</span>{else}0{/if}
+            </td>
+            <td>
+                {if $vo.status eq 'pending'}
+                <span class="layui-badge" style="background:#8e9daa;">待执行</span>
+                {elseif $vo.status eq 'executed'}
+                <span class="layui-badge" style="background:#1E9FFF;">双腿已下单</span>
+                {elseif $vo.status eq 'completed'}
+                <span class="layui-badge layui-bg-green">已结算</span>
+                {elseif $vo.status eq 'cancelled'}
+                <span class="layui-badge layui-bg-gray">已取消</span>
+                {elseif $vo.status eq 'failed'}
+                <span class="layui-badge" style="background:#ff5722;">执行失败</span>
+                {elseif $vo.status eq 'single_leg_exposed'}
+                <span class="layui-badge layui-bg-orange">⚠ 单腿暴露</span>
+                {elseif $vo.status eq 'single_leg_closed'}
+                <span class="layui-badge" style="background:#e6b800;color:#fff;">单腿已平</span>
+                {elseif $vo.status eq 'archived'}
+                <span class="layui-badge layui-bg-gray">已归档</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$vo.status}</span>
+                {/if}
+            </td>
+            <td>
+                {if mb_strlen($vo.fail_reason ?? '') > 40}
+                <span title="{$vo.fail_reason}">{:mb_substr($vo.fail_reason ?? '', 0, 40)}…</span>
+                {else}
+                {$vo.fail_reason|default='-'}
+                {/if}
+            </td>
+            <td>{$vo.assigned_machine|default='-'}</td>
+            <td>{if ($vo['account_id_a'] ?? 0)}{$vo.account_id_a}{else}-{/if}</td>
+            <td>{if ($vo['account_id_b'] ?? 0)}{$vo.account_id_b}{else}-{/if}</td>
+            <td style="font-size:11px;">
+                {if ($vo['neg_risk_a'] ?? 0)}<span style="color:#ff9800;">是</span>{else}否{/if}
+            </td>
+            <td style="font-size:11px;">
+                {if ($vo['neg_risk_b'] ?? 0)}<span style="color:#ff9800;">是</span>{else}否{/if}
+            </td>
+            <td style="font-size:11px;">
+                {if !empty($vo['token_id_a'])}<span title="{$vo.token_id_a}">{:mb_substr((string)$vo['token_id_a'], 0, 8)}…</span>{else}-{/if}
+            </td>
+            <td style="font-size:11px;">
+                {if !empty($vo['token_id_b'])}<span title="{$vo.token_id_b}">{:mb_substr((string)$vo['token_id_b'], 0, 8)}…</span>{else}-{/if}
+            </td>
+            <td>{$vo.executed_at}</td>
+            <td>{$vo.claimed_at}</td>
+            <td>{$vo.single_leg_exposed_at}</td>
+            <td>{$vo.created_at}</td>
+            <td>{$vo.updated_at}</td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有记录哦</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+{include file="copy_cell"}
+<style>
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+/* 日期范围输入框（laydate 只读态）边框默认很淡，明确给出清晰边框，与其他筛选项一致 */
+.form-search input[id$="-date-range"] { border:1px solid #c2c6cc !important; background:#fff !important; }
+/* 列很多（30 列），让表格横向滚动而不是被挤压裁切，
+   保证状态徽章等每一列内容都完整显示（不再出现“双腿已下单”只剩“双”）。 */
+.table-block { overflow-x: auto; }
+.table-block .layui-table { min-width: 4010px; }
+.table-block .layui-table th,
+.table-block .layui-table td { white-space: nowrap; }
+.table-block .layui-table .layui-badge { white-space: nowrap; }
+.pagination { display:flex; justify-content:center; flex-wrap:wrap; margin:20px 0; padding:0; list-style:none; }
+.pagination li { display:inline-block; margin:0 2px; }
+.pagination li a, .pagination li span {
+    display:inline-block; padding:6px 10px; border:1px solid #ddd;
+    background:#fff; color:#666; text-decoration:none; border-radius:2px;
+    cursor:pointer; min-width:36px; text-align:center;
+}
+.pagination li.active span { background:#009688; color:#fff; border-color:#009688; }
+.pagination li a:hover { background:#f2f2f2; border-color:#009688; color:#009688; }
+.pagination li.disabled span { background:#f5f5f5; color:#999; cursor:not-allowed; }
+</style>
+{/block}

@@ -1,0 +1,160 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">产品类型</label>
+            <div class="layui-input-block">
+                <select name="product_type" id="fp-add-product-type">
+                    {foreach $types as $type}
+                    <option value="{$type}" {if isset($vo.product_type) && $vo.product_type==$type}selected{/if}>{$type}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">期限</label>
+            <div class="layui-input-block">
+                <select name="term" id="fp-add-term">
+                    {foreach $terms as $term}
+                    <option value="{$term}" {if isset($vo.term) && $vo.term==$term}selected{/if}>{$term}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">Funding</label>
+            <div class="layui-input-block">
+                <select name="funding_symbol" id="fp-add-symbol">
+                    {foreach $symbols as $sym}
+                    <option value="{$sym}" {if isset($vo.funding_symbol) && $vo.funding_symbol==$sym}selected{/if}>{$sym}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">产品编码</label>
+            <div class="layui-input-block">
+                <input name="product_code" id="fp-add-product-code" value="{$vo.product_code|default=''}" required
+                       maxlength="64" placeholder="如 GUARANTEED_D30_USD" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">产品名称</label>
+            <div class="layui-input-block">
+                <input name="product_name" id="fp-add-product-name" value="{$vo.product_name|default=''}" required
+                       maxlength="128" placeholder="如 保底30天 USD" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">币种</label>
+            <div class="layui-input-block">
+                <input name="currency" id="fp-add-currency" value="{$vo.currency|default='USD'}" maxlength="16" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item fp-add-guaranteed-row">
+            <label class="layui-form-label label-required-next">保底年化(%)</label>
+            <div class="layui-input-block">
+                <input name="guaranteed_rate_pct" value="{$vo.guaranteed_rate_pct|default='8'}"
+                       placeholder="如 8 表示 8%" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">产品上线日</label>
+            <div class="layui-input-block">
+                <input name="launch_date" value="{$vo.launch_date|default=''}" required
+                       placeholder="YYYY-MM-DD" class="layui-input">
+                <div class="layui-form-mid layui-word-aux">用于稳健运行天数等展示；库表字段不可为空</div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">可投总金额</label>
+            <div class="layui-input-block">
+                <input name="cash_available" value="{$vo.cash_available|default='0'}" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">最小挂单</label>
+            <div class="layui-input-block">
+                <input name="min_funding_offer_usd" value="{$vo.min_funding_offer_usd|default='150'}" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">铺单期限</label>
+            <div class="layui-input-block">
+                <input name="placement_period" value="{$vo.placement_period|default='2'}" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                <select name="status">
+                    {foreach $statuses as $sk=>$sl}
+                    <option value="{$sk}" {if isset($vo.status) && $vo.status==$sk}selected{/if}>{$sl}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <textarea name="remark" maxlength="500" placeholder="可选" class="layui-textarea">{$vo.remark|default=''}</textarea>
+            </div>
+        </div>
+        <div class="layui-form-mid layui-word-aux" style="padding-left:110px;margin-bottom:12px;">
+            创建后请在 Bitfinex 子账号管理中绑定 1:1 子账号；未绑定前策略铺单不可用。
+        </div>
+        <div class="hr-line-dashed"></div>
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">保存</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function () {
+    var form = layui.form;
+    form.render();
+
+    var termNameMap = {
+        FLEXIBLE: '活期',
+        D7: '7天', D14: '14天', D30: '30天', D60: '60天', D90: '90天', D120: '120天'
+    };
+    var typeNameMap = { GUARANTEED: '保底', FLOATING: '浮动' };
+
+    function currencyFromSymbol(sym) {
+        if (sym === 'fUST') return 'UST';
+        if (sym === 'fUSD') return 'USD';
+        return 'USD';
+    }
+
+    function suggestCodeAndName() {
+        var ptype = ($('#fp-add-product-type').val() || 'GUARANTEED').toUpperCase();
+        var term = ($('#fp-add-term').val() || 'D30').toUpperCase();
+        var sym = ($('#fp-add-symbol').val() || 'fUSD');
+        var cur = currencyFromSymbol(sym);
+        $('#fp-add-currency').val(cur);
+        var code = ptype + '_' + term + '_' + cur;
+        $('#fp-add-product-code').val(code);
+        var tLabel = termNameMap[term] || term;
+        var pLabel = typeNameMap[ptype] || ptype;
+        $('#fp-add-product-name').val(pLabel + tLabel + ' ' + cur);
+    }
+
+    function toggleGuaranteedRow() {
+        var ptype = ($('#fp-add-product-type').val() || '').toUpperCase();
+        $('.fp-add-guaranteed-row').toggle(ptype === 'GUARANTEED');
+    }
+
+    $('#fp-add-product-type, #fp-add-term, #fp-add-symbol').on('change', function () {
+        suggestCodeAndName();
+        toggleGuaranteedRow();
+    });
+
+    suggestCodeAndName();
+    toggleGuaranteedRow();
+});
+</script>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>

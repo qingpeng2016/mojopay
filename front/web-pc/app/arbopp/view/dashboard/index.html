@@ -1,0 +1,153 @@
+{extend name="../../admin/view/main"}
+
+{block name="style"}
+<style>
+.arbopp-dash-hint { font-size: 12px; color: #888; margin: 0 0 12px; }
+.arbopp-dash-hint strong { color: #333; font-weight: 600; }
+.arbopp-dash-empty { text-align: center; color: #999; padding: 32px 16px; }
+.arbopp-dash-section-title { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+.arbopp-mapkey-block { margin-bottom: 16px; border: 1px solid #e8e8e8; border-radius: 8px; overflow: hidden; }
+.arbopp-mapkey-head {
+    padding: 8px 12px; background: #f7f9fc; border-bottom: 1px solid #e8e8e8;
+    font-size: 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+}
+.arbopp-mapkey-head .mono { font-weight: 600; color: #333; }
+.arbopp-mapkey-ids { color: #666; font-size: 11px; }
+.arbopp-mapkey-block .layui-table { margin: 0; }
+.arbopp-dash-divider { height: 1px; background: #e8e8e8; margin: 20px 0 16px; }
+.layui-tab[lay-filter="arbopp-live-platform"].layui-tab-brief > .layui-tab-title li {
+    font-weight: 600;
+}
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>
+{/block}
+
+{block name="button"}
+<button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+    <i class="layui-icon">&#xe669;</i> 刷新
+</button>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    <div class="arbopp-dash-section-title">策略在跑（stat_kv / market_running_count_strategy）</div>
+    {if empty($strategy_running.ok)}
+    <p class="arbopp-dash-hint">未读取到 stat_kv 配置或 JSON 解析失败。</p>
+    {elseif empty($strategy_running.map_key_groups)}
+    <p class="arbopp-dash-hint">
+        当前无在跑 map_key 组。pre={$strategy_running.pre_event_scan_minutes|default='-'}min，
+        end={$strategy_running.end_event_scan_minutes|default='-'}min，更新 {$strategy_running.updated_at|default='-'}。
+    </p>
+    {else}
+    <p class="arbopp-dash-hint">
+        自 description JSON 取 <strong>groups[].map_key</strong>，再查 <strong>market</strong> 同 map_key 全平台行。
+        组数 <strong>{$strategy_running.group_count}</strong>；开赛前窗 <strong>{$strategy_running.pre_event_scan_minutes|default='-'}</strong> min、结束后窗 <strong>{$strategy_running.end_event_scan_minutes|default='-'}</strong> min；stat_kv 更新 <strong>{$strategy_running.updated_at}</strong>。
+    </p>
+    {foreach $strategy_running.map_key_groups as $grp}
+    <div class="arbopp-mapkey-block">
+        <div class="arbopp-mapkey-head">
+            <span class="mono">{$grp.map_key}</span>
+            {if !empty($grp.market_ids_fmt)}
+            <span class="arbopp-mapkey-ids">strategy market.id：{$grp.market_ids_fmt}</span>
+            {/if}
+        </div>
+        <table class="layui-table" lay-skin="line" style="font-size:12px;">
+            <thead>
+            <tr>
+                <th>平台</th><th>ID</th><th>category</th><th>sub_category</th><th>联赛</th><th>联赛(en)</th>
+                <th>名称</th><th>开赛(UTC)</th><th>结束</th><th>状态</th>
+            </tr>
+            </thead>
+            <tbody>
+            {foreach $grp.rows as $vo}
+            <tr>
+                <td>{$vo.platform|default='-'}</td>
+                <td><a href="/admin.html#/arbopp/market/index.html?id={$vo.id}" class="color-text">{$vo.id}</a></td>
+                <td>{$vo.category|default='-'}</td>
+                <td>{$vo.sub_category|default='-'}</td>
+                <td>{$vo.competition|default='-'}</td>
+                <td>{$vo.competition_en|default='-'}</td>
+                <td title="{$vo.name|default=''}">{$vo.name_fmt}</td>
+                <td class="mono">{$vo.event_start_time|default='-'}</td>
+                <td class="mono">{$vo.event_end_time|default='-'}</td>
+                <td>{$vo.status|default='-'}</td>
+            </tr>
+            {/foreach}
+            {if empty($grp.rows)}
+            <tr><td colspan="10" style="text-align:center;color:#999;">该 map_key 无 market 行</td></tr>
+            {/if}
+            </tbody>
+        </table>
+    </div>
+    {/foreach}
+    {/if}
+
+    <div class="arbopp-dash-divider"></div>
+    <div class="arbopp-dash-section-title">平台 Tab（进行中 ACTIVE 场次）</div>
+    <p class="arbopp-dash-hint">
+        进行中场次：<strong>status=ACTIVE</strong> 且 <strong>UTC 当前时间 ≥ event_start_time</strong>（库内按 UTC 字符串比较）。
+        当前 UTC：<span class="mono">{$utc_now}</span>，合计 <strong>{$total_live|default=0}</strong> 条（每平台最多 500）。
+    </p>
+
+    {if empty($platform_blocks)}
+    <div class="arbopp-dash-empty">当前没有符合条件的进行中比赛</div>
+    {else}
+    <div class="layui-tab layui-tab-brief" lay-filter="arbopp-live-platform">
+        <ul class="layui-tab-title">
+            {foreach $platform_blocks as $block}
+            <li class="{if $block.active}layui-this{/if}">{$block.platform} ({$block.count})</li>
+            {/foreach}
+        </ul>
+        <div class="layui-tab-content">
+            {foreach $platform_blocks as $block}
+            <div class="layui-tab-item {if $block.active}layui-show{/if}">
+                <table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>category</th>
+                        <th>sub_category</th>
+                        <th>联赛</th>
+                        <th>联赛(en)</th>
+                        <th>map_key</th>
+                        <th>名称</th>
+                        <th>开赛(UTC)</th>
+                        <th>结束</th>
+                        <th>状态</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {foreach $block.rows as $vo}
+                    <tr>
+                        <td><a href="/admin.html#/arbopp/market/index.html?id={$vo.id}" class="color-text">{$vo.id}</a></td>
+                        <td>{$vo.category|default='-'}</td>
+                        <td>{$vo.sub_category|default='-'}</td>
+                        <td>{$vo.competition|default='-'}</td>
+                        <td>{$vo.competition_en|default='-'}</td>
+                        <td class="mono" title="{$vo.map_key|default=''}">{$vo.map_key_fmt}</td>
+                        <td title="{$vo.name|default=''}">{$vo.name_fmt}</td>
+                        <td class="mono">{$vo.event_start_time|default='-'}</td>
+                        <td class="mono">{$vo.event_end_time|default='-'}</td>
+                        <td>{$vo.status|default='-'}</td>
+                    </tr>
+                    {/foreach}
+                    {if empty($block.rows)}
+                    <tr><td colspan="10" style="text-align:center;color:#999;">暂无数据</td></tr>
+                    {/if}
+                    </tbody>
+                </table>
+            </div>
+            {/foreach}
+        </div>
+    </div>
+    {/if}
+</div>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['element'], function () {
+    layui.element.render('tab', 'arbopp-live-platform');
+});
+</script>
+{/block}

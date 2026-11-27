@@ -1,0 +1,54 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <label class="layui-form-label">客户</label>
+            <div class="layui-input-block">
+                <input type="text" value="#{$vo.client_id|default=''} {$vo.client_name|default=''}" class="layui-input layui-disabled" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">产品</label>
+            <div class="layui-input-block">
+                <input type="text" value="{$vo.product_code|default=''} · {$vo.product_name|default=''}" class="layui-input layui-disabled" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">产品默认年化</label>
+            <div class="layui-input-block" style="padding-top:9px;">
+                <span class="mono">{$vo.product_guaranteed_rate_fmt|default='0%'}</span>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">用户保底年化(%)</label>
+            <div class="layui-input-block">
+                <input name="guaranteed_rate_pct" value="{$vo.guaranteed_rate_pct_display|default='0'}" required
+                       placeholder="如 5.5 表示 5.5%" class="layui-input mono">
+                <div class="layui-form-mid layui-word-aux">当前：{$vo.guaranteed_rate_fmt|default='0%'}；保存后写入 fund_client_guaranteed_rate</div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">Bonus(%)</label>
+            <div class="layui-input-block">
+                <input name="bonus_pct" value="{$vo.bonus_pct_display|default='0'}" required
+                       placeholder="如 1 表示 1%" class="layui-input mono">
+                <div class="layui-form-mid layui-word-aux">当前：{$vo.bonus_fmt|default='0%'}；保存后写入 bonus</div>
+            </div>
+        </div>
+        <div class="hr-line-dashed"></div>
+        <input type="hidden" name="id" value="{$vo.id|default=''}">
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">保存</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function () {
+    layui.form.render();
+});
+</script>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>

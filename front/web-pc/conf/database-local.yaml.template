@@ -1,0 +1,166 @@
+mysql:
+  type: mysql
+  hostname: 172.16.38.233
+  database: mm
+  username: mm
+  password: <FILL_ME>   # 敏感信息请自行填写，勿提交真实密码
+  hostport: 3306
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+sqlite:
+  type: sqlite
+  charset: utf8
+  trigger_sql: true
+  deploy: 0
+  suffix: ''
+  prefix: ''
+  hostname: ''
+  hostport: ''
+  username: ''
+  password: ''
+
+db_pay2:
+  type: mysql
+  hostname: 172.16.38.233
+  database: mm
+  username: mm
+  password: <FILL_ME>   # 敏感信息请自行填写，勿提交真实密码
+  hostport: 3306
+  charset: utf8mb4
+  prefix: ''
+
+db_pay3:
+  type: mysql
+  hostname: 172.16.38.233
+  database: fgmm_self_mm
+  username: mm
+  password: <FILL_ME>   # 敏感信息请自行填写，勿提交真实密码
+  hostport: 3306
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+db_rmpd:
+  type: mysql
+  hostname: 172.16.39.211
+  database: fgmm_strategy_rmpd
+  username: uat_mm
+  password: <FILL_ME>   # 敏感信息请自行填写，勿提交真实密码
+  hostport: 3306
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+# Bitfinex 策略库（与 RMPD 同机时常见；按需改 hostname）
+db_bitfinex:
+  type: mysql
+  hostname: 172.16.39.211
+  database: fgmm_strategy_bitfinex
+  username: uat_mm
+  password: <FILL_ME>   # 敏感信息请自行填写，勿提交真实密码
+  hostport: 3306
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+# 预测套利策略库（arbopp）
+db_arbopp:
+  type: mysql
+  hostname: 54.151.158.221
+  database: fgmm_strategy_less_one
+  username: mm
+  password: <FILL_ME>
+  hostport: 3306
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+# SC 套利策略库（mojo-strategy-sc-arb）
+db_sc_arb:
+  type: mysql
+  hostname: 172.16.39.253
+  database: mojo_strategy_sc_arb
+  username: mm
+  password: <FILL_ME>   # 敏感信息请自行填写，勿提交真实密码
+  hostport: 3306
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+# 控制库（fgmm_runtime）：sys_sharding_config / sys_market_sharding_index 等分片路由表
+db_fgmm_runtime:
+  type: mysql
+  hostname: 172.16.39.211
+  database: uat_fgmm_runtime
+  username: uat_mm
+  password: <FILL_ME>   # 敏感信息请自行填写，勿提交真实密码
+  hostport: 3306
+  params: []
+  charset: utf8mb4
+  prefix: ''
+  deploy: 0
+  rw_separate: false
+  master_num: 1
+  slave_no: ''
+  fields_strict: true
+  break_reconnect: false
+  trigger_sql: true
+
+clickhouse:
+  addr: "127.0.0.1:9000"
+  database: "fgmm_data"
+  user: "default"
+  password: ""
+
+external_api:
+  login_url: https://devgenesis.foregate.com/api/loginApi
+  public_key: MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCochIaKWEh6IIK1pJQcJPsYhZ2AJmGNc12XeC2lsj3dHkMO9vGrXN4ZJiN3qNLlO3hERtY0UZdN8Uz18zoiL60XoOclMuuwf1TwiMA3/4Vy2NOaQdX/RgLQ8XiRobVPLMe/JTteZ6eoPrWVC5jf4kdWD7LWwgdWrnzGs/4UiWnsQIDAQAB
+
+fund_api:
+  base_url: http://fgmm-strategy-bitfinex-app:9994
+  auth_key: qlfz6P3gNgFEclOFBvV0bpGTs9ffMZia
+  timeout_seconds: 30

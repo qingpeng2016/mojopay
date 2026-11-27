@@ -1,0 +1,81 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block" style="padding:16px;">
+    {include file="ai_cost_daily/index_search"}
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:100px;">日期(UTC)</th>
+            <th style="width:80px;">总调用</th>
+            <th style="width:100px;">总费用(USD)</th>
+            <th style="width:80px;">初审调用</th>
+            <th style="width:100px;">初审费用</th>
+            <th style="width:90px;">初审通过对</th>
+            <th style="width:90px;">扫描市场数</th>
+            <th style="width:80px;">复审调用</th>
+            <th style="width:100px;">复审费用</th>
+            <th style="width:90px;">复审通过对</th>
+            <th style="width:100px;">单对成本</th>
+            <th style="width:100px;">输入Token</th>
+            <th style="width:100px;">输出Token</th>
+            <th style="width:100px;">缓存写Token</th>
+            <th style="width:100px;">缓存读Token</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td><strong>{$vo.date|default='-'}</strong></td>
+            <td>{$vo.total_calls|default=0}</td>
+            <td>${:number_format((float)($vo['total_cost_usd'] ?? 0), 4)}</td>
+            <td>{$vo.scan_calls|default=0}</td>
+            <td>${:number_format((float)($vo['scan_cost_usd'] ?? 0), 4)}</td>
+            <td>{:number_format((int)($vo['scan_passed_pairs'] ?? 0))}</td>
+            <td>{:number_format((int)($vo['markets_scanned'] ?? 0))}</td>
+            <td>{$vo.review_calls|default=0}</td>
+            <td>${:number_format((float)($vo['review_cost_usd'] ?? 0), 4)}</td>
+            <td>{:number_format((int)($vo['review_passed_pairs'] ?? 0))}</td>
+            <td>${:number_format((float)($vo['cost_per_pair'] ?? 0), 4)}</td>
+            <td>{:number_format((int)($vo['total_input_tokens'] ?? 0))}</td>
+            <td>{:number_format((int)($vo['total_output_tokens'] ?? 0))}</td>
+            <td>{:number_format((int)($vo['total_cache_write_tokens'] ?? 0))}</td>
+            <td>{:number_format((int)($vo['total_cache_read_tokens'] ?? 0))}</td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有记录哦</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+{include file="copy_cell"}
+<style>
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+.form-search input[id$="-date-range"] { border:1px solid #c2c6cc !important; background:#fff !important; }
+.table-block { overflow-x: auto; }
+.table-block .layui-table { min-width: 1500px; }
+.table-block .layui-table th,
+.table-block .layui-table td { white-space: nowrap; }
+.pagination { display:flex; justify-content:center; flex-wrap:wrap; margin:20px 0; padding:0; list-style:none; }
+.pagination li { display:inline-block; margin:0 2px; }
+.pagination li a, .pagination li span {
+    display:inline-block; padding:6px 10px; border:1px solid #ddd;
+    background:#fff; color:#666; text-decoration:none; border-radius:2px;
+    cursor:pointer; min-width:36px; text-align:center;
+}
+.pagination li.active span { background:#009688; color:#fff; border-color:#009688; }
+.pagination li a:hover { background:#f2f2f2; border-color:#009688; color:#009688; }
+.pagination li.disabled span { background:#f5f5f5; color:#999; cursor:not-allowed; }
+</style>
+{/block}

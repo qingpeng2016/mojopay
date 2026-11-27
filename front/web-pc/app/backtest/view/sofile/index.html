@@ -1,0 +1,221 @@
+{extend name="../../admin/view/main"}{block name="button"}
+<div class="layui-btn-group">
+    <button id="btn-hotreload" class="layui-btn layui-btn-sm layui-btn-warm" title="调用 Tony 的 Jenkins 触发策略包构建">
+        <i class="layui-icon">&#xe9aa;</i> 热更新
+    </button>
+    <a href="/admin.html#/backtest/sofile/hotreloadlogs.html" class="layui-btn layui-btn-sm layui-btn-normal">
+        <i class="layui-icon">&#xe60a;</i> 热更新日志
+    </a>
+    <a href="/admin.html#/backtest/sofile/password.html" class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe673;</i> 修改发布密码
+    </a>
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}{block name="content"}
+<div class="think-box-shadow table-block" style="padding:16px;">
+    {include file="sofile/index_search"}
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="min-width:120px;">strategy</th>
+            <th style="min-width:120px;">capability</th>
+            <th style="min-width:140px;">profile</th>
+            <th style="min-width:220px;" title="参数键（如 QCap / K / EpsilonStr...）">param_key</th>
+            <th style="min-width:340px;" title="参数值（如 8000.0 / 5m-2.0|15m-2.0|...）">param_value</th>
+            <th style="min-width:170px;">更新时间</th>
+            <th style="min-width:100px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td style="font-family:monospace;">{$vo.strategy}</td>
+            <td style="font-family:monospace;">{$vo.capability}</td>
+            <td><b>{$vo.profile}</b></td>
+            <td style="font-family:monospace;">{$vo.param_key}</td>
+            <td style="font-family:monospace;word-break:break-all;">{$vo.param_value|default='-'}</td>
+            <td style="font-size:12px;">{$vo.updated_at}</td>
+            <td>
+                <a href="/admin.html#/backtest/sofile/edit.html?strategy={$vo.strategy|urlencode}&capability={$vo.capability|urlencode}&profile={$vo.profile|urlencode}&param_key={$vo.param_key|urlencode}" class="layui-btn layui-btn-xs layui-btn-primary">编辑</a>
+            </td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有记录</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+.table-block { overflow-x: auto; }
+.table-block .layui-table th, .table-block .layui-table td { white-space: nowrap; }
+.sofile-search-row { display:flex; flex-wrap:wrap; align-items:flex-start; gap:0 8px; }
+.sofile-search .layui-form-item { margin-right:0; margin-bottom:10px; }
+.sofile-search .layui-form-label { width:88px; padding-left:10px; padding-right:10px; }
+.sofile-search .layui-input-inline.sofile-search-input { width:150px; margin-right:0; }
+.sofile-search .layui-input-inline.sofile-param-key { width:190px; }
+.pagination { display:flex; justify-content:center; flex-wrap:wrap; margin:20px 0; padding:0; list-style:none; }
+.pagination li { display:inline-block; margin:0 2px; }
+.pagination li a, .pagination li span {
+    display:inline-block; padding:6px 10px; border:1px solid #ddd; background:#fff;
+    color:#666; text-decoration:none; border-radius:2px; cursor:pointer; min-width:36px; text-align:center;
+}
+.pagination li.active span { background:#009688; color:#fff; border-color:#009688; }
+.pagination li a:hover { background:#f2f2f2; border-color:#009688; color:#009688; }
+.pagination li.disabled span { background:#f5f5f5; color:#999; cursor:not-allowed; }
+</style>
+<script>
+$(function(){
+    function escapeHtml(value) {
+        return $('<div>').text(value == null ? '' : String(value)).html();
+    }
+
+    function redirectToPassword(message) {
+        layer.alert(message || '密码已过期，请先修改密码', {icon: 2}, function(idx){
+            layer.close(idx);
+            location.href = '/admin.html#/backtest/sofile/password.html';
+        });
+    }
+
+    function executeHotreload(password, configDigest, $btn) {
+        var loadIdx = layer.msg('正在发送...', {icon:16, time:0, shade:0.1});
+        $.ajax({
+            url: "{:url('hotreload')}",
+            type: 'POST',
+            dataType: 'json',
+            data: {password: password, config_digest: configDigest},
+            complete: function(){
+                layer.close(loadIdx);
+                $btn.attr('disabled', false);
+            },
+            success: function(res){
+                if (res && res.code === 1) {
+                    layer.msg(res.info || '发送成功', {icon:1});
+                } else if (res && res.reason === 'expired') {
+                    redirectToPassword(res.info);
+                } else if (res && res.reason === 'locked') {
+                    var lockInfo = res.info || '密码错误次数过多，账号已临时锁定';
+                    if (res.locked_until) lockInfo += '<br>解锁时间：' + escapeHtml(res.locked_until);
+                    layer.alert(lockInfo, {icon:2, title:'发布密码已锁定'});
+                } else {
+                    layer.msg((res && res.info) || '发送失败', {icon:2});
+                }
+            },
+            error: function(){
+                layer.msg('发送失败', {icon:2});
+            }
+        });
+    }
+
+    function showPreview(res, $btn) {
+        var config = res.config || {items: [], total: 0};
+        var proceeding = false;
+        var rows = '';
+        $.each(config.items || [], function(_, item){
+            rows += '<tr>' +
+                '<td>' + escapeHtml(item.strategy) + '</td>' +
+                '<td>' + escapeHtml(item.capability) + '</td>' +
+                '<td>' + escapeHtml(item.profile) + '</td>' +
+                '<td>' + escapeHtml(item.param_key) + '</td>' +
+                '<td class="sofile-preview-value">' + escapeHtml(item.param_value) + '</td>' +
+                '</tr>';
+        });
+        if (!rows) rows = '<tr><td colspan="5" class="notdata">没有配置记录</td></tr>';
+        var html = '<div class="sofile-preview">' +
+            '<p>配置快照时间：' + escapeHtml(config.captured_at) +
+            '；共 ' + escapeHtml(config.total) + ' 项；密码有效期至：' + escapeHtml(res.password_expires_at) + '</p>' +
+            '<div class="sofile-preview-scroll"><table class="layui-table"><thead><tr>' +
+            '<th>strategy</th><th>capability</th><th>profile</th><th>param_key</th><th>param_value</th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+
+        layer.open({
+            type: 1,
+            title: '确认 SO 热更新配置',
+            area: ['90%', '78%'],
+            content: html,
+            btn: ['确认并输入密码', '取消'],
+            yes: function(previewIdx){
+                proceeding = true;
+                layer.close(previewIdx);
+                var submitting = false;
+                layer.prompt({
+                    title: '请输入 SO 热更新发布密码',
+                    formType: 1,
+                    maxlength: 128,
+                    end: function(){
+                        if (!submitting) $btn.attr('disabled', false);
+                    }
+                }, function(password, promptIdx){
+                    if (!password) {
+                        layer.msg('密码不能为空', {icon:2});
+                        return;
+                    }
+                    submitting = true;
+                    layer.close(promptIdx);
+                    executeHotreload(password, res.config_digest, $btn);
+                });
+            },
+            end: function(){
+                if (!proceeding) $btn.attr('disabled', false);
+            }
+        });
+    }
+
+    $('.sofile-search').off('submit').on('submit', function(){
+        return false;
+    });
+    $('.sofile-search-btn').off('click').on('click', function(){
+        var query = $('.sofile-search').serialize();
+        location.href = '/admin.html#/backtest/sofile/index.html' + (query ? '?' + query : '');
+    });
+    $('.sofile-search input').off('keydown.sofile').on('keydown.sofile', function(e){
+        if (e.keyCode === 13) {
+            e.preventDefault();
+            $('.sofile-search-btn').trigger('click');
+        }
+    });
+
+    $('#btn-hotreload').off('click').on('click', function(){
+        var $btn = $(this);
+        if ($btn.attr('disabled')) return;
+        var loadIdx = layer.msg('正在读取当前配置...', {icon:16, time:0, shade:0.1});
+        $btn.attr('disabled', true);
+        $.ajax({
+            url: "{:url('hotreloadpreview')}",
+            type: 'POST',
+            dataType: 'json',
+            success: function(res){
+                layer.close(loadIdx);
+                if (res && res.code === 1) {
+                    showPreview(res, $btn);
+                } else if (res && res.reason === 'expired') {
+                    $btn.attr('disabled', false);
+                    redirectToPassword(res.info);
+                } else {
+                    $btn.attr('disabled', false);
+                    layer.msg((res && res.info) || '发送失败', {icon:2});
+                }
+            },
+            error: function(){
+                layer.close(loadIdx);
+                $btn.attr('disabled', false);
+                layer.msg('发送失败', {icon:2});
+            }
+        });
+    });
+});
+</script>
+<style>
+.sofile-preview { padding:0 16px 16px; }
+.sofile-preview > p { margin:12px 0; color:#666; }
+.sofile-preview-scroll { max-height:52vh; overflow:auto; border:1px solid #eee; }
+.sofile-preview-scroll .layui-table { margin:0; }
+.sofile-preview-scroll th { position:sticky; top:0; z-index:1; background:#f8f8f8; }
+.sofile-preview-value { max-width:420px; white-space:normal !important; word-break:break-all; }
+</style>
+{/block}

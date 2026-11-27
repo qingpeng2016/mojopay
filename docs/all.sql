@@ -800,25 +800,25 @@ CREATE TABLE IF NOT EXISTS `approval_case` (
 -- 六、现有 Bot 的调度配置
 
 CREATE TABLE IF NOT EXISTS `bot_schedule_config` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `module` VARCHAR(50) NOT NULL COMMENT '调度模块名',
-  `task_name` VARCHAR(100) NOT NULL COMMENT '调度任务名',
-  `interval_seconds` FLOAT NOT NULL DEFAULT 60 COMMENT '执行间隔（秒）',
-  `exe_sort` INT NULL COMMENT '任务执行顺序',
-  `concurrency` INT NULL COMMENT '任务并发数',
-  `description` VARCHAR(500) NULL COMMENT '任务说明',
-  `is_enabled` TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用任务',
-  `is_strategy_enabled` TINYINT NULL DEFAULT 1 COMMENT '是否启用策略',
-  `last_live_time` VARCHAR(255) NULL COMMENT '上次存活记录',
-  `last_live_time_by_machine` JSON NULL COMMENT '各机器的存活记录',
-  `is_primary_machine_run` INT NOT NULL DEFAULT 0 COMMENT '是否仅在主机器执行',
-  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '任务 ID',
+  `module` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模块名',
+  `task_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务名',
+  `interval_seconds` float NOT NULL DEFAULT '60' COMMENT '执行间隔（秒）',
+  `exe_sort` int DEFAULT NULL COMMENT '同模块内执行顺序',
+  `concurrency` int DEFAULT NULL COMMENT '并发度',
+  `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '说明',
+  `is_enabled` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `is_strategy_enabled` tinyint(1) DEFAULT '1' COMMENT '策略是否启用',
+  `last_live_time` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '上次存活时间',
+  `last_live_time_by_machine` json DEFAULT NULL COMMENT '各机器上次存活',
+  `is_primary_machine_run` int NOT NULL DEFAULT '0' COMMENT '是否主机器执行',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_bot_module_task` (`module`, `task_name`),
-  KEY `idx_bot_schedule_module_enabled` (`module`, `is_enabled`, `is_strategy_enabled`),
-  CONSTRAINT `ck_bot_schedule_interval` CHECK (`interval_seconds` > 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Bot 脚本调度';
+  UNIQUE KEY `uk_module_task` (`module`,`task_name`),
+  KEY `idx_module` (`module`),
+  KEY `idx_bot_schedule_module_enabled` (`module`,`is_enabled`)
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bot 脚本调度';
 
 -- 七、下游商户 OpenAPI
 

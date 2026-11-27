@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fg-marketmaker-mis
+  annotations:
+    # 如需 SSL，按实际情况添加（如 cert-manager）
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: devmmmis.foregate.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fg-marketmaker-mis
+            port:
+              number: 80
+  # 如需 HTTPS，取消下列 tls 配置
+  # tls:
+  # - hosts:
+  #   - devmmmis.foregate.com
+  #   secretName: devmmmis-foregate-tls

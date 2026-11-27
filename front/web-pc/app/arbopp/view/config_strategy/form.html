@@ -1,0 +1,13 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+<div class="layui-card-body">
+{if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+<div class="layui-form-item"><label class="layui-form-label label-required-next">分组</label><div class="layui-input-block"><input name="group_name" value="{$vo.group_name|default=''}" required maxlength="64" class="layui-input"></div></div>
+<div class="layui-form-item"><label class="layui-form-label label-required-next">键</label><div class="layui-input-block"><input name="item_key" value="{$vo.item_key|default=''}" required maxlength="128" class="layui-input mono"></div></div>
+<div class="layui-form-item"><label class="layui-form-label label-required-next">值</label><div class="layui-input-block"><textarea name="item_value" required class="layui-textarea mono" rows="4">{$vo.item_value|default=''}</textarea></div></div>
+<div class="layui-form-item"><label class="layui-form-label">类型</label><div class="layui-input-block"><select name="value_type">{foreach $value_types as $t}<option value="{$t}" {if isset($vo.value_type)&&$vo.value_type==$t}selected{/if}>{$t}</option>{/foreach}</select></div></div>
+<div class="layui-form-item"><label class="layui-form-label">说明</label><div class="layui-input-block"><input name="description" value="{$vo.description|default=''}" maxlength="500" class="layui-input"></div></div>
+<div class="layui-form-item"><label class="layui-form-label">排序</label><div class="layui-input-block"><input name="sort_no" value="{$vo.sort_no|default='0'}" class="layui-input mono"></div></div>
+<div class="layui-form-item"><label class="layui-form-label">启用</label><div class="layui-input-block">{foreach $yes_no as $y}<input type="radio" name="is_enabled" value="{$y}" title="{$y}" {if isset($vo.is_enabled)&&strval($vo.is_enabled)==$y}checked{elseif $y=='1'&&!isset($vo.id)}checked{/if}>{/foreach}</div></div>
+<div class="layui-form-item text-center"><button class="layui-btn" type="submit">保存</button><button type="button" class="layui-btn layui-btn-danger" data-close>取消</button></div>
+</div>
+</form>

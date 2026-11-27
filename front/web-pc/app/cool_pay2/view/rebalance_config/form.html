@@ -1,0 +1,62 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">配置键名</label>
+            <div class="layui-input-block">
+                <input name="config_key" value='{$vo.config_key|default=""}' required placeholder="请输入配置键名（如：foregate_ratio）" class="layui-input" maxlength="100">
+                <div class="layui-form-mid layui-word-aux">
+                    配置的唯一标识键名
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">配置描述</label>
+            <div class="layui-input-block">
+                <textarea name="config_desc" placeholder="请输入配置描述" class="layui-textarea" maxlength="255">{$vo.config_desc|default=""}</textarea>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">配置值</label>
+            <div class="layui-input-block">
+                <textarea name="config_value" placeholder="请输入配置值（支持JSON格式）" class="layui-textarea" required rows="5">{$vo.config_value|default=""}</textarea>
+                <div class="layui-form-mid layui-word-aux">
+                    配置的具体值，可以是数字、字符串或JSON格式
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                <select name="status" class="layui-select">
+                    {foreach $statuses as $key=>$item}
+                    <option value="{$key}" {if isset($vo.status) and $vo.status eq $key}selected{elseif !isset($vo.status) and $key eq '1'}selected{/if}>{$item}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+
+        <div class="hr-line-dashed"></div>
+        {notempty name='vo.id'}<input type='hidden' value='{$vo.id}' name='id'>{/notempty}
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type='submit'>保存数据</button>
+            <button class="layui-btn layui-btn-danger" type='button' data-confirm="确定要取消编辑吗？" data-close>取消编辑</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function(){
+    var form = layui.form;
+    
+    // 表单提交监听
+    form.on('submit(*)', function(data) {
+        console.log('Form data:', data.field);
+        return true;
+    });
+});
+</script>
+

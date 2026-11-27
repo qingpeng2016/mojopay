@@ -1,0 +1,67 @@
+{extend name="../../admin/view/main"}
+{block name="button"}
+<a href="/admin.html#/backtest/hedge_test/add.html" class="layui-btn layui-btn-sm"><i class="layui-icon">&#xe654;</i> 新增对冲测试</a>
+{/block}
+{block name="content"}
+<form class="layui-form layui-form-pane" id="SearchForm" onsubmit="return false" method="get" autocomplete="off" style="margin-bottom:12px;">
+    <div class="layui-form-item layui-inline" style="margin:0;">
+        <label class="layui-form-label">名称</label>
+        <div class="layui-input-inline" style="width:180px;">
+            <input type="text" name="name" value="{$get.name|default=''}" placeholder="按名称模糊搜索" class="layui-input" autocomplete="new-password">
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline" style="margin:0;vertical-align:top;">
+        <button class="layui-btn" type="submit">搜索</button>
+    </div>
+</form>
+<table class="layui-table" lay-skin="line">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>测试名称</th>
+        <th>备注</th>
+        <th>输入长度</th>
+        <th>输出长度</th>
+        <th>耗时(ms)</th>
+        <th>更新时间</th>
+        <th style="width:160px;">操作</th>
+    </tr>
+    </thead>
+    <tbody>
+    {empty name='list'}
+    <tr><td colspan="8" class="notdata">没有记录哦</td></tr>
+    {else}
+    {foreach $list as $vo}
+    <tr>
+        <td>{$vo.id}</td>
+        <td>{$vo.name}</td>
+        <td>{$vo.remark|default=''}</td>
+        <td>{$vo.so_input_len}</td>
+        <td>{$vo.so_output_len}</td>
+        <td>{$vo.calc_time_ms|default='-'}</td>
+        <td>{$vo.updated_at|default=''}</td>
+        <td>
+            <a href="/admin.html#/backtest/hedge_test/detail.html?id={$vo.id}" class="layui-btn layui-btn-xs layui-btn-normal">详情</a>
+            <a href="/admin.html#/backtest/hedge_test/edit.html?id={$vo.id}" class="layui-btn layui-btn-xs">编辑</a>
+            <a data-confirm="确认删除该对冲测试？" data-action="{:url('delete')}" data-value="id#{$vo.id}" class="layui-btn layui-btn-xs layui-btn-danger">删除</a>
+        </td>
+    </tr>
+    {/foreach}
+    {/empty}
+    </tbody>
+</table>
+{$pagehtml|raw|default=''}
+{/block}
+{block name="script"}
+<script>
+// 走 hash 路由而非整页跳转：避免搜索后丢失后台外壳样式（admin.js 的 form-search 在没有 spm 时会整页跳转）
+$(function () {
+    $('#SearchForm').on('submit', function (e) {
+        e.preventDefault();
+        var qs = $(this).serialize();
+        var base = location.hash.split('?')[0]; // 仅保留 #/模块路径，丢弃旧查询参数
+        location.hash = base + (qs ? '?' + qs : '');
+    });
+});
+</script>
+{/block}

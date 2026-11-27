@@ -1,0 +1,50 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body" style="max-height:70vh;overflow-y:auto;">
+        {if isset($vo.id)}<input type="hidden" name="id" value="{$vo.id}">{/if}
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">账户</label>
+        <div class="layui-input-block"><select name="exchange_account_id" required lay-search="">
+            <option value="">请选择</option>
+            {foreach $accounts as $aid=>$alabel}
+            <option value="{$aid}" {if isset($vo.exchange_account_id) && $vo.exchange_account_id==$aid}selected{/if}>{$alabel}</option>
+            {/foreach}
+        </select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">币种</label>
+        <div class="layui-input-block"><input name="asset" value="{$vo.asset|default='ETH'}" required class="layui-input"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label label-required-next">合约倍数</label>
+        <div class="layui-input-block"><input name="contract_leverage" value="{$vo.contract_leverage|default='1'}" required class="layui-input"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">单笔下单数量（合约倍数后）</label>
+        <div class="layui-input-block"><input name="per_order_leverage_qty" value="{$vo.per_order_leverage_qty|default=''}" class="layui-input mono" placeholder="留空=下满剩余"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">数量口径</label>
+        <div class="layui-input-block"><select name="per_order_leverage_qty_asset">
+            <option value="BASE" {if !isset($vo.per_order_leverage_qty_asset) || $vo.per_order_leverage_qty_asset=='' || $vo.per_order_leverage_qty_asset=='BASE'}selected{/if}>BASE（标的币）</option>
+            <option value="QUOTE" {if isset($vo.per_order_leverage_qty_asset) && ($vo.per_order_leverage_qty_asset=='QUOTE' || $vo.per_order_leverage_qty_asset=='USDT' || $vo.per_order_leverage_qty_asset=='USDC')}selected{/if}>QUOTE（报价币）</option>
+        </select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">限价等待秒数（改市价）</label>
+        <div class="layui-input-block"><input name="limit_to_market_after_sec" value="{$vo.limit_to_market_after_sec|default='30'}" class="layui-input"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">挂单价波动阈值（改市价）</label>
+        <div class="layui-input-block"><input name="limit_to_market_adverse_price_pct" value="{$vo.limit_to_market_adverse_price_pct|default='0.003'}" class="layui-input mono"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">开多档位</label>
+        <div class="layui-input-block"><select name="maker_long_book_level">
+            <option value="QUEUE" {if !isset($vo.maker_long_book_level) || $vo.maker_long_book_level=='QUEUE' || $vo.maker_long_book_level=='1'}selected{/if}>QUEUE（档一）</option>
+            <option value="QUEUE_5" {if isset($vo.maker_long_book_level) && ($vo.maker_long_book_level=='QUEUE_5' || $vo.maker_long_book_level=='5')}selected{/if}>QUEUE_5</option>
+            <option value="QUEUE_10" {if isset($vo.maker_long_book_level) && ($vo.maker_long_book_level=='QUEUE_10' || $vo.maker_long_book_level=='10')}selected{/if}>QUEUE_10</option>
+            <option value="QUEUE_20" {if isset($vo.maker_long_book_level) && ($vo.maker_long_book_level=='QUEUE_20' || $vo.maker_long_book_level=='20')}selected{/if}>QUEUE_20</option>
+        </select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">开空档位</label>
+        <div class="layui-input-block"><select name="maker_short_book_level">
+            <option value="QUEUE" {if !isset($vo.maker_short_book_level) || $vo.maker_short_book_level=='QUEUE' || $vo.maker_short_book_level=='1'}selected{/if}>QUEUE（档一）</option>
+            <option value="QUEUE_5" {if isset($vo.maker_short_book_level) && ($vo.maker_short_book_level=='QUEUE_5' || $vo.maker_short_book_level=='5')}selected{/if}>QUEUE_5</option>
+            <option value="QUEUE_10" {if isset($vo.maker_short_book_level) && ($vo.maker_short_book_level=='QUEUE_10' || $vo.maker_short_book_level=='10')}selected{/if}>QUEUE_10</option>
+            <option value="QUEUE_20" {if isset($vo.maker_short_book_level) && ($vo.maker_short_book_level=='QUEUE_20' || $vo.maker_short_book_level=='20')}selected{/if}>QUEUE_20</option>
+        </select></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">换仓阈值（现价波动比例）</label>
+        <div class="layui-input-block"><input name="rebalance_min_price_change_pct" value="{$vo.rebalance_min_price_change_pct|default='0.1'}" class="layui-input mono"></div></div>
+        <div class="layui-form-item"><label class="layui-form-label">完成数量容差</label>
+        <div class="layui-input-block"><input name="qty_completion_tolerance_pct" value="{$vo.qty_completion_tolerance_pct|default='0.01'}" class="layui-input mono" placeholder="小数：0.01=±1%"></div></div>
+        <div class="hr-line-dashed"></div>
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">保存</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>

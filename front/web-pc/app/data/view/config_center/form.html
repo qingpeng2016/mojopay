@@ -1,0 +1,45 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+        <input type="hidden" name="table" value="{$table}">
+        {foreach $meta.fields as $field=>$cfg}
+        <div class="layui-form-item">
+            <label class="layui-form-label">{$cfg.label|default=$field}{if isset($locked[$field])}<span class="pk-lock-tip">（主键，不可改）</span>{/if}</label>
+            <div class="layui-input-block">
+                {if isset($locked[$field])}
+                <input name="{$field}" value="{$vo[$field]|default=''}" class="layui-input" readonly style="background:#f7f7f7;">
+                {elseif isset($cfg.type) and $cfg.type eq 'select'}
+                <select name="{$field}" {if !empty($cfg.required)}required{/if}>
+                    <option value="">请选择</option>
+                    {foreach $cfg.options as $opt}
+                    <option value="{$opt}" {if isset($vo[$field]) and $vo[$field] eq $opt}selected{/if}>{$opt}</option>
+                    {/foreach}
+                </select>
+                {elseif isset($cfg.type) and $cfg.type eq 'switch'}
+                <input type="checkbox" name="{$field}" value="1" lay-skin="switch" lay-text="启用|停用" {if ($vo[$field] ?? 0) == 1}checked{/if}>
+                {elseif isset($cfg.type) and $cfg.type eq 'textarea'}
+                <textarea name="{$field}" class="layui-textarea">{$vo[$field]|default=''}</textarea>
+                {elseif isset($cfg.type) and $cfg.type eq 'json'}
+                <textarea name="{$field}" class="layui-textarea json-field" {if !empty($cfg.required)}required{/if}>{$vo[$field]|default=''}</textarea>
+                {elseif isset($cfg.type) and $cfg.type eq 'datetime'}
+                <input name="{$field}" value="{$vo[$field]|default=''}" placeholder="YYYY-MM-DD HH:mm:ss" class="layui-input">
+                {elseif isset($cfg.type) and $cfg.type eq 'number'}
+                <input name="{$field}" value="{$vo[$field]|default='0'}" type="number" step="{$cfg.step|default='1'}" class="layui-input">
+                {else}
+                <input name="{$field}" value="{$vo[$field]|default=''}" class="layui-input" {if !empty($cfg.required)}required{/if}>
+                {/if}
+            </div>
+        </div>
+        {/foreach}
+        {notempty name='vo.__key'}<input type="hidden" name="key" value="{$vo.__key}">{/notempty}
+        <div class="hr-line-dashed"></div>
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">保存</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<style>
+.json-field { min-height:96px; font-family:Consolas, Monaco, monospace; font-size:12px; }
+.pk-lock-tip { font-size:11px; color:#999; }
+</style>

@@ -1,0 +1,50 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+    <input type="hidden" name="tab" value="subscription">
+    <div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">申购日</label>
+            <div class="layui-input-inline" style="width:220px;">
+                <input name="date_range" value="{$get.date_range|default=''}" placeholder="yyyy-MM-dd - yyyy-MM-dd" class="layui-input" id="fsr-sub-date-range">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">申购 ID</label>
+            <div class="layui-input-inline" style="width:90px;">
+                <input name="id" value="{$get.id|default=''}" placeholder="精确" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">客户 ID</label>
+            <div class="layui-input-inline" style="width:90px;">
+                <input name="client_id" value="{$get.client_id|default=''}" placeholder="精确" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">产品编码</label>
+            <div class="layui-input-inline" style="width:180px;">
+                <input name="product_code" value="{$get.product_code|default=''}" placeholder="模糊" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:100px;">
+                <select name="status">
+                    <option value="">全部</option>
+                    {foreach $sub_statuses as $sk}
+                    <option value="{$sk}" {if isset($get.status) && $get.status==$sk}selected{/if}>{$sk}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form', 'laydate'], function () {
+    layui.form.render('select');
+    layui.laydate.render({ elem: '#fsr-sub-date-range', type: 'date', range: ' - ', format: 'yyyy-MM-dd' });
+});
+</script>

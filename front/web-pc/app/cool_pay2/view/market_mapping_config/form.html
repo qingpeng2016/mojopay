@@ -1,0 +1,149 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">PolymarketURL</label>
+            <div class="layui-input-block">
+                <input name="polymarket_url" value='{$vo.polymarket_url|default=""}' required 
+                       placeholder="请输入 Polymarket 市场链接 (例如: https://polymarket.com/sports/...)" 
+                       class="layui-input">
+                <div class="layui-form-mid layui-word-aux">系统将自动解析市场名称、Token ID 及 状态</div>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">FgMarketId</label>
+            <div class="layui-input-block">
+                <input name="fg_market_id" value='{$vo.fg_market_id|default=""}' required 
+                       placeholder="请输入目标市场的 FgMarketId" class="layui-input" type="number">
+                <div class="layui-form-mid layui-word-aux">系统将自动同步此 ID 下的账号</div>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">Polymarket<br>邮箱账号</label>
+            <div class="layui-input-block">
+                <input name="polymarket_market_email_account" value='{$vo.polymarket_market_email_account|default=""}' 
+                       required placeholder="请输入关联的邮箱账号" class="layui-input" type="email">
+            </div>
+
+        </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">关联关系</label>
+                <div class="layui-input-block">
+                    <input name="relation" value='{$vo.relation|default=""}' 
+                        placeholder="请输入关联关系 (例如: 0x123...)" class="layui-input">
+                    <div class="layui-form-mid layui-word-aux">例如 "0x123..."</div>
+                </div>
+            </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">是否热门市场</label>
+            <div class="layui-input-block">
+                {foreach ['0'=>'普通市场','1'=>'热门市场'] as $key=>$val}
+                <input type="radio" name="is_hot_market" value="{$key}" title="{$val}" 
+                       {if !isset($vo.is_hot_market) or (string)$vo.is_hot_market === (string)$key}checked{/if}>
+                {/foreach}
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">市场分类</label>
+            <div class="layui-input-block">
+                <select name="market_category" lay-filter="category_filter" id="category_select">
+                    <option value="">请选择主分类</option>
+                    <option value="Politics">Politics</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Crypto">Crypto</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Geopolitics">Geopolitics</option>
+                    <option value="Earnings">Earnings</option>
+                    <option value="Tech">Tech</option>
+                    <option value="Culture">Culture</option>
+                    <option value="World">World</option>
+                    <option value="Economy">Economy</option>
+                    <option value="Climate & Science">Climate & Science</option>
+                    <option value="Elections">Elections</option>
+                    <option value="Mentions">Mentions</option>                   
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">子分类</label>
+            <div class="layui-input-block">
+                <select name="market_sub_category" id="sub_category_select">
+                    <option value="">请先选择主分类</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="hr-line-dashed"></div>
+        
+        {notempty name='vo.id'}<input type='hidden' value='{$vo.id}' name='id'>{/notempty}
+        
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type='submit' lay-submit lay-filter="submitForm">保存映射并同步数据</button>
+            <button class="layui-btn layui-btn-danger" type='button' data-confirm="确定要取消吗？" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form', 'layer'], function(){
+    var form = layui.form;
+    var layer = layui.layer;
+    
+    //dropdown choice
+    // Define your mapping logic
+    var subData = {
+        'Politics': ['Trump', 'Epstein', 'Venezuela', 'Midterms', 'Primaries', 'Minnesota Unrest', 'US Election', 'Trade War', 'Congress', 'Global Elections', 'NYC Mayor', 'Ukraine', 'Mayoral Elections', 'Courts', 'Gaza', 'Israel', 'Cabinet', 'Senate'],
+        'Sports': ['NFL','NBA','NCAAB','NHL','UFC','Winter Olympics','Football','Basketball','Soccer','Tennis','Esports','Baseball','Hockey','Cricket','Rugby','Golf','Formula 1','Chess','Boxing','Pickleball'],
+        'Crypto': ['Bitcoin', 'Ethereum', 'Solana', 'XRP', 'Dogecoin', 'Microstrategy'],
+        'Finance': ['Stocks','Earnings','Indices','Commodities','Forex','Collectibles','Acquisitions','Earnings Calls','IPOs','Fed Rates','Prediction Markets','Treasuries'],
+        'Geopolitics': ['Iran','Ukraine','Venezuela','Ukraine Peace Deal','Ukraine Map','Gaza','Israel','Sudan','China','Thailand-Cambodia','Middle East','Foreign Policy','India-Pakistan','South Korea','Yemen','Syria','Turkey'],
+        'Earnings': [],
+        'Tech': ['AI','Elon Musk','App Store', 'SpaceX', 'Apple', 'IPOs', 'Science', 'OpenAI', 'MicroStrategy', 'Big Tech', 'TikTok', 'Prediction Markets'],
+        'Culture': ['Tweet Markets', 'Awards', 'Movies', 'Youtube', 'Oscars', 'Grammys', 'MrBeast', 'Music', 'Courts', 'GTA VI', 'Mentions', 'Celebrities', 'Taylor Swift', 'Reality TV', 'BAFTA'],
+        'World': ['Global Elections', 'Portugal Election', 'Japan Election', 'Thailand Election', 'China', 'Gaza', 'Iran', 'Ukraine', 'Venezuela', 'Israel', 'Middle East', 'Ukraine Map', 'India-Pakistan', 'Canada', 'South Korea', 'Yemen', 'Bolivia Election'],
+        'Economy': ['Trade War', 'Fed Rates', 'Inflation', 'Macro Indicators', 'GDP', 'Global Rates', 'Taxes', 'Treasuries', 'TSA', 'Housing'],
+        'Climate & Science': ['Pandemics', 'Weather', 'Space', 'Earthquakes', 'Hurricanes', 'Global Temp', 'Measles', 'Natural Disasters'],
+        'Elections': [],
+        'Mentions': []
+    };
+
+    // Listen for category changes
+    form.on('select(category_filter)', function(data){
+        var category = data.value; // The selected value (e.g. "Sports")
+        var $subSelect = $('#sub_category_select');
+        
+        // Clear existing options
+        $subSelect.html('<option value="">请选择子分类</option>');
+
+        if (subData[category]) {
+            // Populate sub-categories
+            $.each(subData[category], function(index, value){
+                $subSelect.append(new Option(value, value));
+            });
+        }
+        
+        // IMPORTANT: Re-render the select component
+        form.render('select');
+    });
+    
+    form.on('submit(submitForm)', function(data){
+        // 1. Double Check: If any required field is empty, Layui handles this 
+        // automatically via 'lay-verify', but we can add custom logic here:
+        if(!data.field.polymarket_url || !data.field.fg_market_id){
+            layer.msg('请完整填写所有必填项目', {icon: 2});
+            return false; // Blocks the submission
+        }
+
+        // 2. If validation passes, show loading and allow submission
+        var index = layer.load(2, {shade: [0.3, '#fff']}); 
+        
+        // Note: If you use 'data-auto="true"' in your form tag, 
+        // ThinkAdmin will handle the AJAX and close the loader on result.
+        return true; 
+    });
+});
+</script>

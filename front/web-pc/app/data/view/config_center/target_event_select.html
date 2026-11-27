@@ -1,0 +1,141 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <a class="layui-btn layui-btn-sm layui-btn-primary" href="#/data/config_center/targetEvent.html">
+        <i class="layui-icon">&#xe65c;</i> 返回
+    </a>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow target-select-page">
+    <form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">体育类型</label>
+            <div class="layui-input-inline">
+                <select name="asset_type">
+                    {foreach $asset_types as $key=>$title}
+                    <option value="{$key}" {if $asset_type eq $key}selected{/if}>{$title}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">平台</label>
+            <div class="layui-input-inline">
+                <input name="platform" list="target-event-platforms" value="{$get.platform|default=''}" class="layui-input">
+                <datalist id="target-event-platforms"><option value="POLYMARKET"></option><option value="FB"></option></datalist>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">联赛</label>
+            <div class="layui-input-inline"><input name="competition_name" value="{$get.competition_name|default=''}" class="layui-input"></div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">赛事ID</label>
+            <div class="layui-input-inline"><input name="event_id" value="{$get.event_id|default=''}" class="layui-input"></div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-sm" type="submit"><i class="layui-icon">&#xe615;</i> 搜索</button>
+            <a class="layui-btn layui-btn-sm layui-btn-primary" href="#/data/config_center/targetEventSelect.html">重置</a>
+        </div>
+    </form>
+
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th>内部赛事ID</th>
+            <th>源赛事ID</th>
+            <th>联赛</th>
+            <th>开赛时间</th>
+            <th>平台</th>
+            <th>盘口数</th>
+            <th style="width:120px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td><span class="cell-mono copy-cell" title="{:htmlentities($vo['event_id'] ?? '', ENT_QUOTES, 'UTF-8')}" data-copy="{:htmlentities($vo['event_id'] ?? '', ENT_QUOTES, 'UTF-8')}">{$vo.event_id|default='-'}</span></td>
+            <td><span class="cell-mono copy-cell" title="{:htmlentities($vo['source_event_id'] ?? '', ENT_QUOTES, 'UTF-8')}" data-copy="{:htmlentities($vo['source_event_id'] ?? '', ENT_QUOTES, 'UTF-8')}">{$vo.source_event_id|default='-'}</span></td>
+            <td><span class="copy-cell" title="{:htmlentities($vo['competition_name'] ?? '', ENT_QUOTES, 'UTF-8')}" data-copy="{:htmlentities($vo['competition_name'] ?? '', ENT_QUOTES, 'UTF-8')}">{$vo.competition_name|default='-'}</span></td>
+            <td><span class="copy-cell" title="{:htmlentities($vo['start_time'] ?? '', ENT_QUOTES, 'UTF-8')}" data-copy="{:htmlentities($vo['start_time'] ?? '', ENT_QUOTES, 'UTF-8')}">{$vo.start_time|default='-'}</span></td>
+            <td><span class="copy-cell" title="{:htmlentities($vo['platforms_text'] ?? '', ENT_QUOTES, 'UTF-8')}" data-copy="{:htmlentities($vo['platforms_text'] ?? '', ENT_QUOTES, 'UTF-8')}">{$vo.platforms_text|default=''}</span></td>
+            <td>{$vo.market_count|default='0'}</td>
+            <td>
+                <button class="layui-btn layui-btn-xs layui-btn-normal"
+                        data-action='{:url("targetEventSelect")}'
+                        data-value="asset_type#{$asset_type};event_id#{$vo.event_id|default=''};source_event_ids#{$vo.source_event_id|default=''};competition_name#{$vo.competition_name|default=''};start_time#{$vo.start_time|default=''};platforms#{$vo.platforms_text|default=''}">加入目标赛事</button>
+            </td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有可选赛事</span>{/empty}
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.target-select-page { padding:16px; }
+.target-select-page .layui-table { table-layout:fixed; }
+.target-select-page .layui-table th,
+.target-select-page .layui-table td { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
+.target-select-page .cell-mono { font-family:Consolas, Monaco, monospace; font-size:12px; color:#34495e; }
+.target-select-page .copy-cell { cursor:pointer; }
+.target-select-page .data-combo { position:relative; }
+.target-select-page .data-combo-menu {
+    display:none; position:absolute; z-index:9999; top:38px; left:0; right:0; max-height:220px; overflow:auto;
+    background:#fff; border:1px solid #e6e6e6; box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.target-select-page .data-combo.open .data-combo-menu { display:block; }
+.target-select-page .data-combo-menu a {
+    display:block; padding:7px 10px; color:#333; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.target-select-page .data-combo-menu a:hover { background:#f2f2f2; color:#009688; }
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+</style>
+<script>
+function initDataCombos(scope) {
+    $(scope || document).find('input[list]').each(function () {
+        var $input = $(this), listId = $input.attr('list'), $list = $('#' + listId);
+        if (!$list.length || $input.closest('.data-combo').length) return;
+        var $wrap = $('<div class="data-combo"></div>');
+        var $menu = $('<div class="data-combo-menu"></div>');
+        $list.find('option').each(function () {
+            var value = $(this).attr('value');
+            if (value) $menu.append($('<a href="javascript:;"></a>').attr('data-value', value).text(value));
+        });
+        $input.removeAttr('list').addClass('data-combo-input').wrap($wrap).after($menu);
+        $list.remove();
+    });
+}
+function dataComboFilter($wrap) {
+    var q = String($wrap.find('.data-combo-input').val() || '').toLowerCase();
+    $wrap.find('.data-combo-menu a').each(function () {
+        var text = String($(this).data('value') || '').toLowerCase();
+        $(this).toggle(!q || text.indexOf(q) >= 0);
+    });
+}
+initDataCombos(document);
+$(document).on('focus click', '.data-combo-input', function () {
+    var $wrap = $(this).closest('.data-combo');
+    dataComboFilter($wrap);
+    $wrap.addClass('open');
+});
+$(document).on('input', '.data-combo-input', function () {
+    dataComboFilter($(this).closest('.data-combo'));
+});
+$(document).on('mousedown', '.data-combo-menu a', function (e) {
+    e.preventDefault();
+    var $wrap = $(this).closest('.data-combo');
+    $wrap.find('.data-combo-input').val($(this).data('value'));
+    $wrap.removeClass('open');
+});
+$(document).on('mousedown', function (e) {
+    if (!$(e.target).closest('.data-combo').length) $('.data-combo').removeClass('open');
+});
+</script>
+{/block}

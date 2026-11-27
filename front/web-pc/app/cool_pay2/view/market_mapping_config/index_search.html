@@ -1,0 +1,100 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get"
+      autocomplete="off">
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">目标市场ID</label>
+        <div class="layui-input-inline">
+            <input name="target_group_id" value="{$get.target_group_id|default=''}" placeholder="请输入目标市场ID"
+                   class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">市场名称</label>
+        <div class="layui-input-inline">
+            <input name="market_name" value="{$get.market_name|default=''}" placeholder="请输入市场名称"
+                   class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">源渠道</label>
+        <div class="layui-input-inline">
+            <select name="source_vendor" class="layui-select">
+                <option value="">全部</option>
+                {foreach $vendors as $key=>$item}
+                <option value="{$key}" {if isset($get.source_vendor) && $get.source_vendor==$key}selected{/if}>{$item}
+                </option>
+                {/foreach}
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">目标渠道</label>
+        <div class="layui-input-inline">
+            <select name="target_vendor" class="layui-select">
+                <option value="">全部</option>
+                {foreach $vendors as $key=>$item}
+                <option value="{$key}" {if isset($get.target_vendor) && $get.target_vendor==$key}selected{/if}>{$item}
+                </option>
+                {/foreach}
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">源状态</label>
+        <div class="layui-input-inline">
+            <select name="source_status" class="layui-select">
+                <option value="">全部</option>
+                {foreach $statuses as $key=>$item}
+                <option value="{$key}" {if isset($get.source_status) && $get.source_status==$key}selected{/if}>{$item}
+                </option>
+                {/foreach}
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">目标状态</label>
+        <div class="layui-input-inline">
+            <select name="target_status" class="layui-select">
+                <option value="">全部</option>
+                {foreach $statuses as $key=>$item}
+                <option value="{$key}" {if isset($get.target_status) && $get.target_status==$key}selected{/if}>{$item}
+                </option>
+                {/foreach}
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">交易账号ID</label>
+        <div class="layui-input-inline">
+            <input name="trade_account_ids" value="{$get.trade_account_ids|default=''}" placeholder="请输入交易账号ID，支持模糊搜索"
+                   class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">创建时间</label>
+        <div class="layui-input-inline">
+            <input name="date_range" value="{$get.date_range|default=''}" placeholder="请选择日期范围"
+                   class="layui-input" id="date_range">
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        <!-- <button class="layui-btn layui-btn-sm layui-btn-primary" data-modal='{:url("add")}'><i class="layui-icon">&#xe654;</i> 新增关联</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" data-modal='{:url("upload")}'><i class="layui-icon">&#xe654;</i> 批量导入 CSV</button> -->
+    </div>
+</form>
+
+
+<script>
+    layui.use(['form', 'laydate'], function () {
+        var form = layui.form;
+        var laydate = layui.laydate;
+
+        // 初始化日期范围选择器
+        laydate.render({
+            elem: '#date_range',
+            type: 'date',
+            range: ' - ',
+            format: 'yyyy-MM-dd'
+        });
+    });
+</script>

@@ -1,0 +1,290 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+        
+        <!-- 基本信息 -->
+        <div class="layui-form-item">
+            <label class="layui-form-label">市场名称</label>
+            <div class="layui-input-block">
+                <input name="market_name" value='{$vo.market_name|default=""}' required placeholder="请输入市场名称" class="layui-input" maxlength="50">
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">市场描述</label>
+            <div class="layui-input-block">
+                <input name="market_desc" value='{$vo.market_desc|default=""}' required placeholder="请输入市场描述" class="layui-input" maxlength="50">
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">交易账号ID</label>
+            <div class="layui-input-block">
+                <input name="trade_account_ids" value='{$vo.trade_account_ids|default=""}' required placeholder="请输入交易账号ID，多个账号请使用 | 分割" class="layui-input" maxlength="255">
+                <div class="layui-form-mid layui-word-aux">多个账号请使用竖线符号 <code>|</code> 进行分割，例如：123|456|789</div>
+            </div>
+        </div>
+
+        <!-- 源市场配置 -->
+        <div class="hr-line-dashed"></div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"><strong>源市场配置</strong></label>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">源渠道</label>
+            <div class="layui-input-block">
+                <select name="source_vendor" class="layui-select" required lay-filter="source_vendor">
+                    <option value="">请选择源渠道</option>
+                    {foreach $vendors as $key=>$item}
+                    <option value="{$key}" {if isset($vo.source_vendor) and $vo.source_vendor eq $key}selected{/if}>{$item}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">源账户ID</label>
+            <div class="layui-input-block">
+                <select name="source_account_id" id="source_account_id" class="layui-select" required lay-search>
+                    <option value="">请先选择源渠道</option>
+                    {foreach $source_accounts as $account}
+                    <option value="{$account.id}" {if isset($vo.source_account_id) and $vo.source_account_id eq $account.id}selected{/if}>
+                        ID:{$account.id} | {$account.market_account_id} | {$account.account_type} {if !empty($account.desc)}| {$account.desc}{/if}
+                    </option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">源组ID</label>
+            <div class="layui-input-block">
+                <input name="source_group_id" value='{$vo.source_group_id|default=""}' placeholder="请输入源组ID" class="layui-input" maxlength="160">
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">源市场ID</label>
+            <div class="layui-input-block">
+                <input name="source_market_id" value='{$vo.source_market_id|default=""}' placeholder="请输入源市场ID" class="layui-input" maxlength="160">
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">源市场地址</label>
+            <div class="layui-input-block">
+                <input name="source_market_address" value='{$vo.source_market_address|default=""}' placeholder="请输入源市场地址" class="layui-input" maxlength="160">
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">源状态</label>
+            <div class="layui-input-block">
+                <select name="source_status" class="layui-select" required>
+                    <option value="">请选择源状态</option>
+                    {foreach $statuses as $key=>$item}
+                    <option value="{$key}" {if isset($vo.source_status) and $vo.source_status eq $key}selected{/if}>{$item}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+
+        <!-- 目标市场配置 -->
+        <div class="hr-line-dashed"></div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"><strong>目标市场配置</strong></label>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">目标渠道</label>
+            <div class="layui-input-block">
+                <select name="target_vendor" class="layui-select" required lay-filter="target_vendor">
+                    <option value="">请选择目标渠道</option>
+                    {foreach $vendors as $key=>$item}
+                    <option value="{$key}" {if isset($vo.target_vendor) and $vo.target_vendor eq $key}selected{/if}>{$item}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">目标账户ID</label>
+            <div class="layui-input-block">
+                <select name="target_account_id" id="target_account_id" class="layui-select" required lay-search>
+                    <option value="">请先选择目标渠道</option>
+                    {foreach $target_accounts as $account}
+                    <option value="{$account.id}" {if isset($vo.target_account_id) and $vo.target_account_id eq $account.id}selected{/if}>
+                        ID:{$account.id} | {$account.market_account_id} | {$account.account_type} {if !empty($account.desc)}| {$account.desc}{/if}
+                    </option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">目标组ID</label>
+            <div class="layui-input-block">
+                <input name="target_group_id" value='{$vo.target_group_id|default=""}' placeholder="请输入目标组ID" class="layui-input" maxlength="160">
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">目标市场ID</label>
+            <div class="layui-input-block">
+                <input name="target_market_id" value='{$vo.target_market_id|default=""}' placeholder="请输入目标市场ID" class="layui-input" maxlength="160">
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">目标状态</label>
+            <div class="layui-input-block">
+                <select name="target_status" class="layui-select" required>
+                    <option value="">请选择目标状态</option>
+                    {foreach $statuses as $key=>$item}
+                    <option value="{$key}" {if isset($vo.target_status) and $vo.target_status eq $key}selected{/if}>{$item}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+
+        <!-- Token映射配置 -->
+        <div class="hr-line-dashed"></div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">Token映射配置</label>
+            <div class="layui-input-block">
+                <textarea name="token_id_mapping" placeholder="请输入Token映射配置JSON格式，如：[{&quot;sourceTokenId&quot;:&quot;...&quot;,&quot;targetTokenId&quot;:&quot;...&quot;,&quot;type&quot;:&quot;yes&quot;}]" class="layui-textarea" required>{$vo.token_id_mapping|default=""}</textarea>
+                <div class="layui-form-mid layui-word-aux" style="color: #ff5722; margin-top: 10px;">
+                    <strong>⚠️ 注意事项：</strong><br>
+                    1. 必须是有效的JSON数组格式<br>
+                    示例格式<br>
+                    [{"sourceTokenId":"aaa","targetTokenId":"111","type":"yes"},{"sourceTokenId":"bbb","targetTokenId":"222","type":"no"}]
+                </div>
+            </div>
+        </div>
+        
+        <div class="hr-line-dashed"></div>
+        {notempty name='vo.id'}<input type='hidden' value='{$vo.id}' name='id'>{/notempty}
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type='submit'>保存数据</button>
+            <button class="layui-btn layui-btn-danger" type='button' data-confirm="确定要取消编辑吗？" data-close>取消编辑</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form', 'layer'], function(){
+    var form = layui.form;
+    var layer = layui.layer;
+    
+    // 监听源渠道选择变化
+    form.on('select(source_vendor)', function(data){
+        var vendor = data.value;
+        console.log('Source vendor changed:', vendor);
+        
+        if (!vendor) {
+            $('#source_account_id').html('<option value="">请先选择源渠道</option>');
+            form.render('select');
+            return;
+        }
+        
+        // 加载该渠道下的账户列表
+        $.ajax({
+            url: '{:url("getAccountsByVendor")}',
+            type: 'GET',
+            data: { vendor: vendor },
+            dataType: 'json',
+            success: function(res) {
+                if (res.code === 1) {
+                    var html = '<option value="">请选择源账户</option>';
+                    if (res.data && res.data.length > 0) {
+                        res.data.forEach(function(account) {
+                            var desc = account.desc ? ' | ' + account.desc : '';
+                            html += '<option value="' + account.id + '">ID:' + account.id + ' | ' + account.market_account_id + ' | ' + account.account_type + desc + '</option>';
+                        });
+                    } else {
+                        html = '<option value="">该渠道下暂无账户</option>';
+                    }
+                    $('#source_account_id').html(html);
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg || '获取账户列表失败', {icon: 2});
+                }
+            },
+            error: function() {
+                layer.msg('请求失败，请稍后重试', {icon: 2});
+            }
+        });
+    });
+    
+    // 监听目标渠道选择变化
+    form.on('select(target_vendor)', function(data){
+        var vendor = data.value;
+        console.log('Target vendor changed:', vendor);
+        
+        if (!vendor) {
+            $('#target_account_id').html('<option value="">请先选择目标渠道</option>');
+            form.render('select');
+            return;
+        }
+        
+        // 加载该渠道下的账户列表
+        $.ajax({
+            url: '{:url("getAccountsByVendor")}',
+            type: 'GET',
+            data: { vendor: vendor },
+            dataType: 'json',
+            success: function(res) {
+                if (res.code === 1) {
+                    var html = '<option value="">请选择目标账户</option>';
+                    if (res.data && res.data.length > 0) {
+                        res.data.forEach(function(account) {
+                            var desc = account.desc ? ' | ' + account.desc : '';
+                            html += '<option value="' + account.id + '">ID:' + account.id + ' | ' + account.market_account_id + ' | ' + account.account_type + desc + '</option>';
+                        });
+                    } else {
+                        html = '<option value="">该渠道下暂无账户</option>';
+                    }
+                    $('#target_account_id').html(html);
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg || '获取账户列表失败', {icon: 2});
+                }
+            },
+            error: function() {
+                layer.msg('请求失败，请稍后重试', {icon: 2});
+            }
+        });
+    });
+    
+    // 表单提交监听
+    form.on('submit(*)', function(data) {
+        console.log('Form data:', data.field);
+        
+        // 验证Token映射配置JSON格式
+        var tokenMapping = data.field.token_id_mapping;
+        if (tokenMapping) {
+            try {
+                var parsed = JSON.parse(tokenMapping);
+                if (!Array.isArray(parsed)) {
+                    layer.msg('Token映射配置必须是数组格式', {icon: 2});
+                    return false;
+                }
+                
+                // 验证每个对象的字段
+                for (var i = 0; i < parsed.length; i++) {
+                    var item = parsed[i];
+                    if (!item.sourceTokenId || !item.targetTokenId || !item.type) {
+                        layer.msg('Token映射配置第' + (i + 1) + '项缺少必要字段：sourceTokenId、targetTokenId、type', {icon: 2});
+                        return false;
+                    }
+                }
+            } catch (e) {
+                layer.msg('Token映射配置JSON格式错误: ' + e.message, {icon: 2});
+                return false;
+            }
+        }
+        
+        return true;
+    });
+});
+</script>

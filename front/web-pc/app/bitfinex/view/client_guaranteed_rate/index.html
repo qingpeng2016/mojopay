@@ -1,0 +1,64 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    {include file="client_guaranteed_rate/index_search"}
+
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:55px;">ID</th>
+            <th style="width:70px;">客户 ID</th>
+            <th style="width:120px;">客户名称</th>
+            <th style="width:180px;">产品编码</th>
+            <th style="width:140px;">产品名称</th>
+            <th style="width:110px;text-align:right;">用户保底年化</th>
+            <th style="width:90px;text-align:right;">Bonus</th>
+            <th style="width:110px;text-align:right;">产品默认年化</th>
+            <th style="width:150px;">更新时间</th>
+            <th style="width:90px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td>{$vo.client_id|default='-'}</td>
+            <td>{$vo.client_name|default='-'}</td>
+            <td class="mono" style="font-size:12px;">{$vo.product_code|default='-'}</td>
+            <td>{$vo.product_name|default='-'}</td>
+            <td class="mono" style="text-align:right;">{$vo.guaranteed_rate_fmt|default='0%'}</td>
+            <td class="mono" style="text-align:right;">{$vo.bonus_fmt|default='0%'}</td>
+            <td class="mono" style="text-align:right;color:#999;">{$vo.product_guaranteed_rate_fmt|default='0%'}</td>
+            <td style="font-size:12px;">{$vo.updated_at|default='-'}</td>
+            <td>
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-normal"
+                        data-modal='{:url("edit")}?id={$vo.id}' data-title="修改用户利率 #{$vo.id}">
+                    <i class="layui-icon">&#xe642;</i> 修改
+                </button>
+            </td>
+        </tr>
+        {/foreach}
+        {if empty($list)}
+        <tr><td colspan="10" style="text-align:center;color:#999;">暂无用户利率记录</td></tr>
+        {/if}
+        </tbody>
+    </table>
+    {include file="common/pagination_footer"}
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>
+{include file="common/pagination_assets"}
+{/block}

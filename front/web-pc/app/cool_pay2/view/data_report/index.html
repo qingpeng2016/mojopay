@@ -1,0 +1,388 @@
+{extend name="../../admin/view/main"}
+
+{block name="style"}
+<style>
+.table-block .pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+}
+.table-block .pagination li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.table-block .pagination li a,
+.table-block .pagination li span {
+    display: inline-block;
+    min-width: 30px;
+    padding: 4px 10px;
+    line-height: 20px;
+    border: 1px solid #e6e6e6;
+    border-radius: 2px;
+    background: #fff;
+    color: #666;
+    text-align: center;
+    text-decoration: none;
+}
+.table-block .pagination li.active span,
+.table-block .pagination li a:hover {
+    border-color: #1E9FFF;
+    color: #1E9FFF;
+}
+.layui-body .layui-card,
+.layui-body .layui-card-body,
+.layui-body .layui-card-html,
+.layui-body .think-page-body {
+    max-width: 100% !important;
+    box-sizing: border-box;
+}
+.layui-body .layui-card-body,
+.layui-body .layui-card-html {
+    overflow-x: hidden !important;
+}
+.table-block {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+.table-block .form-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px 10px;
+}
+.table-block .form-search .layui-form-item {
+    margin-bottom: 0;
+}
+.data-report-table-scroll {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+}
+.data-report-table-scroll .layui-table {
+    width: max-content !important;
+    min-width: 2820px !important;
+    margin-bottom: 0;
+}
+.layui-badge.dr-is-win-pending {
+    background-color: #909399;
+}
+</style>
+{/block}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow margin-bottom-15">
+    <div style="font-weight:bold;font-size:1.15rem;margin-bottom:12px;">数据报表</div>
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md3 layui-col-sm6">
+            <div class="text-center" style="border:1px solid #e6e6e6;border-radius:4px;padding:14px;background:#fff;">
+                <div style="color:#666;font-size:13px;">运行中市场</div>
+                <div style="font-size:22px;font-weight:600;margin-top:6px;">{$stats.active_markets|default='0'}</div>
+            </div>
+        </div>
+        <div class="layui-col-md3 layui-col-sm6">
+            <div class="text-center" style="border:1px solid #e6e6e6;border-radius:4px;padding:14px;background:#fff;">
+                <div style="color:#666;font-size:13px;">总交易量</div>
+                <div style="font-size:22px;font-weight:600;margin-top:6px;">{:htmlspecialchars('$' . ($stats['total_volume'] ?? '0.00'), ENT_QUOTES, 'UTF-8')}</div>
+            </div>
+        </div>
+        <div class="layui-col-md3 layui-col-sm6">
+            <div class="text-center" style="border:1px solid #e6e6e6;border-radius:4px;padding:14px;background:#fff;">
+                <div style="color:#666;font-size:13px;">运行中市场交易量</div>
+                <div style="font-size:22px;font-weight:600;margin-top:6px;">{:htmlspecialchars('$' . ($stats['running_volume'] ?? '0.00'), ENT_QUOTES, 'UTF-8')}</div>
+            </div>
+        </div>
+        <div class="layui-col-md3 layui-col-sm6">
+            <div class="text-center" style="border:1px solid #e6e6e6;border-radius:4px;padding:14px;background:#fff;">
+                <div style="color:#666;font-size:13px;">最近30天 PNL</div>
+                {if isset($stats.pnl_30_raw) && $stats.pnl_30_raw >= 0}
+                <div style="font-size:22px;font-weight:600;margin-top:6px;color:#009688;">{:htmlspecialchars('$' . ($stats['pnl_30'] ?? '0.00'), ENT_QUOTES, 'UTF-8')}</div>
+                {else}
+                <div style="font-size:22px;font-weight:600;margin-top:6px;color:#f44336;">{:htmlspecialchars('$' . ($stats['pnl_30'] ?? '0.00'), ENT_QUOTES, 'UTF-8')}</div>
+                {/if}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="think-box-shadow table-block" style="width:100%;overflow:hidden;box-sizing:border-box;">
+    <div style="font-weight:bold;font-size:1.05rem;margin:12px 0 8px 12px;">数据报表</div>
+    {include file="data_report/index_search"}
+    <div class="data-report-table-scroll" style="width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;box-sizing:border-box;">
+    <table class="layui-table margin-top-10" lay-skin="line" style="min-width:2720px;margin-bottom:0;">
+        <thead>
+        <tr>
+            <th style="width:72px;">ID</th>
+            <th style="width:150px;">Created At</th>
+            <th style="width:150px;">Updated At</th>
+            <th style="width:120px;">Source</th>
+            <th style="width:160px;">Order ID</th>
+            <th style="width:100px;">Order Type</th>
+            <th style="width:100px;">Order Side</th>
+            <th style="width:110px;">Trade Price</th>
+            <th style="width:110px;">Trade Quantity</th>
+            <th style="width:110px;">Trade Amount</th>
+            <th style="width:120px;">Final Amount</th>
+            <th style="width:110px;">Trade Fee</th>
+            <th style="width:130px;">Trade Commission</th>
+            <th style="width:100px;">Status</th>
+            <th style="width:100px;">Is Win</th>
+            <th style="width:160px;">Remark</th>
+            <th style="width:120px;">Source Account ID</th>
+            <th style="width:120px;">Source Group ID</th>
+            <th style="width:150px;">Source Market ID</th>
+            <th style="width:170px;">Source Token ID</th>
+            <th style="width:120px;">Market Config ID</th>
+            <th style="width:140px;">Target Hedge Record ID</th>
+            <th style="width:120px;">Target Vendor</th>
+            <th style="width:120px;">Target Account ID</th>
+            <th style="width:150px;">Target Group ID</th>
+            <th style="width:170px;">Target Market ID</th>
+            <th style="width:170px;">Target Token ID</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td>{$vo.created_at|default='-'}</td>
+            <td>{$vo.updated_at|default='-'}</td>
+            <td>
+                {if empty($vo.source_vendor)}<span style="color:#999;">-</span>
+                {elseif $vo.source_vendor eq 'POLYMARKET'}<span class="layui-badge layui-bg-blue">POLYMARKET</span>
+                {elseif $vo.source_vendor eq 'FOREGATE'}<span class="layui-badge layui-bg-cyan">FOREGATE</span>
+                {else}<span class="layui-badge">{$vo.source_vendor}</span>{/if}
+            </td>
+            <td class="layui-elip" title="{$vo.source_order_id|default=''}">
+                {if isset($vo.source_order_id_display) && $vo.source_order_id_display !== ''}
+                {$vo.source_order_id_display}
+                {else}
+                {$vo.source_order_id|default=''}
+                {/if}
+            </td>
+            <td>{$vo.order_type}</td>
+            <td>
+                {if $vo.order_side eq 'BUY'}<span class="layui-badge layui-bg-green">BUY</span>
+                {elseif $vo.order_side eq 'SELL'}<span class="layui-badge layui-bg-red">SELL</span>
+                {else}<span class="layui-badge">{$vo.order_side}</span>{/if}
+            </td>
+            <td style="font-family:monospace;">{$vo.trade_price}</td>
+            <td style="font-family:monospace;">{$vo.trade_quantity}</td>
+            <td style="font-family:monospace;">{$vo.trade_amount}</td>
+            <td style="font-family:monospace;">{$vo.real_trade_amount|default='0.00000000'}</td>
+            <td style="font-family:monospace;">{$vo.trade_fee|default='0.00000000'}</td>
+            <td style="font-family:monospace;">{$vo.trade_commission|default='0.00000000'}</td>
+            <td>
+                {if $vo.status eq 'FILLED'}<span class="layui-badge layui-bg-green">FILLED</span>
+                {elseif $vo.status eq 'PENDING'}<span class="layui-badge layui-bg-orange">PENDING</span>
+                {elseif $vo.status eq 'FAILED'}<span class="layui-badge layui-bg-red">FAILED</span>
+                {else}<span class="layui-badge">{$vo.status}</span>{/if}
+            </td>
+            <td>
+                {if $vo.is_win eq 'WIN'}<span class="layui-badge layui-bg-green">WIN</span>
+                {elseif $vo.is_win eq 'LOSE'}<span class="layui-badge layui-bg-red">LOSE</span>
+                {else}<span class="layui-badge dr-is-win-pending">PENDING</span>{/if}
+            </td>
+            <td class="layui-elip" title="{$vo.remark|default=''}">{$vo.remark|default='-'}</td>
+            <td style="font-family:monospace;">{$vo.source_account_id|default='-'}</td>
+            <td class="layui-elip" title="{$vo.source_group_id|default=''}">{$vo.source_group_id|default='-'}</td>
+            <td class="layui-elip" title="{$vo.source_market_id|default=''}">{$vo.source_market_id|default='-'}</td>
+            <td class="layui-elip" title="{$vo.source_token_id|default=''}">
+                {if isset($vo.source_token_id_display) && $vo.source_token_id_display !== ''}
+                {$vo.source_token_id_display}
+                {else}
+                {$vo.source_token_id|default='-'}
+                {/if}
+            </td>
+            <td style="font-family:monospace;">{$vo.market_config_id|default='-'}</td>
+            <td style="font-family:monospace;">{$vo.target_hedge_record_id|default='-'}</td>
+            <td>{$vo.target_vendor|default='-'}</td>
+            <td style="font-family:monospace;">{$vo.target_account_id|default='-'}</td>
+            <td class="layui-elip" title="{$vo.target_group_id|default=''}">{$vo.target_group_id|default='-'}</td>
+            <td class="layui-elip" title="{$vo.target_market_id|default=''}">{$vo.target_market_id|default='-'}</td>
+            <td class="layui-elip" title="{$vo.target_token_id|default=''}">{$vo.target_token_id|default='-'}</td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    </div>
+    {empty name='list'}<span class="notdata">没有记录哦</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['form','laydate'], function(){
+    var form = layui.form;
+    var laydate = layui.laydate;
+    var REPORT_HASH_ROUTE = '#/cool_pay2/data_report/index.html';
+
+    function spmFromTop(tw) {
+        var h = (tw.location && tw.location.hash) ? tw.location.hash : '';
+        var full = (tw.location && tw.location.href) ? tw.location.href : '';
+        var m = (h + full).match(/spm=([^&#]+)/);
+        return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    /**
+     * 与当前后台一致：筛选、分页、spm 均在 hash 内 query（# 后），例如：
+     * /admin.html#/cool_pay2/data_report/index.html?date_range=...&page=2&spm=m-1-10-31
+     * @param {{ resetPage?: boolean }} opt resetPage 为 true 时去掉 page（搜索提交用）；分页合并后应传 false 保留页码。
+     */
+    function buildTopShellUrl(tw, queryString, opt) {
+        opt = opt || {};
+        var path = (tw.location && tw.location.pathname) ? tw.location.pathname : '/admin.html';
+        var spm = spmFromTop(tw);
+        var qs = (queryString || '').replace(/^&+|&+$/g, '');
+        if (opt.resetPage !== false) {
+            qs = qs.replace(/&?page=\d+/gi, '');
+        }
+        qs = qs.split('&').filter(function (p) {
+            return p && !/^spm=/i.test(p);
+        }).join('&');
+        var tail = [];
+        if (qs) {
+            tail.push(qs);
+        }
+        if (spm) {
+            tail.push('spm=' + encodeURIComponent(spm));
+        }
+        var hashQuery = tail.join('&');
+        return path + REPORT_HASH_ROUTE + (hashQuery ? ('?' + hashQuery) : '');
+    }
+
+    /** 顶层：# 前 search + # 后 hash 里的 query 合并（spm 单独由 spmFromTop 拼，这里不写入 t） */
+    function collectCurrentShellFilters(tw) {
+        var t = new URLSearchParams(tw.location.search || '');
+        var hash = (tw.location && tw.location.hash) ? tw.location.hash : '';
+        var qIdx = hash.indexOf('?');
+        if (qIdx > -1) {
+            var hq = new URLSearchParams(hash.substring(qIdx + 1));
+            hq.forEach(function (value, key) {
+                if (key.toLowerCase() !== 'spm') {
+                    t.set(key, value);
+                }
+            });
+        }
+        return t;
+    }
+
+    /**
+     * 分页：以当前壳上已有筛选为准（含 hash 内 date_range），只用分页链接里的 page / pageSize 覆盖。
+     */
+    function mergeTopSearchForPagination(tw, hrefQueryString) {
+        var t = collectCurrentShellFilters(tw);
+        var h = new URLSearchParams((hrefQueryString || '').replace(/^&+|&+$/g, ''));
+        if (!t.toString()) {
+            h.forEach(function (value, key) {
+                if (key.toLowerCase() !== 'spm') {
+                    t.set(key, value);
+                }
+            });
+            return t.toString();
+        }
+        ['page', 'pageSize'].forEach(function (k) {
+            if (h.has(k)) {
+                t.set(k, h.get(k));
+            }
+        });
+        return t.toString();
+    }
+
+    /** hash/serialize 常见「+-+」，laydate 范围解析会报错，须先规范为「 - 」 */
+    function normalizeDrDateRangeInput() {
+        var $el = $('#dr_date_range');
+        if (!$el.length) {
+            return;
+        }
+        var v = String($el.val() || '').trim();
+        if (!v) {
+            return;
+        }
+        var fixed = v.replace(/\+-\+/g, ' - ').replace(/%2B-%2B/gi, ' - ');
+        fixed = fixed.replace(/\s+/g, ' ').trim();
+        if (fixed !== v) {
+            $el.val(fixed);
+        }
+    }
+
+    normalizeDrDateRangeInput();
+    laydate.render({ elem: '#dr_date_range', range: true, format: 'yyyy-MM-dd' });
+
+    form.on('submit(dr-search)', function (data) {
+        if (window.self !== window.top) {
+            var tw = window.top;
+            var serial = $(data.form).serialize().replace(/\+/g, ' ');
+            tw.location.href = buildTopShellUrl(tw, serial, { resetPage: true });
+            return false;
+        }
+        return true;
+    });
+
+    $('#dr-btn-reset').on('click', function () {
+        if (window.self !== window.top) {
+            window.top.location.href = buildTopShellUrl(window.top, '', { resetPage: true });
+            return;
+        }
+        var currentHash = window.location.hash.split('?')[0];
+        window.location.hash = currentHash;
+        if (window.location.hash === currentHash) {
+            window.location.reload();
+        }
+    });
+
+    $(document).on('click', '.table-block .pagination a', function (e) {
+        if (window.self === window.top) {
+            return;
+        }
+        var href = $(this).attr('href');
+        if (!href || href === '#' || href.indexOf('javascript:') === 0) {
+            return;
+        }
+        e.preventDefault();
+        var tw = window.top;
+        var a = document.createElement('a');
+        a.href = href;
+        var full = a.href;
+        var hashPos = full.indexOf('#');
+        var before = hashPos > -1 ? full.substring(0, hashPos) : full;
+        var after = hashPos > -1 ? full.substring(hashPos + 1) : '';
+        var chunks = [];
+        if (before.indexOf('?') > -1) {
+            chunks.push(before.substring(before.indexOf('?') + 1));
+        }
+        if (after.indexOf('?') > -1) {
+            chunks.push(after.substring(after.indexOf('?') + 1));
+        }
+        var qs = chunks.join('&').replace(/^&+|&+$/g, '');
+        var merged = mergeTopSearchForPagination(tw, qs);
+        tw.location.href = buildTopShellUrl(tw, merged, { resetPage: false });
+    });
+
+    $('#dr-btn-export').on('click', function(e){
+        e.preventDefault();
+        var params = $(this).closest('form').serialize();
+        var url = '{:url("export")}';
+        window.location.href = url + (url.indexOf('?') > -1 ? '&' : '?') + params;
+    });
+});
+</script>
+{/block}

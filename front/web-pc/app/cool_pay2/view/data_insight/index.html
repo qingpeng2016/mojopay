@@ -1,0 +1,827 @@
+{extend name="../../admin/view/main"}
+
+{block name="style"}
+<style>
+/* 避免在 style="" 内写模板，便于 HTML/CSS 校验与 IDE 诊断 */
+.insight-card-pnl-val { font-size: 22px; font-weight: 700; }
+.insight-card-pnl-val--pos { color: #009688; }
+.insight-card-pnl-val--neg { color: #f44336; }
+/* 全局趋势图 + 排行榜：左栏固定图表高度；右栏列表区 max-height 与左侧图表区同高，避免右侧「空壳」过高 */
+.insight-chart-rank-row {
+    --insight-chart-body-h: 540px;
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 15px;
+    align-items: flex-start;
+}
+@media (max-width: 991px) {
+    .insight-chart-rank-row {
+        grid-template-columns: 1fr;
+    }
+}
+.insight-panel-card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    box-sizing: border-box;
+}
+/* 左侧：图表区域固定高度，避免随右侧排行榜被撑高后出现大块留白 */
+.insight-chart-panel .insight-chart-stack {
+    height: var(--insight-chart-body-h);
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+}
+.insight-echart-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.insight-echart-wrap > div:first-child {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+.insight-echart {
+    flex: 1;
+    width: 100%;
+    min-height: 120px;
+}
+/* 右侧：与左侧图表主体同高；内容少则矮，多则内部滚动，不再用很大的 vh 上限 */
+.insight-rank-scroll {
+    max-height: var(--insight-chart-body-h);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+}
+.insight-rank-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.insight-rank-scroll::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+/* 核心指标四卡：等高，避免前两列因内容少而偏矮 */
+.insight-kpi-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+.insight-kpi-row > .layui-col-md3 {
+    float: none !important;
+    display: flex;
+    box-sizing: border-box;
+}
+@media screen and (min-width: 992px) {
+    .insight-kpi-row > .layui-col-md3 {
+        width: 25%;
+    }
+}
+@media screen and (max-width: 991px) {
+    .insight-kpi-row > .layui-col-md3 {
+        width: 100%;
+    }
+}
+.insight-kpi-card {
+    flex: 1;
+    width: 100%;
+    min-height: 136px;
+    padding: 22px 14px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+/* 时间范围：与同一行 layui 输入框同高、同色、同圆角，避免「另套一套 UI」 */
+.insight-range-btn-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #e6e6e6;
+    border-radius: 2px;
+    background: #fff;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.insight-range-btn-wrap:hover {
+    border-color: #d2d2d2;
+}
+.insight-range-btn-wrap:focus-within {
+    border-color: #1e9fff;
+}
+.insight-range-btn-wrap .layui-icon {
+    font-size: 16px;
+    color: #c2c2c2;
+    flex-shrink: 0;
+}
+.insight-range-input {
+    flex: 1;
+    min-width: 0;
+    width: 0;
+    height: 36px;
+    line-height: 36px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+}
+.insight-range-input::placeholder {
+    color: #999;
+}
+</style>
+{/block}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon">&#xe669;</i> 刷新</button>
+</div>
+{/block}
+
+{block name="content"}
+
+<!-- ===== Module 1: 未对冲份额（FILLED；FG vs Poly 已成交数量差；全局运行中市场） ===== -->
+<div id="insight-unhedged-panel" class="think-box-shadow margin-bottom-15" style="padding:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <i class="layui-icon" style="font-size:20px;color:#5cb85c;">&#xe63c;</i>
+        <span style="font-size:16px;font-weight:600;">运行中市场 · 未对冲份额</span>
+        <span id="unhedged-subtitle" style="font-size:13px;color:#999;">（{$unhedged.market_count} 个市场 · 未对冲总份额 {:number_format($unhedged.total_unhedged_all, 2)}）</span>
+        <button type="button" id="btn-unhedged-refresh" class="layui-btn layui-btn-primary layui-btn-sm" style="margin-left:auto;" title="异步刷新本面板数据">
+            <i class="layui-icon">&#xe669;</i> 刷新
+        </button>
+    </div>
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md6">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+                <div style="padding:10px;border-radius:8px;background:#fff3e0;flex-shrink:0;">
+                    <i class="layui-icon" style="font-size:22px;color:#f57c00;">&#xe607;</i>
+                </div>
+                <div>
+                    <div style="font-size:13px;color:#666;margin-bottom:4px;">未对冲卖出份额（FG 卖出 − Poly 买入）</div>
+                    <div id="unhedged-val-sell" style="font-size:24px;font-weight:700;color:#f57c00;">{:number_format($unhedged.total_unhedged_sell, 2)}</div>
+                    <div style="font-size:11px;color:#aaa;margin-top:4px;">Top outcome（按份额降序，至多 5 条）</div>
+                    <div id="unhedged-top-sell" style="margin-top:6px;">
+                        {if !empty($unhedged.top_sell_outcomes)}
+                        {foreach $unhedged.top_sell_outcomes as $m}
+                        <div style="font-size:12px;color:#999;word-break:break-all;" title="{:htmlspecialchars($m.outcome_id ?? '', ENT_QUOTES, 'UTF-8')}">{$m.outcome_short}：<b>{$m.val}</b></div>
+                        {/foreach}
+                        {else}
+                        <div style="font-size:12px;color:#ccc;">暂无未对冲卖出</div>
+                        {/if}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+                <div style="padding:10px;border-radius:8px;background:#e8f5e9;flex-shrink:0;">
+                    <i class="layui-icon" style="font-size:22px;color:#388e3c;">&#xe607;</i>
+                </div>
+                <div>
+                    <div style="font-size:13px;color:#666;margin-bottom:4px;">未对冲买入份额（FG 买入 − Poly 卖出）</div>
+                    <div id="unhedged-val-buy" style="font-size:24px;font-weight:700;color:#388e3c;">{:number_format($unhedged.total_unhedged_buy, 2)}</div>
+                    <div style="font-size:11px;color:#aaa;margin-top:4px;">Top outcome（按份额降序，至多 5 条）</div>
+                    <div id="unhedged-top-buy" style="margin-top:6px;">
+                        {if !empty($unhedged.top_buy_outcomes)}
+                        {foreach $unhedged.top_buy_outcomes as $m}
+                        <div style="font-size:12px;color:#999;word-break:break-all;" title="{:htmlspecialchars($m.outcome_id ?? '', ENT_QUOTES, 'UTF-8')}">{$m.outcome_short}：<b>{$m.val}</b></div>
+                        {/foreach}
+                        {else}
+                        <div style="font-size:12px;color:#ccc;">暂无未对冲买入</div>
+                        {/if}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Module 2+3: 全局趋势图（固定高度） + 排行榜（动态 + 可滚动） ===== -->
+<div class="insight-chart-rank-row margin-bottom-15">
+
+    <!-- Module 2: 全局趋势图 -->
+    <div class="think-box-shadow insight-panel-card insight-chart-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;">
+            <div>
+                <span style="font-size:15px;font-weight:600;">全局趋势图</span>
+                <div style="font-size:11px;color:#999;margin-top:2px;">全局 · FILLED · PNL 公式与文档一致；不受中部维度切换器影响。「日」为<strong>当日</strong>按<strong>小时</strong>（0–23 点）聚合；「周/月」按自然日。</div>
+            </div>
+            <div id="chart-tabs" style="display:inline-flex;background:#f1f2f3;border-radius:6px;padding:3px;">
+                <button type="button" class="chart-tab-btn active" data-period="day" title="当日 0–23 点，按小时聚合" style="padding:4px 14px;border:none;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.12);">日</button>
+                <button type="button" class="chart-tab-btn" data-period="week" title="过去 7 个自然日（含今日）" style="padding:4px 14px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:13px;color:#666;">周</button>
+                <button type="button" class="chart-tab-btn" data-period="month" title="过去 30 个自然日（含今日）" style="padding:4px 14px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:13px;color:#666;">月</button>
+            </div>
+        </div>
+        <div class="insight-chart-stack">
+            <div class="insight-echart-wrap">
+                <div>PNL 累计曲线</div>
+                <div id="chartCumulative" class="insight-echart"></div>
+            </div>
+            <div class="insight-echart-wrap">
+                <div>分档 PNL（绿正红负；「日」为每小时）</div>
+                <div id="chartDaily" class="insight-echart"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module 3: 排行榜 -->
+    <div class="think-box-shadow insight-panel-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;">
+            <div>
+                <span style="font-size:15px;font-weight:600;">排行榜</span>
+                <div style="font-size:11px;color:#999;margin-top:2px;">全局 · 按 Market ID（目标市场）· PNL $ 排序</div>
+            </div>
+            <div id="rank-tabs" style="display:inline-flex;background:#f1f2f3;border-radius:6px;padding:3px;">
+                <button type="button" class="rank-tab-btn active" data-period="day" title="过去 1 个自然日（含今日）" style="padding:4px 12px;border:none;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.12);">日</button>
+                <button type="button" class="rank-tab-btn" data-period="week" title="过去 7 个自然日（含今日）" style="padding:4px 12px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:13px;color:#666;">周</button>
+                <button type="button" class="rank-tab-btn" data-period="month" title="过去 30 个自然日（含今日）" style="padding:4px 12px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:13px;color:#666;">月</button>
+            </div>
+        </div>
+        <div class="insight-rank-scroll">
+            <!-- Top 10 盈利 -->
+            <div style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <i class="layui-icon" style="color:#4caf50;font-size:16px;">&#xe63c;</i>
+                    <span style="font-size:13px;font-weight:600;">Top 10 盈利</span>
+                </div>
+                <div id="rank-top-list" style="font-size:12px;"></div>
+            </div>
+            <!-- Top 10 亏损 -->
+            <div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <i class="layui-icon" style="color:#f44336;font-size:16px;">&#xe63c;</i>
+                    <span style="font-size:13px;font-weight:600;">Top 10 亏损</span>
+                </div>
+                <div id="rank-bottom-list" style="font-size:12px;"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== Module 4: 维度切换器 + 核心指标 ===== -->
+<div class="think-box-shadow margin-bottom-15" style="padding:16px;">
+    <div style="font-size:15px;font-weight:600;margin-bottom:6px;">维度切换器</div>
+    <div style="font-size:12px;color:#999;margin-bottom:12px;">以下筛选<strong>仅影响</strong>下方核心指标卡片（与文档一致）；顶部未对冲与上左/上右全局图为独立口径。</div>
+    <form id="insight-form" class="layui-form" method="get" action="{:request()->url()}" onsubmit="return false">
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label" style="width:60px;" for="insight-range-trigger">时间范围</label>
+            <div class="layui-input-inline" style="width:280px;">
+                <div class="insight-range-btn-wrap" id="insight-range-wrap" title="点击选择日期范围">
+                    <i class="layui-icon">&#xe637;</i>
+                    <input type="text" readonly id="insight-range-trigger" class="insight-range-input"
+                        value="{$range_start} - {$range_end}" placeholder="选择日期范围" autocomplete="off">
+                </div>
+            </div>
+            <input type="hidden" name="range_preset" value="custom">
+            <input type="hidden" name="range_start" id="insight_h_rs" value="{$range_start}">
+            <input type="hidden" name="range_end" id="insight_h_re" value="{$range_end}">
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label" style="width:60px;">Market ID</label>
+            <div class="layui-input-inline" style="width:160px;">
+                <input type="text" name="target_group_id" value="{$get.target_group_id|default=''}" placeholder="搜索 Market ID" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label" style="width:60px;">市场分类</label>
+            <div class="layui-input-inline" style="width:140px;">
+                <select name="market_category">
+                    <option value="">全部</option>
+                    {foreach $market_categories as $c}
+                    <option value="{$c}" {if !empty($get.market_category) && $get.market_category==$c}selected{/if}>{$c}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label" style="width:60px;">市场子分类</label>
+            <div class="layui-input-inline" style="width:140px;">
+                <input type="text" name="market_sub_category" value="{$get.market_sub_category|default=''}" placeholder="子分类" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm">应用筛选</button>
+        </div>
+    </form>
+</div>
+
+<!-- 4 核心指标卡片（等高） -->
+<div class="layui-row layui-col-space15 insight-kpi-row">
+    <div class="layui-col-md3">
+        <div class="think-box-shadow insight-kpi-card">
+            <div style="color:#888;font-size:12px;margin-bottom:8px;">总 PNL</div>
+            <div id="card-total-pnl" class="insight-card-pnl-val{if isset($cards.total_pnl) && $cards.total_pnl lt 0} insight-card-pnl-val--neg{else} insight-card-pnl-val--pos{/if}">
+                {:htmlspecialchars('$' . ($cards['total_pnl_fmt'] ?? ''), ENT_QUOTES, 'UTF-8')}
+            </div>
+        </div>
+    </div>
+    <div class="layui-col-md3">
+        <div class="think-box-shadow insight-kpi-card">
+            <div style="color:#888;font-size:12px;margin-bottom:8px;">平均每市场 PNL</div>
+            {if !empty($cards.single_market)}
+            <div id="card-avg-pnl" class="insight-card-pnl-val" style="color:#bbb;">—</div>
+            {else}
+            <div id="card-avg-pnl" class="insight-card-pnl-val">{:htmlspecialchars('$' . ($cards['avg_pnl_fmt'] ?? ''), ENT_QUOTES, 'UTF-8')}</div>
+            {/if}
+        </div>
+    </div>
+    <div class="layui-col-md3">
+        <div class="think-box-shadow insight-kpi-card">
+            <div style="color:#888;font-size:12px;margin-bottom:8px;">盈利市场占比</div>
+            {if !empty($cards.single_market)}
+            <div id="card-win" style="font-size:18px;font-weight:700;color:#bbb;">—</div>
+            <div id="card-lose" style="font-size:14px;color:#bbb;margin-top:4px;">—</div>
+            {else}
+            <div id="card-win" style="font-size:18px;font-weight:700;color:#009688;">盈利: {$cards.win_count} ({$cards.win_pct_fmt}%)</div>
+            <div id="card-lose" style="font-size:14px;color:#f44336;margin-top:4px;">亏损: {$cards.lose_count} ({$cards.lose_pct_fmt}%)</div>
+            {/if}
+        </div>
+    </div>
+    <div class="layui-col-md3">
+        <div class="think-box-shadow insight-kpi-card">
+            <div style="color:#888;font-size:12px;margin-bottom:8px;">最大单市场亏损</div>
+            {if !empty($cards.single_market)}
+            <div id="card-max-loss" style="font-size:22px;font-weight:700;color:#bbb;">—</div>
+            <div id="card-max-loss-id" style="font-size:11px;color:#bbb;margin-top:4px;">—</div>
+            {else}
+            <div id="card-max-loss" style="font-size:22px;font-weight:700;color:#f44336;">{:htmlspecialchars('$' . ($cards['max_loss_fmt'] ?? ''), ENT_QUOTES, 'UTF-8')}</div>
+            <div id="card-max-loss-id" style="font-size:11px;color:#aaa;margin-top:4px;word-break:break-all;" title="{:htmlspecialchars($cards['max_loss_id'] ?? '', ENT_QUOTES, 'UTF-8')}">{if !empty($cards.max_loss_id_short)}token_id：{$cards.max_loss_id_short}{/if}</div>
+            {/if}
+        </div>
+    </div>
+</div>
+
+{/block}
+
+{block name="script"}
+<script type="application/json" id="insight-data-chart">{$chart_data_json|raw}</script>
+<script type="application/json" id="insight-data-rank">{$rank_data_json|raw}</script>
+<script>
+var CARDS_URL = '{:url("cards")}';
+var PERIOD_URL = '{:url("period")}';
+layui.use(['form', 'laydate'], function () {
+    var form    = layui.form;
+    var laydate = layui.laydate;
+
+    var hRs = document.getElementById('insight_h_rs');
+    var hRe = document.getElementById('insight_h_re');
+    var trig = document.getElementById('insight-range-trigger');
+    var wrap = document.getElementById('insight-range-wrap');
+
+    function syncRangeDisplayFromHidden() {
+        var a = (hRs && hRs.value) || '';
+        var b = (hRe && hRe.value) || '';
+        if (a && b) {
+            trig.value = a + ' - ' + b;
+        } else if (!trig.value) {
+            trig.value = '';
+        }
+    }
+
+    function parseRangeValue(value) {
+        if (!value || typeof value !== 'string') {
+            return null;
+        }
+        var m = value.trim().match(/^(\d{4}-\d{2}-\d{2})\s*(?:-|–|—|~|至)\s*(\d{4}-\d{2}-\d{2})$/);
+        if (!m) {
+            return null;
+        }
+        var s = m[1];
+        var e = m[2];
+        if (s <= e) {
+            return [s, e];
+        }
+        return null;
+    }
+
+    var rangeInit = (hRs.value && hRe.value) ? (hRs.value + ' - ' + hRe.value) : '';
+    var ldOpts = {
+        elem: '#insight-range-trigger',
+        type: 'date',
+        range: true,
+        format: 'yyyy-MM-dd',
+        done: function (value) {
+            var p = parseRangeValue(value);
+            if (p) {
+                hRs.value = p[0];
+                hRe.value = p[1];
+                trig.value = p[0] + ' - ' + p[1];
+            }
+        }
+    };
+    if (rangeInit) {
+        ldOpts.value = rangeInit;
+    }
+    laydate.render(ldOpts);
+    if (wrap && trig) {
+        wrap.addEventListener('click', function (ev) {
+            if (ev.target !== trig) {
+                trig.click();
+            }
+        });
+    }
+    syncRangeDisplayFromHidden();
+
+    form.render();
+
+    var chartAllData = JSON.parse(document.getElementById('insight-data-chart').textContent || '{}');
+    var rankAllData  = JSON.parse(document.getElementById('insight-data-rank').textContent || '{}');
+    var chartCumInst = null, chartDailyInst = null;
+
+    // ====== Module 3: 排行榜（纯 DOM，无外部依赖）======
+    function escHtml(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderUnhedgedOutcomeRows(container, items, emptyText) {
+        if (!container) {
+            return;
+        }
+        if (!items || !items.length) {
+            container.innerHTML = '<div style="font-size:12px;color:#ccc;">' + emptyText + '</div>';
+            return;
+        }
+        var html = '';
+        items.forEach(function (m) {
+            var oid = m.outcome_id != null ? String(m.outcome_id) : '';
+            var osh = m.outcome_short != null ? String(m.outcome_short) : '-';
+            var v = m.val != null ? String(m.val) : '';
+            html += '<div style="font-size:12px;color:#999;word-break:break-all;" title="' + escHtml(oid) + '">'
+                + escHtml(osh) + '：<b>' + escHtml(v) + '</b></div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function applyUnhedgedPanel(d) {
+        var sub = document.getElementById('unhedged-subtitle');
+        if (sub) {
+            var mc = parseInt(d.market_count, 10);
+            if (isNaN(mc)) {
+                mc = 0;
+            }
+            sub.textContent = '（' + mc + ' 个市场 · 未对冲总份额 ' + parseFloat(d.total_unhedged_all || 0).toFixed(2) + '）';
+        }
+        var vs = document.getElementById('unhedged-val-sell');
+        if (vs) {
+            vs.textContent = parseFloat(d.total_unhedged_sell || 0).toFixed(2);
+        }
+        var vb = document.getElementById('unhedged-val-buy');
+        if (vb) {
+            vb.textContent = parseFloat(d.total_unhedged_buy || 0).toFixed(2);
+        }
+        renderUnhedgedOutcomeRows(document.getElementById('unhedged-top-sell'), d.top_sell_outcomes, '暂无未对冲卖出');
+        renderUnhedgedOutcomeRows(document.getElementById('unhedged-top-buy'), d.top_buy_outcomes, '暂无未对冲买入');
+    }
+
+    var btnUnhedgedRefresh = document.getElementById('btn-unhedged-refresh');
+    if (btnUnhedgedRefresh) {
+        btnUnhedgedRefresh.addEventListener('click', function () {
+            var btn = this;
+            var html = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="layui-icon layui-anim layui-anim-rotate layui-anim-loop">&#xe669;</i> 刷新中';
+            $.ajax({
+                url: CARDS_URL,
+                type: 'GET',
+                data: { only_unhedged: '1' },
+                dataType: 'json',
+                success: function (res) {
+                    if (res.code !== 1 || !res.data) {
+                        layui.layer.msg(res.info || res.msg || '刷新失败');
+                        return;
+                    }
+                    applyUnhedgedPanel(res.data);
+                    layui.layer.msg('已更新', { time: 1000, icon: 1 });
+                },
+                error: function () {
+                    layui.layer.msg('刷新失败，请重试');
+                },
+                complete: function () {
+                    btn.disabled = false;
+                    btn.innerHTML = html;
+                }
+            });
+        });
+    }
+
+    function renderRankList(listEl, items) {
+        if (!items || items.length === 0) {
+            listEl.innerHTML = '<div style="color:#ccc;font-size:12px;padding:4px 0;">暂无数据</div>';
+            return;
+        }
+        var html = '';
+        items.forEach(function (item, idx) {
+            var pnl    = parseFloat(item.pnl);
+            var color  = pnl >= 0 ? '#009688' : '#f44336';
+            var pnlStr = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2);
+            var mid    = item.market_id || '-';
+            var shortId = mid.length > 18 ? mid.substring(0, 15) + '…' : mid;
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #f5f5f5;">'
+                  + '<span style="color:#999;margin-right:6px;min-width:22px;">#' + (idx + 1) + '</span>'
+                  + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(mid) + '">' + escHtml(shortId) + '</span>'
+                  + '<span style="color:' + color + ';font-weight:600;margin-left:8px;">' + pnlStr + '</span>'
+                  + '</div>';
+        });
+        listEl.innerHTML = html;
+    }
+
+    function updateRankings(period) {
+        var d = rankAllData[period] || { top: [], bottom: [] };
+        renderRankList(document.getElementById('rank-top-list'), d.top);
+        renderRankList(document.getElementById('rank-bottom-list'), d.bottom);
+    }
+
+    updateRankings('day');
+
+    // ====== Tab 切换 ======
+    function activateTabBtn(group, period) {
+        group.querySelectorAll('button').forEach(function (btn) {
+            var active = btn.dataset.period === period;
+            btn.style.background = active ? '#fff' : 'transparent';
+            btn.style.boxShadow  = active ? '0 1px 3px rgba(0,0,0,.12)' : 'none';
+            btn.style.fontWeight = active ? '500' : 'normal';
+            btn.style.color      = active ? '#333' : '#666';
+        });
+    }
+
+    // 性能优化（2026-05-20）：初始只渲染 day；week/month 切到时按需通过 period() 拉取，并缓存到 dict。
+    // onReady(success) —— 不论成功失败都会回调一次，调用方负责清 loading 状态；
+    // 成功时 chartAllData[period]/rankAllData[period] 已填充，失败时仍为 undefined。
+    var pendingPeriodFetch = {};
+    function ensurePeriod(period, onReady) {
+        if (chartAllData[period] && rankAllData[period]) {
+            onReady(true);
+            return;
+        }
+        if (pendingPeriodFetch[period]) {
+            pendingPeriodFetch[period].push(onReady);
+            return;
+        }
+        pendingPeriodFetch[period] = [onReady];
+        var ok = false;
+        $.ajax({
+            url: PERIOD_URL,
+            type: 'GET',
+            data: { period: period },
+            dataType: 'json',
+            success: function (res) {
+                if (res.code !== 1 || !res.data) {
+                    layui.layer.msg(res.info || res.msg || '加载失败');
+                    return;
+                }
+                chartAllData[period] = res.data.chart;
+                rankAllData[period]  = res.data.rank;
+                ok = true;
+            },
+            error: function () { layui.layer.msg('加载失败，请重试'); },
+            complete: function () {
+                var cbs = pendingPeriodFetch[period] || [];
+                delete pendingPeriodFetch[period];
+                cbs.forEach(function (cb) { try { cb(ok); } catch (_) {} });
+            }
+        });
+    }
+
+    function setChartLoading(loading) {
+        if (!chartCumInst) return;
+        if (loading) {
+            chartCumInst.showLoading();
+            chartDailyInst.showLoading();
+        } else {
+            chartCumInst.hideLoading();
+            chartDailyInst.hideLoading();
+        }
+    }
+
+    document.getElementById('chart-tabs').addEventListener('click', function (e) {
+        var btn = e.target.closest('.chart-tab-btn');
+        if (!btn) return;
+        var period = btn.dataset.period;
+        activateTabBtn(this, period);
+        if (!chartCumInst) return;
+        if (chartAllData[period]) {
+            chartCumInst.setOption(buildCumOption(chartAllData[period]));
+            chartDailyInst.setOption(buildBarOption(chartAllData[period]));
+            requestAnimationFrame(function () {
+                resizeInsightCharts();
+                setTimeout(resizeInsightCharts, 80);
+            });
+            return;
+        }
+        setChartLoading(true);
+        ensurePeriod(period, function (ok) {
+            setChartLoading(false);
+            if (!ok) return;
+            chartCumInst.setOption(buildCumOption(chartAllData[period]));
+            chartDailyInst.setOption(buildBarOption(chartAllData[period]));
+            requestAnimationFrame(function () {
+                resizeInsightCharts();
+                setTimeout(resizeInsightCharts, 80);
+            });
+        });
+    });
+
+    document.getElementById('rank-tabs').addEventListener('click', function (e) {
+        var btn = e.target.closest('.rank-tab-btn');
+        if (!btn) return;
+        var period = btn.dataset.period;
+        activateTabBtn(this, period);
+        if (rankAllData[period]) { updateRankings(period); return; }
+        var loadIdx = layui.layer.load(2, { shade: false });
+        ensurePeriod(period, function (ok) {
+            layui.layer.close(loadIdx);
+            if (ok) updateRankings(period);
+        });
+    });
+
+    // ====== Module 2: 动态加载 ECharts 再初始化图表 ======
+    /** 数值轴：主横线少量 + 无次网格（避免横线过密）；标签按量级显示小数 */
+    function insightYAxisBase() {
+        return {
+            type: 'value',
+            splitNumber: 5,
+            minorSplitLine: { show: false },
+            splitLine: {
+                show: true,
+                lineStyle: { color: 'rgba(0,0,0,0.08)', type: 'dashed', width: 1 }
+            },
+            axisLabel: {
+                fontSize: 10,
+                formatter: function (v) {
+                    var n = Number(v);
+                    if (!isFinite(n)) { return String(v); }
+                    var a = Math.abs(n);
+                    if (a >= 1e6) { return (n / 1e6).toFixed(2) + 'm'; }
+                    if (a >= 1e4) { return (n / 1e3).toFixed(2) + 'k'; }
+                    if (a >= 1000) { return n.toFixed(1); }
+                    if (a >= 100) { return n.toFixed(1); }
+                    if (a >= 10) { return n.toFixed(2); }
+                    if (a >= 1) { return n.toFixed(2); }
+                    return n.toFixed(3);
+                }
+            }
+        };
+    }
+
+    function chartXAxisLabelOpt(labels) {
+        var n = (labels && labels.length) || 0;
+        return {
+            fontSize: n >= 20 ? 9 : 10,
+            rotate: n >= 20 ? 45 : 30,
+            interval: 0
+        };
+    }
+
+    function buildCumOption(d) {
+        if (!d) return {};
+        var y = insightYAxisBase();
+        y.min = 0;
+        return {
+            grid: { top: 8, bottom: 28, left: 14, right: 10, containLabel: true },
+            xAxis: { type: 'category', data: d.labels, axisLabel: chartXAxisLabelOpt(d.labels) },
+            yAxis: y,
+            series: [{ type: 'line', data: d.cum, smooth: true, symbol: 'none',
+                lineStyle: { color: '#3949ab' },
+                areaStyle: { color: 'rgba(57,73,171,0.08)' } }],
+            tooltip: { trigger: 'axis' }
+        };
+    }
+
+    function buildBarOption(d) {
+        if (!d) return {};
+        var y = insightYAxisBase();
+        y.scale = true;
+        return {
+            grid: { top: 8, bottom: 28, left: 14, right: 10, containLabel: true },
+            xAxis: { type: 'category', data: d.labels, axisLabel: chartXAxisLabelOpt(d.labels) },
+            yAxis: y,
+            series: [{
+                type: 'bar',
+                data: d.daily.map(function (v) {
+                    return { value: v, itemStyle: { color: v >= 0 ? 'rgba(0,150,136,0.75)' : 'rgba(244,67,54,0.75)' } };
+                })
+            }],
+            tooltip: { trigger: 'axis' }
+        };
+    }
+
+    function resizeInsightCharts() {
+        if (chartCumInst) { chartCumInst.resize(); }
+        if (chartDailyInst) { chartDailyInst.resize(); }
+    }
+
+    function initCharts() {
+        chartCumInst   = echarts.init(document.getElementById('chartCumulative'));
+        chartDailyInst = echarts.init(document.getElementById('chartDaily'));
+        chartCumInst.setOption(buildCumOption(chartAllData.day));
+        chartDailyInst.setOption(buildBarOption(chartAllData.day));
+        window.addEventListener('resize', resizeInsightCharts);
+        requestAnimationFrame(function () {
+            resizeInsightCharts();
+            setTimeout(resizeInsightCharts, 100);
+        });
+    }
+
+    // Temporarily hide AMD define so ECharts UMD falls through to window.echarts
+    (function () {
+        var _define = window.define;
+        window.define = undefined;
+        var s = document.createElement('script');
+        s.src = '/static/plugs/echarts/echarts.min.js';
+        s.onload = function () {
+            window.define = _define;
+            setTimeout(initCharts, 0);
+        };
+        document.head.appendChild(s);
+    })();
+
+    // Form submit: AJAX 局部刷新核心指标卡片，不导航
+    document.getElementById('insight-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('range_preset', 'custom');
+        var rs = this.querySelector('[name="range_start"]').value;
+        var re = this.querySelector('[name="range_end"]').value;
+        if (rs) params.set('range_start', rs);
+        if (re) params.set('range_end', re);
+        var tgid = this.querySelector('[name="target_group_id"]').value.trim();
+        if (tgid) params.set('target_group_id', tgid);
+        var mc = this.querySelector('[name="market_category"]').value;
+        if (mc) params.set('market_category', mc);
+        var msc = this.querySelector('[name="market_sub_category"]').value.trim();
+        if (msc) params.set('market_sub_category', msc);
+
+        var btn = this.querySelector('button[type="submit"]');
+        var origText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '查询中…';
+
+        $.ajax({
+            url: CARDS_URL,
+            type: 'GET',
+            data: Object.fromEntries(params),
+            dataType: 'json',
+            success: function (res) {
+                if (res.code !== 1 || !res.data) {
+                    layui.layer.msg(res.info || res.msg || '查询失败');
+                    return;
+                }
+                var d = res.data;
+                var elPnl = document.getElementById('card-total-pnl');
+                elPnl.textContent = '$' + d.total_pnl_fmt;
+                elPnl.classList.remove('insight-card-pnl-val--pos', 'insight-card-pnl-val--neg');
+                elPnl.classList.add(parseFloat(d.total_pnl) >= 0 ? 'insight-card-pnl-val--pos' : 'insight-card-pnl-val--neg');
+                var sm = !!d.single_market;
+                var elAvg = document.getElementById('card-avg-pnl');
+                elAvg.textContent = sm ? '—' : ('$' + (d.avg_pnl_fmt || ''));
+                elAvg.style.color = sm ? '#bbb' : '';
+                var elW = document.getElementById('card-win');
+                var elL = document.getElementById('card-lose');
+                if (sm) {
+                    elW.textContent = '—';
+                    elL.textContent = '—';
+                    elW.style.color = '#bbb';
+                    elL.style.color = '#bbb';
+                } else {
+                    elW.textContent = '盈利: ' + d.win_count + ' (' + d.win_pct_fmt + '%)';
+                    elL.textContent = '亏损: ' + d.lose_count + ' (' + d.lose_pct_fmt + '%)';
+                    elW.style.color = '#009688';
+                    elL.style.color = '#f44336';
+                }
+                var elMx = document.getElementById('card-max-loss');
+                var elMxid = document.getElementById('card-max-loss-id');
+                if (sm) {
+                    elMx.textContent = '—';
+                    elMxid.textContent = '—';
+                    elMx.style.color = '#bbb';
+                } else {
+                    elMx.textContent = '$' + d.max_loss_fmt;
+                    // max_loss_id 是 token_id（不再是 market_id）；显示截短版前面加 "token_id：" 前缀，title 挂完整值
+                    var idText = d.max_loss_id_short || d.max_loss_id || '';
+                    elMxid.textContent = idText ? ('token_id：' + idText) : '';
+                    elMxid.title = d.max_loss_id || '';
+                    elMx.style.color = '#f44336';
+                }
+            },
+            error: function () { layui.layer.msg('查询失败，请重试'); },
+            complete: function () { btn.disabled = false; btn.textContent = origText; }
+        });
+    });
+});
+</script>
+{/block}

@@ -1,0 +1,79 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <label class="layui-form-label">子账号 ID</label>
+            <div class="layui-input-block">
+                <input type="text" value="{$vo.id|default=''}" class="layui-input layui-disabled" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">关联产品</label>
+            <div class="layui-input-block">
+                <input type="text" value="#{$vo.product_id|default=''} {$vo.product_name|default=''}" class="layui-input layui-disabled" disabled>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">展示名</label>
+            <div class="layui-input-block">
+                <input name="account_name" value="{$vo.account_name|default=''}" required maxlength="128" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">平台标识</label>
+            <div class="layui-input-block">
+                <input name="external_subaccount_id" value="{$vo.external_subaccount_id|default=''}" required maxlength="128" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">accounts_id</label>
+            <div class="layui-input-block">
+                <input name="accounts_id" value="{$vo.accounts_id|default=''}" maxlength="20" placeholder="可选" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">API Key</label>
+            <div class="layui-input-block">
+                <input name="api_key" value="{$vo.api_key|default=''}" required maxlength="128" autocomplete="off" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">API Secret</label>
+            <div class="layui-input-block">
+                <input name="api_secret" type="password" maxlength="512" autocomplete="new-password"
+                       placeholder="留空表示不修改；当前 {$vo.api_secret_masked|default=''}" class="layui-input mono">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                <select name="status">
+                    {foreach $statuses as $sk=>$sl}
+                    <option value="{$sk}" {if isset($vo.status) && $vo.status==$sk}selected{/if}>{$sl}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <textarea name="remark" maxlength="500" class="layui-textarea">{$vo.remark|default=''}</textarea>
+            </div>
+        </div>
+        <div class="hr-line-dashed"></div>
+        <input type="hidden" name="id" value="{$vo.id|default=''}">
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">保存</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function () {
+    layui.form.render();
+});
+</script>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>

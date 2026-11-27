@@ -1,0 +1,46 @@
+{extend name="../../admin/view/main"}
+{block name="button"}<button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon">&#xe669;</i> 刷新</button>{/block}
+{block name="content"}
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">发放时间</label><div class="layui-input-inline" style="width:200px;"><input name="date_range" value="{$get.date_range|default=''}" class="layui-input" id="dt-range"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号ID</label><div class="layui-input-inline" style="width:90px;"><input name="exchange_account_id" value="{$get.exchange_account_id|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">平台</label><div class="layui-input-inline" style="width:100px;"><select name="platform"><option value="">全部</option>{foreach $platforms as $k=>$v}<option value="{$k}" {if isset($get.platform) && $get.platform==$k}selected{/if}>{$v}</option>{/foreach}</select></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">持仓币</label><div class="layui-input-inline" style="width:90px;"><input name="position_asset" value="{$get.position_asset|default=''}" class="layui-input" placeholder="如 BFUSD"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">奖励币</label><div class="layui-input-inline" style="width:90px;"><input name="reward_asset" value="{$get.reward_asset|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr>
+    <th>账号</th>
+    <th>用户名称</th>
+    <th>平台</th>
+    <th>持仓币种</th>
+    <th style="text-align:right;">持仓数量</th>
+    <th>奖励币种</th>
+    <th style="text-align:right;">奖励数量</th>
+    <th style="text-align:right;">年化</th>
+    <th>发放时间</th>
+    <th>入库时间</th>
+</tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.exchange_account_id}</td>
+<td>{$vo.account_name|default='-'}</td>
+<td>{$vo.platform}</td>
+<td>{$vo.position_asset}</td>
+<td class="mono" style="text-align:right;">{$vo.position_qty_fmt}</td>
+<td>{$vo.reward_asset}</td>
+<td class="mono" style="text-align:right;">{$vo.reward_qty_fmt}</td>
+<td class="mono" style="text-align:right;">{$vo.apr_fmt|default='-'}</td>
+<td>{$vo.reward_time}</td>
+<td>{$vo.created_at}</td>
+</tr>{/foreach}{if empty($list)}<tr><td colspan="10" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>
+{/block}
+{block name="script"}
+<style>.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }</style>
+{include file="common/pagination_assets"}
+<script>layui.use(['form','laydate'],function(){layui.form.render('select');layui.laydate.render({elem:'#dt-range',type:'date',range:' - '});});</script>
+{/block}

@@ -1,0 +1,5 @@
+# Bitfinex 周账单：每 5 分钟尝试生成「上一 UTC 周」PDF（已生成则跳过）
+# cron 使用 root 读取 /proc/1/environ；脚本切换到 www-data 执行 PHP。
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+*/5 * * * * root /var/www/html/docker/cron-weekly-statement.sh >> /var/www/html/runtime/log/weekly_statement_cron.log 2>&1

@@ -1,0 +1,42 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+    <div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">账单周</label>
+            <div class="layui-input-inline" style="width:130px;">
+                <input type="date" name="week_start" value="{$get.week_start|default=''}" placeholder="留空=全部" class="layui-input" title="留空展示全部；选择周内任意一天可筛选该周">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">客户 ID</label>
+            <div class="layui-input-inline" style="width:90px;">
+                <input name="client_id" value="{$get.client_id|default=''}" placeholder="精确" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">用户名称</label>
+            <div class="layui-input-inline" style="width:160px;">
+                <input name="client_name" value="{$get.client_name|default=''}" placeholder="模糊搜索" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">账单类型</label>
+            <div class="layui-input-inline" style="width:130px;">
+                <select name="statement_type">
+                    <option value="">全部</option>
+                    {foreach $statement_types as $sk=>$sl}
+                    <option value="{$sk}" {if isset($get.statement_type) && $get.statement_type==$sk}selected{/if}>{$sl}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function () {
+    layui.form.render('select');
+});
+</script>

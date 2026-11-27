@@ -1,0 +1,138 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block">
+    {include file="fund_weekly_statement/index_search"}
+
+    <div class="layui-text" style="margin:8px 0 12px;color:#666;">
+        账单周期：<strong>{$week_range_fmt|default='-'}</strong>
+        <span style="margin-left:12px;font-size:12px;">UTC 自然周（周一至周日）；账单周留空展示全部；进入页面会按当前周自动补库占位（无 PDF）</span>
+    </div>
+
+    <table class="layui-table margin-top-10 fr-table" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:70px;">客户 ID</th>
+            <th style="width:140px;">用户</th>
+            <th style="width:100px;">账单类型</th>
+            <th style="width:180px;">日期范围</th>
+            <th style="width:120px;text-align:right;">本期净收益</th>
+            <th style="width:140px;">生成时间</th>
+            <th style="width:260px;">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td>{$vo.client_id|default='-'}</td>
+            <td>{$vo.client_name|default='-'}</td>
+            <td>{$vo.statement_type_label|default='-'}</td>
+            <td>{$vo.week_range_fmt|default='-'}</td>
+            <td class="mono" style="text-align:right;">{$vo.total_profit_fmt|default='0.00'}</td>
+            <td style="font-size:12px;">
+                {if $vo.has_pdf}
+                {$vo.generated_at|default='-'}
+                {if !empty($vo.generated_by)}<br><span style="color:#999;">{$vo.generated_by}</span>{/if}
+                {else/}
+                <span style="color:#999;">未生成</span>
+                {/if}
+            </td>
+            <td>
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-warm fws-generate-btn"
+                        data-client-id="{$vo.client_id}"
+                        data-statement-type="{$vo.statement_type}"
+                        data-week-start="{$vo.week_start|default=''}"
+                        data-has-pdf="{if $vo.has_pdf}1{else}0{/if}">
+                    生成报表
+                </button>
+                {if $vo.has_pdf}
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-primary fws-preview-btn"
+                        data-id="{$vo.id}"
+                        data-title="{$vo.client_name|default=''} · {$vo.statement_type_label|default=''} · {$vo.week_range_fmt|default=''}">
+                    查看报表
+                </button>
+                <a class="layui-btn layui-btn-xs layui-btn-normal"
+                   href="{:url('download')}?id={$vo.id}" target="_blank">
+                    下载报表
+                </a>
+                {/if}
+            </td>
+        </tr>
+        {/foreach}
+        {if empty($list)}
+        <tr><td colspan="7" style="text-align:center;color:#999;">暂无周账单数据</td></tr>
+        {/if}
+        </tbody>
+    </table>
+
+    {include file="common/pagination_footer"}
+</div>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['layer'], function () {
+    var layer = layui.layer;
+
+    function resolvePreviewUrl(id) {
+        var url = '{:url("preview")}?id=' + encodeURIComponent(id);
+        if (url.indexOf('#') > -1) {
+            url = '/bitfinex/fund_weekly_statement/preview.html?id=' + encodeURIComponent(id);
+        }
+        return url;
+    }
+
+    $('.fws-preview-btn').on('click', function () {
+        var id = $(this).data('id');
+        var title = $(this).data('title') || '查看报表';
+        if (!id) {
+            layer.msg('参数错误', {icon: 0});
+            return;
+        }
+        var previewUrl = resolvePreviewUrl(id);
+        layer.open({
+            type: 2,
+            title: title,
+            area: ['920px', '90%'],
+            shadeClose: true,
+            maxmin: true,
+            content: previewUrl
+        });
+    });
+
+    $('.fws-generate-btn').on('click', function () {
+        var $btn = $(this);
+        var payload = {
+            client_id: $btn.data('client-id'),
+            statement_type: $btn.data('statement-type'),
+            week_start: $btn.data('week-start')
+        };
+        var confirmMsg = String($btn.data('has-pdf')) === '1'
+            ? '重新生成将覆盖当前 PDF，是否继续？'
+            : '确认为该客户生成本周 PDF 对账单？';
+        layer.confirm(confirmMsg, {icon: 3, title: '生成报表'}, function (idx) {
+            layer.close(idx);
+            var loadIdx = layer.load(2);
+            $.form.load('{:url("generate")}', payload, 'post', function (ret) {
+                layer.close(loadIdx);
+                if (ret && ret.code) {
+                    $.msg.success(ret.info || '已生成', 1, function () {
+                        $.form.load(location.href, {}, 'get');
+                    });
+                } else {
+                    $.msg.error((ret && ret.info) ? ret.info : '生成失败');
+                }
+            }, false);
+        });
+    });
+});
+</script>
+{/block}

@@ -1,0 +1,223 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+    <a class="layui-btn layui-btn-sm" href="{:url('export')}?{$export_query}"><i class="layui-icon">&#xe601;</i> 导出 CSV</a>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow normalized-page">
+    {notempty name='error'}
+    <div class="think-box-notify" type="error">{$error}</div>
+    {/notempty}
+    <form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">归一化表</label>
+            <div class="layui-input-inline" style="width:190px;">
+                <select name="table" lay-filter="normalizedTable">
+                    {foreach $tables as $key=>$title}
+                    <option value="{$key}" {if $table eq $key}selected{/if}>{$title}</option>
+                    {/foreach}
+                    <option value="kafka_sports_market">Kafka 体育推送归档</option>
+                </select>
+            </div>
+        </div>
+        {foreach $meta.search as $field}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">{$search_labels[$field]|default=$field}</label>
+            <div class="layui-input-inline" style="width:180px;">
+                {if isset($meta.search_options[$field])}
+                <input name="{$field}" list="normalized-options-{$field}" value="{$get[$field]|default=''}" placeholder="选择或输入 {$search_labels[$field]|default=$field}" class="layui-input">
+                <datalist id="normalized-options-{$field}">
+                    {foreach $meta.search_options[$field] as $opt}
+                    <option value="{$opt}"></option>
+                    {/foreach}
+                </datalist>
+                {else}
+                <input name="{$field}" value="{$get[$field]|default=''}" placeholder="搜索 {$search_labels[$field]|default=$field}" class="layui-input">
+                {/if}
+            </div>
+        </div>
+        {/foreach}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">开始时间</label>
+            <div class="layui-input-inline" style="width:170px;">
+                <input name="start_time" value="{$get.start_time|default=''}" placeholder="YYYY-MM-DD HH:mm:ss" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">结束时间</label>
+            <div class="layui-input-inline" style="width:170px;">
+                <input name="end_time" value="{$get.end_time|default=''}" placeholder="YYYY-MM-DD HH:mm:ss" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-sm" type="submit"><i class="layui-icon">&#xe615;</i> 搜索</button>
+            <a class="layui-btn layui-btn-sm layui-btn-primary" href="#/data/normalized/index.html?table={$table}">重置</a>
+        </div>
+    </form>
+
+    <div class="table-scroll">
+        <table class="layui-table margin-top-10" lay-skin="line">
+            <thead>
+            <tr>
+                {foreach $meta.columns as $field=>$label}
+                <th>{$label}</th>
+                {/foreach}
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            {foreach $list as $vo}
+            <tr>
+                {foreach $meta.columns as $field=>$label}
+                <td data-field="{$field}" title="{:htmlentities($vo[$field] ?? '', ENT_QUOTES, 'UTF-8')}">
+                    <span class="cell-mono copy-cell" title="{:htmlentities($vo[$field] ?? '', ENT_QUOTES, 'UTF-8')}" data-copy="{:htmlentities($vo[$field] ?? '', ENT_QUOTES, 'UTF-8')}">{$vo[$field]|default='-'}</span>
+                </td>
+                {/foreach}
+                <td class="op-cell">
+                    {if $vo.event_id}
+                    <a class="layui-btn layui-btn-xs layui-btn-normal" href="javascript:void(0)" data-open="/data/normalized/detail.html?table={$table}&event_id={:urlencode($vo.event_id)}&sport={:urlencode($meta.asset_type)}&back={:urlencode(http_build_query($get))}">详情</a>
+                    {/if}
+                </td>
+            </tr>
+            {/foreach}
+            </tbody>
+        </table>
+    </div>
+    {empty name='list'}<span class="notdata">没有记录</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+<style>
+.normalized-page { padding:16px; overflow-x:visible; }
+.normalized-page .table-scroll { overflow-x:auto; }
+.normalized-page .layui-table { min-width:2200px; }
+.normalized-page .layui-table th,
+.normalized-page .layui-table td { white-space:nowrap; max-width:520px; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
+.normalized-page .cell-mono {
+    display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    color:#34495e; font-family:Consolas, Monaco, monospace; font-size:12px;
+}
+.normalized-page .copy-cell { cursor:pointer; }
+.normalized-page .data-combo { position:relative; }
+.normalized-page .data-combo-menu {
+    display:none; position:absolute; z-index:9999; top:38px; left:0; right:0; max-height:220px; overflow:auto;
+    background:#fff; border:1px solid #e6e6e6; box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.normalized-page .data-combo.open .data-combo-menu { display:block; }
+.normalized-page .data-combo-menu a {
+    display:block; padding:7px 10px; color:#333; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.normalized-page .data-combo-menu a:hover { background:#f2f2f2; color:#009688; }
+.normalized-page td[data-field="price_json"] .cell-mono { color:#555; }
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+.pagination { display:flex; justify-content:center; flex-wrap:wrap; margin:20px 0; padding:0; list-style:none; }
+.pagination li { display:inline-block; margin:0 2px; }
+.pagination li a, .pagination li span {
+    display:inline-block; padding:6px 10px; border:1px solid #ddd; background:#fff;
+    color:#666; text-decoration:none; border-radius:2px; cursor:pointer; min-width:36px; text-align:center;
+}
+.pagination li.active span { background:#009688; color:#fff; border-color:#009688; }
+.pagination li a:hover { background:#f2f2f2; border-color:#009688; color:#009688; }
+</style>
+<script>
+if (window.top === window.self && location.pathname.toLowerCase().indexOf('/data/normalized/') === 0) {
+    location.replace('/admin.html#' + location.pathname + location.search);
+}
+layui.use(['form'], function () {
+    var form = layui.form;
+    form.render('select');
+    $('.normalized-page form.form-search').on('submit', function (event) {
+        event.preventDefault();
+        // 直接更新后台 hash 路由，避免先打开裸模板再由页面脚本重定向回来。
+        $.form.href('/data/normalized/index.html?' + $(this).serialize() + '&_refresh=' + Date.now());
+        return false;
+    });
+    form.on('select(normalizedTable)', function (data) {
+        if (data.value === 'kafka_sports_market') {
+            $.form.href('{:url("archive")}');
+            return;
+        }
+        $('.normalized-page form.form-search').submit();
+    });
+});
+function initDataCombos(scope) {
+    $(scope || document).find('input[list]').each(function () {
+        var $input = $(this), listId = $input.attr('list'), $list = $('#' + listId);
+        if (!$list.length || $input.closest('.data-combo').length) return;
+        var $wrap = $('<div class="data-combo"></div>');
+        var $menu = $('<div class="data-combo-menu"></div>');
+        $list.find('option').each(function () {
+            var value = $(this).attr('value');
+            if (value) $menu.append($('<a href="javascript:;"></a>').attr('data-value', value).text(value));
+        });
+        $input.removeAttr('list').addClass('data-combo-input').wrap($wrap).after($menu);
+        $list.remove();
+    });
+}
+function dataComboFilter($wrap) {
+    var q = String($wrap.find('.data-combo-input').val() || '').toLowerCase();
+    $wrap.find('.data-combo-menu a').each(function () {
+        var text = String($(this).data('value') || '').toLowerCase();
+        $(this).toggle(!q || text.indexOf(q) >= 0);
+    });
+}
+initDataCombos(document);
+$(document).on('focus click', '.data-combo-input', function () {
+    var $wrap = $(this).closest('.data-combo');
+    dataComboFilter($wrap);
+    $wrap.addClass('open');
+});
+$(document).on('input', '.data-combo-input', function () {
+    dataComboFilter($(this).closest('.data-combo'));
+});
+$(document).on('mousedown', '.data-combo-menu a', function (e) {
+    e.preventDefault();
+    var $wrap = $(this).closest('.data-combo');
+    $wrap.find('.data-combo-input').val($(this).data('value'));
+    $wrap.removeClass('open');
+});
+$(document).on('mousedown', function (e) {
+    if (!$(e.target).closest('.data-combo').length) $('.data-combo').removeClass('open');
+});
+</script>
+<script>
+layui.use(['layer'], function () {
+    var $ = window.$ || layui.jquery;
+    var L = (window.top && window.top.layer) ? window.top.layer : layui.layer;
+    function doCopy(text) {
+        text = (text == null ? '' : text).toString();
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(function () { L.msg('已复制', {icon: 1, time: 800}); }, fallback);
+        } else { fallback(); }
+        function fallback() {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px';
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+            L.msg(ok ? '已复制' : '复制失败，请手动复制', {icon: ok ? 1 : 2, time: 1000});
+        }
+    }
+    $(document).off('click.dataCopy').on('click.dataCopy', '.think-box-shadow td', function (e) {
+        if ($(e.target).closest('a, button, input, textarea, label, select, .layui-btn').length) return;
+        var $td = $(this);
+        if ($td.find('button, input, select, .layui-btn').length) return;
+        var $titled = $td.find('[title]').not('a, button, .layui-btn').filter(function () {
+            return ($(this).attr('title') || '').length > 0;
+        }).first();
+        var val = $titled.length ? $titled.attr('title') : $td.text();
+        val = (val || '').replace(/\s+/g, ' ').trim();
+        if (!val || val === '-' || val === '…') return;
+        doCopy(val);
+    });
+});
+</script>
+{/block}

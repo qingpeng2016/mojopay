@@ -1,0 +1,132 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block" style="padding:16px;">
+    {include file="arb_trade_records/index_search"}
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:60px;">ID</th>
+            <th style="width:90px;">套利记录</th>
+            <th style="width:110px;">成交腿</th>
+            <th style="width:70px;">方向</th>
+            <th style="width:120px;">订单ID</th>
+            <th style="width:120px;">成交ID</th>
+            <th style="width:150px;">token</th>
+            <th style="width:90px;">成交价</th>
+            <th style="width:100px;">成交份数</th>
+            <th style="width:110px;">理论金额</th>
+            <th style="width:110px;">链上真实金额</th>
+            <th style="width:90px;">手续费</th>
+            <th style="width:90px;">滑点</th>
+            <th style="width:80px;">已回填</th>
+            <th style="width:130px;">来源</th>
+            <th style="width:120px;">tx</th>
+            <th style="width:140px;">成交时间</th>
+            <th style="width:140px;">写入时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td>
+                <a href="/admin.html#/rmpd/arb_record/index.html?id={$vo.arb_record_id}" title="查看套利记录">{$vo.arb_record_id}</a>
+            </td>
+            <td>
+                {php}$legLabel = $legs[$vo['leg']] ?? '';{/php}
+                {if $legLabel}
+                <span class="layui-badge layui-bg-blue">{$legLabel}</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$vo.leg|default='-'}</span>
+                {/if}
+            </td>
+            <td>
+                {if ($vo['side'] ?? '') eq 'BUY'}
+                <span class="layui-badge layui-bg-green">买</span>
+                {elseif ($vo['side'] ?? '') eq 'SELL'}
+                <span class="layui-badge layui-bg-orange">卖</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$vo.side|default='-'}</span>
+                {/if}
+            </td>
+            <td style="font-size:11px;">
+                {if !empty($vo['order_id'])}<span title="{$vo.order_id}">{:mb_substr((string)$vo['order_id'], 0, 10)}…</span>{else}-{/if}
+            </td>
+            <td style="font-size:11px;">
+                {if !empty($vo['trade_id'])}<span title="{$vo.trade_id}">{:mb_substr((string)$vo['trade_id'], 0, 10)}…</span>{else}-{/if}
+            </td>
+            <td style="font-size:11px;">
+                {if mb_strlen($vo.token_id ?? '') > 14}
+                <span title="{$vo.token_id}">{:mb_substr($vo.token_id ?? '', 0, 8)}…{:mb_substr($vo.token_id ?? '', -4)}</span>
+                {else}
+                {$vo.token_id|default='-'}
+                {/if}
+            </td>
+            <td>{:number_format((float)($vo['trade_price'] ?? 0), 6)}</td>
+            <td>{:number_format((float)($vo['trade_quantity'] ?? 0), 4)}</td>
+            <td>${:number_format((float)($vo['trade_amount'] ?? 0), 4)}</td>
+            <td>${:number_format((float)($vo['real_trade_amount'] ?? 0), 4)}</td>
+            <td>{:number_format((float)($vo['fee_amount'] ?? 0), 4)}</td>
+            <td>
+                {php}$slip = (float)($vo['slippage_amount'] ?? 0);{/php}
+                <span style="{if $slip < 0}color:#ff5722;{/if}">{:number_format($slip, 4)}</span>
+            </td>
+            <td>
+                {if ($vo['amount_finalized'] ?? 0)}
+                <span class="layui-badge layui-bg-green">是</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">否</span>
+                {/if}
+            </td>
+            <td style="font-size:11px;">
+                {php}$dsLabel = $data_sources[$vo['data_source']] ?? '';{/php}
+                {if $dsLabel}{$dsLabel}{else}{$vo.data_source|default='-'}{/if}
+            </td>
+            <td style="font-size:11px;">
+                {if !empty($vo['transaction_hash'])}
+                <a href="https://polygonscan.com/tx/{$vo.transaction_hash}" target="_blank" rel="noopener noreferrer" title="{$vo.transaction_hash}">{:mb_substr($vo['transaction_hash'], 0, 8)}…🔗</a>
+                {else}
+                <span style="color:#999;">-</span>
+                {/if}
+            </td>
+            <td>{$vo.trade_time}</td>
+            <td>{$vo.created_at}</td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有记录哦</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+{include file="copy_cell"}
+<style>
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+.form-search input[id$="-date-range"] { border:1px solid #c2c6cc !important; background:#fff !important; }
+.table-block { overflow-x: auto; }
+.table-block .layui-table { min-width: 2100px; }
+.table-block .layui-table th,
+.table-block .layui-table td { white-space: nowrap; }
+.pagination { display:flex; justify-content:center; flex-wrap:wrap; margin:20px 0; padding:0; list-style:none; }
+.pagination li { display:inline-block; margin:0 2px; }
+.pagination li a, .pagination li span {
+    display:inline-block; padding:6px 10px; border:1px solid #ddd;
+    background:#fff; color:#666; text-decoration:none; border-radius:2px;
+    cursor:pointer; min-width:36px; text-align:center;
+}
+.pagination li.active span { background:#009688; color:#fff; border-color:#009688; }
+.pagination li a:hover { background:#f2f2f2; border-color:#009688; color:#009688; }
+.pagination li.disabled span { background:#f5f5f5; color:#999; cursor:not-allowed; }
+</style>
+{/block}

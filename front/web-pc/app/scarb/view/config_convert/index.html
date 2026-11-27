@@ -1,0 +1,23 @@
+{extend name="../../admin/view/main"}
+{block name="button"}
+<a class="layui-btn layui-btn-sm" data-modal="{:url('add')}" data-title="新增兑换配置"><i class="layui-icon">&#xe654;</i> 新增</a>
+{/block}
+{block name="content"}
+<div class="think-box-shadow table-block">
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get">
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">账号ID</label><div class="layui-input-inline" style="width:90px;"><input name="exchange_account_id" value="{$get.exchange_account_id|default=''}" class="layui-input"></div></div>
+    <div class="layui-form-item layui-inline"><label class="layui-form-label">状态</label><div class="layui-input-inline" style="width:90px;"><select name="status"><option value="">全部</option><option value="1" {if isset($get.status) && $get.status==='1'}selected{/if}>启用</option><option value="0" {if isset($get.status) && $get.status==='0'}selected{/if}>停用</option></select></div></div>
+    <div class="layui-form-item layui-inline"><button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜索</button></div>
+</form>
+<table class="layui-table margin-top-10" lay-skin="line" style="font-size:12px;">
+<thead><tr><th>ID</th><th>账号</th><th>平台</th><th>From</th><th>To</th><th>最小</th><th>最大</th><th>状态</th><th>更新</th><th>操作</th></tr></thead>
+<tbody>{foreach $list as $vo}<tr>
+<td>{$vo.id}</td><td>{$vo.exchange_account_id}</td><td>{$vo.platform}</td><td>{$vo.from_asset}</td><td>{$vo.to_asset}</td>
+<td class="mono">{$vo.min_from_qty_fmt|default='-'}</td><td class="mono">{$vo.max_from_qty_fmt|default='-'}</td><td>{$vo.status_text|default='-'}</td><td>{$vo.updated_at}</td>
+<td><a class="layui-btn layui-btn-xs layui-btn-primary" data-modal='{:url("edit")}?id={$vo.id}' data-title="修改">修改</a></td>
+</tr>{/foreach}{if empty($list)}<tr><td colspan="10" style="text-align:center;color:#999;">暂无数据</td></tr>{/if}</tbody>
+</table>
+{include file="common/pagination_footer"}
+</div>
+{/block}
+{block name="script"}{include file="common/pagination_assets"}{/block}

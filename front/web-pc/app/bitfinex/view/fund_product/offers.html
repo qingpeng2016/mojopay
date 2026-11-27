@@ -1,0 +1,62 @@
+<div class="layui-card" style="box-shadow:none;">
+    <div class="layui-card-body">
+        <div class="fp-offers-head">
+            <span><strong>#{$product.id|default=''}</strong> {$product.product_name|default=''}</span>
+            <span class="fp-offers-meta">submitted 挂单 <strong>{$count|default='0'}</strong> 笔</span>
+        </div>
+
+        <div class="fp-offers-table-wrap">
+            <table class="layui-table fp-offers-table" lay-skin="line" style="margin-top:10px;">
+                <thead>
+                <tr>
+                    <th style="width:55px;">ID</th>
+                    <th style="width:60px;">币种</th>
+                    <th style="width:120px;">Order ID</th>
+                    <th style="width:80px;">层级</th>
+                    <th style="width:110px;">场景</th>
+                    <th style="width:110px;text-align:right;">金额</th>
+                    <th style="width:110px;text-align:right;">利率</th>
+                    <th style="width:80px;text-align:right;">年化</th>
+                    <th style="width:110px;text-align:right;">原始利率</th>
+                    <th style="width:55px;">期限</th>
+                    <th style="width:70px;">递减次数</th>
+                    <th style="width:140px;">创建时间</th>
+                </tr>
+                </thead>
+                <tbody>
+                {foreach $offers as $row}
+                <tr>
+                    <td>{$row.id}</td>
+                    <td>{$row.symbol|default='-'}</td>
+                    <td class="mono">{$row.order_id|default='-'}</td>
+                    <td>{$row.layer_code_label|default='-'}</td>
+                    <td>{$row.scene_display|default='-'}</td>
+                    <td class="mono" style="text-align:right;">{$row.amount_usd_fmt|default='0'}</td>
+                    <td class="mono" style="text-align:right;">{$row.rate_fmt|default='0'}</td>
+                    <td class="mono" style="text-align:right;">{$row.rate_annual_fmt|default='0%'}</td>
+                    <td class="mono" style="text-align:right;">{$row.origin_rate_fmt|default='0'}</td>
+                    <td>{$row.period_days|default='0'}天</td>
+                    <td>{$row.decay_count|default='0'}</td>
+                    <td style="font-size:12px;">{$row.created_at|default='-'}</td>
+                </tr>
+                {/foreach}
+                {if empty($offers)}
+                <tr><td colspan="12" style="text-align:center;color:#999;">暂无 submitted 挂单</td></tr>
+                {/if}
+                </tbody>
+            </table>
+        </div>
+        {if isset($count) && $count >= 500}
+        <div class="layui-word-aux" style="margin-top:8px;">仅展示最近 500 条 submitted 挂单</div>
+        {/if}
+    </div>
+</div>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.fp-offers-head { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; font-size: 14px; }
+.fp-offers-meta { color: #888; font-size: 13px; }
+.fp-offers-table-wrap { overflow-x: auto; }
+.fp-offers-table { min-width: 1100px; font-size: 12px; }
+.fp-offers-table th, .fp-offers-table td { white-space: nowrap; }
+</style>

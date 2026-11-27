@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修改关联 - 自动化做市商参数配置</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #f7f9fc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+            /* CRITICAL: Force height auto and overflow for scrolling */
+            height: auto !important;
+            overflow: visible !important;
+        }
+        .main-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+        .page-header {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .form-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            color: #444;
+        }
+        .required-star::after { content: " *"; color: #ed5565; margin-left: 4px; }
+        .bottom-buttons-group {
+            margin-top: 50px;
+            border-top: 1px solid #eee;
+            padding-top: 25px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+        .bg-readonly { background-color: #f8f9fa !important; color: #6c757d; }
+        /* 底部按钮：对齐 PRD 原型（圆角矩形；取消浅灰 / 预览白底描边 / 保存黑底） */
+        .bottom-buttons-group .btn { border-radius: 8px; padding: 8px 22px; font-size: 14px; font-weight: 500; }
+        .btn-cancel { background-color: #f2f3f5; border: 1px solid #f2f3f5; color: #333; }
+        .btn-cancel:hover { background-color: #e8eaed; color: #333; }
+        .btn-preview { background-color: #fff; border: 1px solid #dcdfe6; color: #333; }
+        .btn-preview:hover { background-color: #f7f8fa; color: #333; }
+        .btn-save { background-color: #1d1d1f; border: 1px solid #1d1d1f; color: #fff; }
+        .btn-save:hover { background-color: #000; color: #fff; }
+        /* 配置预览：独立全屏浮层（覆盖表单），对齐 PRD 原型 */
+        /* 默认 absolute：覆盖所在 layui 弹层框（与编辑弹窗同等面积）；无弹层框时(iframe/独立) JS 改 fixed 兜底 */
+        #previewOverlay { position: absolute; inset: 0; z-index: 2147483600; background: #f7f9fc; display: none; flex-direction: column; }
+        #previewOverlay .pv-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 28px; background: #fff; border-bottom: 1px solid #eee; }
+        #previewOverlay .pv-title { font-size: 18px; font-weight: 700; }
+        #previewOverlay .pv-body { flex: 1; overflow-y: auto; padding: 22px 28px; max-width: 760px; width: 100%; margin: 0 auto; }
+        #previewOverlay .pv-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 14px 28px; background: #fff; border-top: 1px solid #eee; }
+        #previewOverlay .pv-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+        #previewOverlay .pv-card-title { font-weight: 700; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="page-header">
+        <h1>修改关联配置</h1>
+        <div class="text-muted small">正在编辑市场：{$vo.market_name|default="Unknown"}</div>
+    </div>
+
+    <form class="layui-form" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off">
+        
+        <div class="form-section-title">基础信息 (只读)</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">市场名称</label>
+                <input name="market_name" value='{$vo.market_name}' readonly class="form-control bg-readonly">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">选项标题</label>
+                <input name="outcome_name" value='{$vo.outcome_name}' readonly class="form-control bg-readonly">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">市场 ID</label>
+                <input id="marketID" value='{$vo.group_id}' readonly class="form-control bg-readonly">
+                <input type="hidden" name="market_id" value="{$vo.group_id}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Vendor</label>
+                <input name="vendor" value='{$vo.vendor|default="foregate"}' readonly class="form-control bg-readonly">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">账号 ID</label>
+                <input name="account_id" value='{$vo.account_id|default="0"}' readonly class="form-control bg-readonly">
+            </div>
+            <div class="col-md-12">
+                <label class="form-label small">市场状态</label>
+                <select name="market_status_display" disabled class="form-select bg-readonly">
+                    <option value="PENDING" {if $vo.market_status eq 'PENDING'}selected{/if}>PENDING</option>
+                    <option value="ACTIVE" {if $vo.market_status eq 'ACTIVE'}selected{/if}>ACTIVE</option>
+                    <option value="CLOSE" {if $vo.market_status eq 'CLOSE'}selected{/if}>CLOSE</option>
+                    <option value="CLOSED" {if $vo.market_status eq 'CLOSED'}selected{/if}>CLOSED</option>
+                </select>
+                <input type="hidden" name="market_status" value="{$vo.market_status}">
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-md-4">
+                <label class="form-label">开始时间</label>
+                <input name="start_time" value='{$vo.start_time}' readonly class="form-control bg-readonly">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">结束时间</label>
+                <input name="end_time" value='{$vo.end_time}' readonly class="form-control bg-readonly">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">结算时间</label>
+                <input name="settle_time" value='{$vo.settlement_time}' readonly class="form-control bg-readonly">
+            </div>
+        </div>
+
+        <div class="form-section-title">做市核心参数</div>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label required-star">基础价差 spread</label>
+                <input name="base_spread" value='{$vo.base_spread + 0}' required class="form-control decimal-control" type="number" step="0.001" data-fixed="3" min="0.001" max="0.999">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label required-star">深度参数 b</label>
+                <input name="depth_b" value='{$vo.depth_b + 0}' required class="form-control decimal-control" type="number" step="1" data-fixed="0" min="50" max="10000000">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label required-star">g0</label>
+                <input name="g0" value='{$vo.g0 + 0}' required class="form-control decimal-control" type="number" step="0.001" data-fixed="3" min="0.001" max="0.5">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label required-star">slope</label>
+                <input name="slope" value='{$vo.slope + 0}' required class="form-control decimal-control" type="number" step="0.01" data-fixed="2" min="0.00" max="1.00">
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-md-3">
+                <label class="form-label required-star">概率 P*(Yes)</label>
+                <input id="mid_price_yes" name="mid_price_yes" value='{$vo.mid_price_yes + 0}' required class="form-control decimal-control" type="number" step="0.001" data-fixed="3" min="0.001" max="0.999">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label required-star">概率 P*(No)</label>
+                <input id="mid_price_no" name="mid_price_no" value='{$vo.mid_price_no + 0}' required class="form-control decimal-control" type="number" step="0.001" data-fixed="3" min="0.001" max="0.999">
+            </div>
+        </div>
+
+        <div class="form-section-title">风控与技术参数</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card p-3 bg-light border-0">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label mb-0 fw-bold">单边持仓限额</label>
+                        <input type="checkbox" name="single_side_limit" lay-filter="single_side_limit" lay-skin="switch" lay-text="ON|OFF" {if $vo.is_position_limit_enabled}checked{/if}>
+                    </div>
+                    <label class="small text-muted">库存偏差限额(%)</label>
+                    <input id="stock_limit" name="stock_limit" value='{:$vo["inventory_deviation_threshold"]===null||$vo["inventory_deviation_threshold"]==="" ? "" : round((float)$vo["inventory_deviation_threshold"]*100,5)}'
+                        class="form-control decimal-control {if !$vo.is_position_limit_enabled}bg-readonly{/if}"
+                        type="number" {if !$vo.is_position_limit_enabled}readonly{/if} data-fixed="0" min="1" max="99">
+                </div>
+            </div>
+            <div class="col-md-6">
+                 <div class="card p-3 bg-light border-0">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label mb-0 fw-bold">动态价差</label>
+                        <input type="checkbox" name="dynamic_spread" lay-skin="switch" lay-text="ON|OFF" {if $vo.is_spread_dynamic_enabled}checked{/if}>
+                    </div>
+                    <label class="small text-muted">调价触发兜底时间(秒)</label>
+                    <input name="reprice_stale_seconds" value='{:$vo["reprice_stale_seconds"]===null||$vo["reprice_stale_seconds"]==="" ? 60 : (int)$vo["reprice_stale_seconds"]}' required class="form-control" type="number" step="1" min="0" max="3600">
+                    <div class="text-muted small mt-1">超过该秒数未更新订单簿则自动重铺一次；默认 60，0 表示关闭兜底。</div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3 mt-2">
+        <div class="col-md-4">
+                <label class="form-label small">节点名称 (Machine)</label>
+                <input name="machine_name" value='{$vo.run_machine_name}' readonly class="form-control bg-readonly">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">表索引 (Index)</label>
+                <input name="table_index" value='{$vo.table_index|default="0"}' readonly class="form-control bg-readonly">
+            </div>
+        </div>
+
+        <div class="form-section-title border-top pt-4">
+            <i class="bi bi-database text-primary me-2"></i>数据源定价
+        </div>
+
+        <div class="border rounded-3 p-3 mb-4">
+            <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-0" id="datasourcePricingToggleRow">
+                <label class="form-check-label" for="datasourcePricingEnabled">
+                    <strong>启用数据源定价</strong><br>
+                    <span class="switch-desc">启用后概率 P* 由数据源自动计算，手动概率变为只读</span>
+                </label>
+                <input type="hidden" name="is_data_source_pricing_enabled" value="off">
+                <input class="form-check-input ms-0" lay-ignore type="checkbox" name="is_data_source_pricing_enabled" id="datasourcePricingEnabled" {if $vo.is_data_source_pricing_enabled}checked{/if}>
+            </div>
+
+            <div id="datasourceFields" style="display:{if $vo.is_data_source_pricing_enabled}block{else}none{/if}; margin-top: 16px;">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">数据源类型</label>
+                        <select name="data_source_type" id="dataSourceType" lay-ignore class="form-select" onchange="onDataSourceTypeChange()">
+                            <option value="weather" {if $vo.data_source_type === 'weather'}selected{/if}>天气 - AccuWeather</option>
+                            <option value="external" {if $vo.data_source_type === 'external'}selected{/if}>外盘</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">数据源子类型</label>
+                        <select name="data_source_sub_type" id="dataSourceSubType" lay-ignore class="form-select">
+                            {if $vo.data_source_type === 'external'}
+                            <option value="polymarket" selected>Polymarket</option>
+                            {else}
+                            <option value="accuweather" selected>降水概率</option>
+                            {/if}
+                        </select>
+                    </div>
+                </div>
+                <!-- 天气专用 -->
+                <div class="row mb-3" id="weatherFields">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">位置坐标 (lat,lng)</label>
+                        <input type="text" name="data_source_location" id="dataSourceLocation" class="form-control" placeholder="例: 34.164,112.838" value="{$vo.data_source_location|default=''}">
+                        <div class="form-text text-muted" id="locationNameDisplay" style="display:none;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">AccuWeather Location Key</label>
+                        <input type="hidden" name="data_source_location_key" id="dataSourceLocationKey" value="{$vo.data_source_location_key|default=''}">
+                        <input type="text" id="dataSourceLocationKeyDisplay" class="form-control" placeholder="自动填充" readonly value="{$vo.data_source_location_key|default=''}">
+                    </div>
+                </div>
+                <!-- F1 外盘专用 -->
+                <div id="externalFields" style="display:none;">
+                    <input type="hidden" id="externalSourceConfigRaw" value='{$vo.external_source_config|default=""|raw}'>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted required-star">外部 Market ID（Polymarket Outcome ID）</label>
+                        <div class="input-group">
+                            <input type="text" name="external_market_id" id="externalMarketId" class="form-control" maxlength="100" placeholder="Polymarket Market/Outcome ID">
+                            <button type="button" id="btnSyncExternal" class="btn btn-outline-secondary">同步</button>
+                        </div>
+                    </div>
+                    <div class="row mb-2" id="externalMappingRow" style="display:none;">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted required-star">内盘 Yes → 外盘 Option</label>
+                            <select name="external_option_yes" id="externalOptionYes" lay-ignore class="form-select"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted required-star">内盘 No → 外盘 Option</label>
+                            <select name="external_option_no" id="externalOptionNo" lay-ignore class="form-select"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <label class="form-label small fw-bold">动态 JSON 配置</label>
+            <textarea name="dynamic_config" readonly class="form-control bg-readonly json-textarea">{$vo.dynamic_config|raw}</textarea>
+        </div>
+
+        <div class="mt-3">
+            <label class="form-label small fw-bold">Token 映射 JSON</label>
+            <textarea name="token_id_mapping" readonly class="form-control bg-readonly json-textarea">{$vo.token_id_mapping|raw}</textarea>
+        </div>
+
+        <!-- F2 信息源时间线 -->
+        <div class="form-section-title border-top pt-4"><i class="bi bi-clock-history text-primary me-2"></i>信息源时间线</div>
+        <div class="border rounded-3 p-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">非必填，最多 20 条；按截止时间升序生效，取 deadline &gt; 当前(UTC) 最早一条</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddTimelineRule">+ 添加规则</button>
+            </div>
+            <input type="hidden" id="midpriceTimelineRaw" value='{$vo.midprice_timeline|default=""|raw}'>
+            <div id="timelineRules"></div>
+        </div>
+
+        {notempty name='vo.id'}<input type='hidden' value='{$vo.id}' name='id'>{/notempty}
+        
+        <div class="bottom-buttons-group">
+            <button class="btn btn-cancel" type='button' data-confirm="确定要取消吗？" data-close onclick="if(window.layui)layui.layer.closeAll('loading')">取消</button>
+            <button class="btn btn-preview" type='button' onclick="showPreview()">
+                <i class="bi bi-eye"></i> 预览
+            </button>
+            <button class="btn btn-save" type="button" lay-submit lay-filter="submitForm" data-close>保存修改</button>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    layui.use(['form', 'layer'], function(){
+        var form = layui.form;
+        var layer = layui.layer;
+        var $ = layui.$;
+
+        // Mid Price Logic
+        $('#mid_price_yes').on('input', function() {
+            var val = parseFloat($(this).val());
+            if (!isNaN(val)) $('#mid_price_no').val(Math.max(0, (1 - val).toFixed(3)));
+        });
+        $('#mid_price_no').on('input', function() {
+            var val = parseFloat($(this).val());
+            if (!isNaN(val)) $('#mid_price_yes').val(Math.max(0, (1 - val).toFixed(3)));
+        });
+
+        // Switch Logic
+        form.on('switch(single_side_limit)', function(data){
+            var $input = $('#stock_limit');
+            if(data.elem.checked){
+                $input.removeAttr('readonly').removeClass('bg-readonly');
+            } else {
+                $input.attr('readonly', 'readonly').addClass('bg-readonly');
+            }
+        });
+
+        // This "catches" the button click and sends it via AJAX 
+        // instead of a standard browser page reload.
+        form.on('submit(submitForm)', function(data){
+            var loader = layer.load(2, {shade: [0.3, '#fff']});
+            
+            $.post(data.form.action, data.field, function(res){
+                layer.close(loader);
+                if(res.code === 1){
+                    layer.msg(res.msg, {icon: 1, time: 1000}, function(){
+                        // Uses the URL we added in the PHP fix
+                        if(res.url) location.href = res.url;
+                    });
+                } else {
+                    layer.alert(res.msg, {icon: 2});
+                }
+            }, 'json').error(function(){
+                layer.close(loader);
+                layer.msg("网络请求通讯失败");
+            });
+            
+            return true; // Crucial: prevents the "black screen" page reload
+        });
+
+    });
+
+
+    // Decimal Control (Same as Add Page)
+    $(document).on('input', '.decimal-control', function() {
+        var $this = $(this);
+        var val = $this.val();
+        var limit = parseInt($this.attr('data-fixed'));
+        if (val === "" || isNaN(val)) return;
+        var parts = val.split('.');
+        if (parts.length > 1 && parts[1].length > limit) {
+            $this.val(limit === 0 ? parts[0] : parts[0] + '.' + parts[1].substring(0, limit));
+            layer.tips(limit === 0 ? "仅限整数" : "最多 " + limit + " 位小数", $this, {tips: [1, '#198754']});
+        }
+    });
+
+    // --- ADD THIS PART FOR RANGE CONTROL ---
+    $(document).on('blur change', '.decimal-control', function() {
+        var $this = $(this);
+        var val = parseFloat($this.val());
+        var min = parseFloat($this.attr('min'));
+        var max = parseFloat($this.attr('max'));
+
+        // Only run if min or max attributes actually exist on this input
+        if (!isNaN(val)) {
+            if (!isNaN(max) && val > max) {
+                $this.val(max);
+                layer.tips("最大值为 " + max, $this, {tips: [1, '#38a169'], time: 2000});
+            }
+            if (!isNaN(min) && val < min) {
+                $this.val(min);
+                layer.tips("最小值为 " + min, $this, {tips: [1, '#38a169'], time: 2000});
+            }
+        }
+    });
+    // --- END OF RANGE CONTROL ---
+
+    function toggleDatasourcePricingFields() {
+        const checkbox = document.getElementById('datasourcePricingEnabled');
+        const fields = document.getElementById('datasourceFields');
+        fields.style.display = checkbox.checked ? 'block' : 'none';
+
+        // Make mid price inputs readonly when datasource pricing is on
+        document.querySelectorAll('.mid-price-input').forEach(function(input) {
+            input.readOnly = checkbox.checked;
+            input.style.backgroundColor = checkbox.checked ? '#f8f9fa' : '';
+        });
+    }
+
+    document.getElementById('datasourcePricingEnabled').addEventListener('change', toggleDatasourcePricingFields);
+
+    document.getElementById('dataSourceLocation').addEventListener('blur', function() {
+        const location = this.value.trim();
+        if (!location) return;
+
+        const parts = location.split(',');
+        if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+            layui.layer.msg('格式错误，请输入 lat,lng 格式，例: 34.164,112.838', {icon: 2});
+            return;
+        }
+
+        const lat = parts[0].trim();
+        const lng = parts[1].trim();
+        const loader = layui.layer.load(2);
+
+        fetch(`{:url('market_mapping_config/geoposition')}?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 1) {
+                    document.getElementById('dataSourceLocationKey').value = data.data.location_key;
+                    document.getElementById('dataSourceLocationKeyDisplay').value = data.data.location_key;
+                    const nameDisplay = document.getElementById('locationNameDisplay');
+                    nameDisplay.textContent = '位置: ' + data.data.location_name;
+                    nameDisplay.style.display = 'block';
+                } else {
+                    layui.layer.alert('获取位置失败: ' + (data.msg || '未知错误'), {icon: 2});
+                }
+            })
+            .catch(err => {
+                layui.layer.msg('网络请求失败', {icon: 2});
+            })
+            .finally(() => {
+                layui.layer.close(loader);
+            });
+    });
+
+// F1/F2：收集外盘数据源/时间线配置，供 previewEdit 后端实时取外盘中间价（与保存契约同字段）
+function collectExternalPricingConfig() {
+    const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+    const cfg = {
+        is_data_source_pricing_enabled: (document.getElementById('datasourcePricingEnabled') || {}).checked ? 'on' : 'off',
+        data_source_type:    val('dataSourceType'),
+        external_market_id:  val('externalMarketId'),
+        external_option_yes: val('externalOptionYes'),
+        external_option_no:  val('externalOptionNo'),
+        midprice_timeline:   []
+    };
+    document.querySelectorAll('#timelineRules .timeline-rule').forEach((row) => {
+        const get = (f) => {
+            const el = row.querySelector(`[name$="[${f}]"]`);
+            return el ? el.value : '';
+        };
+        cfg.midprice_timeline.push({
+            deadline:             get('deadline'),
+            data_source_type:     get('data_source_type') || 'external',
+            data_source_sub_type: get('data_source_sub_type') || 'polymarket',
+            // 外盘
+            external_market_id:   get('external_market_id'),
+            option_yes:           get('option_yes'),
+            option_no:            get('option_no'),
+            platform:             get('platform') || 'polymarket',
+            // 天气
+            location:             get('location'),
+            location_key:         get('location_key')
+        });
+    });
+    return cfg;
+}
+
+function showPreview() {
+    // 1. Parse the JSON mapping from the textarea
+    let yesShares = 0;
+    let noShares = 0;
+    try {
+        const mappingStr = $('textarea[name="token_id_mapping"]').val();
+        const mapping = JSON.parse(mappingStr);
+        yesShares = mapping.yes ? mapping.yes.init_share : 0;
+        noShares = mapping.no ? mapping.no.init_share : 0;
+        console.log("Parsed token_id_mapping:", mapping);
+        console.log("Extracted yesShares:", yesShares, "noShares:", noShares);
+
+    } catch (e) {
+        console.error("Failed to parse token_id_mapping JSON", e);
+    }
+
+    const elv = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+    const payload = Object.assign({
+        market_id: $('#marketID').val(),
+        base_spread: $('input[name="base_spread"]').val(),
+        depth_b: $('input[name="depth_b"]').val(),
+        g0: $('input[name="g0"]').val(),
+        slope: $('input[name="slope"]').val(),
+        outcomes: [{
+            title: $('input[name="outcome_name"]').val(),
+            yes_mid_price: $('#mid_price_yes').val(),
+            no_mid_price: $('#mid_price_no').val(),
+            // 2. Use the extracted values
+            yes_shares: yesShares,
+            no_shares: noShares
+        }]
+    }, collectExternalPricingConfig());
+
+    var loader = layui.layer.load(2);
+    fetch("{:url('market_mapping_config/previewedit')->suffix(false)}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+        layui.layer.close(loader);
+        if (res.code === 1) {
+            renderPreviewModal(res.data, yesShares, noShares); // 独立全屏浮层（覆盖表单）
+        } else {
+            layui.layer.alert(res.msg, {icon: 2});
+        }
+    })
+    .catch(err => {
+        // 防止 fetch/JSON 解析失败时 loading 遮罩永久卡住盖住整个弹层（含右上角 X）
+        layui.layer.closeAll('loading');
+        layui.layer.close(loader);
+        layui.layer.alert('预览失败：' + (err && err.message ? err.message : '网络或响应解析错误'), {icon: 2});
+    });
+}
+
+function renderPreviewModal(data, yesShares, noShares) {
+    const fval = (sel) => { const el = document.querySelector(sel); return el ? el.value : ''; };
+    const fchk = (sel) => { const el = document.querySelector(sel); return !!(el && el.checked); };
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    const badge = (on) => on
+        ? '<span class="badge text-bg-dark">已启用</span>'
+        : '<span class="badge text-bg-light border">关闭</span>';
+    let html = '';
+
+    // 目标市场信息
+    html += `<div class="pv-card">
+        <div class="pv-card-title">目标市场信息</div>
+        <div class="row small g-2">
+            <div class="col-md-6">Market ID：<b>${esc(fval('#marketID'))}</b></div>
+            <div class="col-md-6">市场名称：${esc(fval('[name="market_name"]'))}</div>
+            <div class="col-md-6">开始时间：${esc(fval('[name="start_time"]'))}</div>
+            <div class="col-md-6">结束时间：${esc(fval('[name="end_time"]'))}</div>
+            <div class="col-md-6">结算时间：${esc(fval('[name="settle_time"]'))}</div>
+        </div></div>`;
+
+    // 风控参数（徽章对齐原型）
+    const riskCell = (label, valHtml) =>
+        `<div class="col-md-6"><div class="border rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+            <span class="text-muted small">${label}</span><span class="small fw-semibold">${valHtml}</span></div></div>`;
+    html += `<div class="pv-card"><div class="pv-card-title">风控参数</div>
+        <div class="row g-2">
+            ${riskCell('单边持仓限额', badge(fchk('[name="single_side_limit"]')))}
+            ${riskCell('库存偏差限额', (fval('#stock_limit') !== '' ? esc(fval('#stock_limit')) + '%' : '-'))}
+            ${riskCell('价差动态调整', badge(fchk('[name="dynamic_spread"]')))}
+        </div></div>`;
+
+    data.preview.forEach(item => {
+        html += `<div class="pv-card">
+            <div class="pv-card-title">${esc(item.title)} — 配置 &amp; 铺单预览</div>`;
+
+        ['Yes', 'No'].forEach(opt => {
+            const optData = item.options[opt];
+            const askRows = optData.grid.asks.slice().reverse().map((a, index) =>
+                `<tr><td>${optData.grid.asks.length - index}</td><td class="fw-bold text-danger">${parseFloat(a.price).toFixed(3)}</td><td>${parseInt(a.amount).toLocaleString()}</td></tr>`).join('');
+            const bidRows = optData.grid.bids.map((b, index) =>
+                `<tr><td>${index + 1}</td><td class="fw-bold text-success">${parseFloat(b.price).toFixed(3)}</td><td>${parseInt(b.amount).toLocaleString()}</td></tr>`).join('');
+            html += `
+                <div class="mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge text-bg-dark px-3">${opt}</span>
+                        <span class="ms-2 text-muted small">份额: ${opt === 'Yes' ? yesShares : noShares}，概率 P*: ${optData.mid_price}</span>
+                    </div>
+                    <div class="small text-danger fw-semibold mb-1">卖单 (Ask)</div>
+                    <table class="table table-sm table-bordered text-center align-middle bg-white small mb-3">
+                        <thead class="table-light"><tr><th style="width:33%;">层级</th><th style="width:34%;">价格</th><th style="width:33%;">份额</th></tr></thead>
+                        <tbody>${askRows}</tbody>
+                    </table>
+                    <div class="small text-success fw-semibold mb-1">买单 (Bid)</div>
+                    <table class="table table-sm table-bordered text-center align-middle bg-white small mb-0">
+                        <thead class="table-light"><tr><th style="width:33%;">层级</th><th style="width:34%;">价格</th><th style="width:33%;">份额</th></tr></thead>
+                        <tbody>${bidRows}</tbody>
+                    </table>
+                </div>`;
+        });
+        html += `</div>`;
+    });
+
+    // 独立全屏浮层（覆盖表单），append 到 body 避免被 transform 祖先困住定位
+    var old = document.getElementById('previewOverlay');
+    if (old) old.remove();
+    var ov = document.createElement('div');
+    ov.id = 'previewOverlay';
+    ov.innerHTML = `
+        <div class="pv-header">
+            <div>
+                <div class="pv-title"><i class="bi bi-check-circle-fill text-success me-2"></i>配置预览</div>
+                <div class="text-muted small">请确认以下自动做市配置信息和预计铺单情况</div>
+            </div>
+            <button type="button" class="btn-close" aria-label="关闭" onclick="closePreviewOverlay()"></button>
+        </div>
+        <div class="pv-body">${html}</div>
+        <div class="pv-footer">
+            <button type="button" class="btn btn-cancel" onclick="closePreviewOverlay()">返回修改</button>
+            <button type="button" class="btn btn-save" onclick="finalSaveEdit()">确认保存</button>
+        </div>`;
+    // 挂进当前 layui 弹层框（整层有固定尺寸，absolute inset:0 才能正确覆盖表单）；iframe/独立页回退 fixed。
+    var anchor = document.getElementById('marketID') || document.querySelector('.main-container');
+    var box = (anchor && anchor.closest) ? anchor.closest('.layui-layer') : null;
+    if (box) {
+        if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
+        box.appendChild(ov);
+        // 预览层覆盖整层（含编辑弹窗标题栏 X）。预览期间隐藏编辑弹窗的 X，避免出现两个 X 或被盖住点不动；
+        // 预览只用预览层自己的 ×（返回修改）关闭。closePreviewOverlay 会恢复编辑弹窗 X。
+        var setwin = box.querySelector('.layui-layer-setwin');
+        if (setwin) { setwin.dataset.prevDisplay = setwin.style.display || ''; setwin.style.display = 'none'; }
+    } else {
+        ov.style.position = 'fixed';
+        document.body.appendChild(ov);
+    }
+    ov.style.display = 'flex';
+}
+
+function closePreviewOverlay() {
+    var o = document.getElementById('previewOverlay');
+    if (o) o.remove();
+    // 恢复编辑弹窗标题栏的 X（预览时被隐藏）
+    var setwin = document.querySelector('.layui-layer-setwin');
+    if (setwin) { setwin.style.display = setwin.dataset.prevDisplay || ''; }
+}
+
+// 浮层「确认保存」→ 触发表单原保存按钮
+function finalSaveEdit() {
+    var btn = document.querySelector('[lay-filter="submitForm"]');
+    if (btn) btn.click();
+}
+
+// ===== F1/F2/F3 编辑页交互 =====
+function onDataSourceTypeChange() {
+    var type = document.getElementById('dataSourceType').value;
+    document.getElementById('weatherFields').style.display = (type === 'external') ? 'none' : 'flex';
+    document.getElementById('externalFields').style.display = (type === 'external') ? 'block' : 'none';
+    document.getElementById('dataSourceSubType').innerHTML = (type === 'external')
+        ? '<option value="polymarket">Polymarket</option>'
+        : '<option value="accuweather">降水概率</option>';
+}
+document.getElementById('btnSyncExternal').addEventListener('click', function() {
+    var extId = document.getElementById('externalMarketId').value.trim();
+    if (!extId) { layui.layer.msg('请输入外部 Market ID'); return; }
+    var loader = layui.layer.load(2);
+    fetch(`{:url('market_mapping_config/syncExternal')}?id=${encodeURIComponent(extId)}`)
+        .then(r => r.json()).then(data => {
+            layui.layer.close(loader);
+            if (data.code === 1 && data.data && Array.isArray(data.data.options)) {
+                var h = data.data.options.map(o => `<option value="${o.token_id}">${o.title}</option>`).join('');
+                document.getElementById('externalOptionYes').innerHTML = h;
+                document.getElementById('externalOptionNo').innerHTML = h;
+                if (data.data.options.length > 1) document.getElementById('externalOptionNo').selectedIndex = 1;
+                document.getElementById('externalMappingRow').style.display = 'flex';
+            } else { layui.layer.alert('外盘同步失败: ' + (data.msg || '未知错误'), {icon: 2}); }
+        }).catch(() => { layui.layer.close(loader); layui.layer.msg('网络请求失败'); });
+});
+
+// 时间线规则行
+var timelineIdx = 0;
+function timelineRuleHtml(i, r) {
+    r = r || {};
+    var om = r.option_mapping || {};
+    // 已有规则无 data_source_type 但有外盘字段 → 视为 external(向后兼容)；纯新增 → 空(请选择)
+    var dsType = r.data_source_type || ((r.external_market_id || om.yes || om.no) ? 'external' : '');
+    var dlLocal = (r.deadline || '').replace(/Z$/, '').slice(0, 16); // RFC3339(...Z) → datetime-local(YYYY-MM-DDTHH:MM)
+    var pfx = `midprice_timeline[${i}]`;
+    return `<div class="border rounded p-2 mb-2 bg-light timeline-rule">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small fw-bold">规则 ${i + 1}</span>
+            <button type="button" class="btn btn-sm btn-link text-danger p-0" title="删除" onclick="this.closest('.timeline-rule').remove()"><i class="bi bi-trash"></i></button>
+        </div>
+        <div class="mb-2"><label class="small text-muted">截止时间 (UTC)</label>
+            <input type="datetime-local" class="form-control form-control-sm tl-deadline-picker" style="max-width:240px;" value="${dlLocal}" onchange="syncTlDeadline(this)">
+            <input type="hidden" name="${pfx}[deadline]" class="tl-deadline-hidden" value="${r.deadline || ''}"></div>
+        <div class="mb-2"><label class="small text-muted">数据源类型</label>
+            <select name="${pfx}[data_source_type]" lay-ignore class="form-select form-select-sm tl-ds-type" style="max-width:200px;" onchange="onTlDsTypeChange(this)">
+                <option value="" ${dsType ? '' : 'selected'} disabled hidden>请选择数据源类型</option>
+                <option value="weather" ${dsType === 'weather' ? 'selected' : ''}>天气 - AccuWeather</option>
+                <option value="external" ${dsType === 'external' ? 'selected' : ''}>外盘</option>
+            </select></div>
+        <div class="tl-weather-block" style="display:${dsType === 'weather' ? 'block' : 'none'};">
+            <div class="mb-2"><label class="small text-muted">数据源子类型</label>
+                <select name="${pfx}[data_source_sub_type]" lay-ignore class="form-select form-select-sm" style="max-width:160px;"><option value="accuweather">降水概率</option></select></div>
+            <div class="mb-2"><label class="small text-muted">经纬度</label>
+                <div class="d-flex gap-2" style="max-width:340px;">
+                    <input type="text" name="${pfx}[location]" class="form-control form-control-sm tl-location" placeholder="例如：40.779,-73.969" value="${r.location || ''}">
+                    <button type="button" class="btn btn-light border btn-sm" onclick="parseLocationForTimeline(this)" style="white-space:nowrap;">解析</button>
+                </div>
+                <input type="hidden" name="${pfx}[location_key]" class="tl-location-key" value="${r.location_key || ''}">
+                <div class="text-muted small mt-1 tl-location-name" style="${r.location_key ? '' : 'display:none;'}">${r.location_key ? ('location_key: ' + r.location_key) : ''}</div></div>
+        </div>
+        <div class="tl-ext-block" style="display:${dsType === 'external' ? 'block' : 'none'};">
+            <div class="mb-2"><label class="small text-muted">数据源子类型</label>
+                <select name="${pfx}[platform]" lay-ignore class="form-select form-select-sm" style="max-width:160px;"><option value="polymarket">Polymarket</option></select></div>
+            <div class="mb-2"><label class="small text-muted">外部 Market ID</label>
+                <div class="input-group input-group-sm" style="max-width:340px;">
+                    <input type="text" name="${pfx}[external_market_id]" class="form-control tl-ext-market" value="${r.external_market_id || ''}" placeholder="请输入外部市场ID">
+                    <button type="button" class="btn btn-light border" onclick="syncTimelineRuleEdit(this)"><i class="bi bi-arrow-repeat"></i> 同步</button>
+                </div></div>
+            <div class="tl-map mt-2" style="display:${(om.yes || om.no) ? 'block' : 'none'};">
+                <label class="small text-muted d-block mb-2">Option 映射</label>
+                <div class="border rounded-3 overflow-hidden bg-white" style="max-width:420px;">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light"><tr><th class="small text-muted fw-normal" style="width:50%;">内盘 Option</th><th class="small text-muted fw-normal" style="width:50%;">→ 外盘 Option</th></tr></thead>
+                        <tbody>
+                            <tr><td>Yes</td><td><select name="${pfx}[option_yes]" lay-ignore class="form-select form-select-sm tl-opt-yes">${om.yes ? `<option value="${om.yes}" selected>${om.yes}</option>` : '<option value="" selected disabled hidden>请选择</option>'}</select></td></tr>
+                            <tr><td>No</td><td><select name="${pfx}[option_no]" lay-ignore class="form-select form-select-sm tl-opt-no">${om.no ? `<option value="${om.no}" selected>${om.no}</option>` : '<option value="" selected disabled hidden>请选择</option>'}</select></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
+// 时间线规则外盘同步（edit）：拉 Poly option 填充该规则的 Yes/No 映射下拉
+function syncTimelineRuleEdit(btn) {
+    var rule = btn.closest('.timeline-rule');
+    var extId = rule.querySelector('.tl-ext-market').value.trim();
+    if (!extId) { layui.layer.msg('请输入外部 Market ID'); return; }
+    var loader = layui.layer.load(2);
+    fetch(`{:url('market_mapping_config/syncExternal')}?id=${encodeURIComponent(extId)}`)
+        .then(r => r.json())
+        .then(data => {
+            layui.layer.close(loader);
+            if (data.code === 1 && data.data && Array.isArray(data.data.options)) {
+                var optsHtml = '<option value="" selected disabled hidden>请选择</option>' + data.data.options.map(o => `<option value="${o.token_id}">${o.title}</option>`).join('');
+                rule.querySelector('.tl-opt-yes').innerHTML = optsHtml;
+                rule.querySelector('.tl-opt-no').innerHTML = optsHtml;
+                rule.querySelectorAll('.tl-map').forEach(function (el) { el.style.display = 'block'; });
+            } else { layui.layer.alert('外盘同步失败: ' + (data.msg || '未知错误'), {icon: 2}); }
+        })
+        .catch(() => { layui.layer.close(loader); layui.layer.msg('网络请求失败'); });
+}
+// datetime-local("YYYY-MM-DDTHH:MM") → 隐藏域 RFC3339 UTC(补秒+Z)，与后端 strtotime/排序契约一致
+function syncTlDeadline(picker) {
+    var rule = picker.closest('.timeline-rule');
+    var hidden = rule.querySelector('.tl-deadline-hidden');
+    var v = picker.value;
+    if (v) { if (v.length === 16) v += ':00'; v += 'Z'; }
+    hidden.value = v;
+}
+// 选数据源类型后展开对应区块（天气=经纬度/解析；外盘=外部ID/映射）
+function onTlDsTypeChange(sel) {
+    var rule = sel.closest('.timeline-rule');
+    rule.querySelector('.tl-weather-block').style.display = sel.value === 'weather' ? 'block' : 'none';
+    rule.querySelector('.tl-ext-block').style.display = sel.value === 'external' ? 'block' : 'none';
+}
+// 时间线天气经纬度解析：复用 geoposition，结果写入规则内 location_key 隐藏域
+function parseLocationForTimeline(btn) {
+    var rule = btn.closest('.timeline-rule');
+    var location = rule.querySelector('.tl-location').value.trim();
+    if (!location) { layui.layer.msg('请先输入经纬度', {icon: 2}); return; }
+    var parts = location.split(',');
+    if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+        layui.layer.msg('经纬度格式不正确，格式应为：纬度,经度', {icon: 2}); return;
+    }
+    var lat = parts[0].trim(), lng = parts[1].trim();
+    var loader = layui.layer.load(2);
+    fetch(`{:url('market_mapping_config/geoposition')}?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.code === 1) {
+                rule.querySelector('.tl-location-key').value = data.data.location_key;
+                var nd = rule.querySelector('.tl-location-name');
+                nd.textContent = 'location_key: ' + data.data.location_key + '（' + data.data.location_name + '）';
+                nd.style.display = 'block';
+            } else { layui.layer.alert('获取位置失败: ' + (data.msg || '未知错误'), {icon: 2}); }
+        })
+        .catch(() => layui.layer.msg('网络请求失败', {icon: 2}))
+        .finally(() => layui.layer.close(loader));
+}
+// 时间线外盘规则回显：静默同步 option，把 Yes/No 映射下拉标签从 token 换成真实名并预选；失败保留 token 占位(仍可保存)
+function loadTimelineRuleExternalOptions(ruleEl, extId, selYes, selNo) {
+    fetch(`{:url('market_mapping_config/syncExternal')}?id=${encodeURIComponent(extId)}`)
+        .then(r => r.json()).then(data => {
+            if (data.code === 1 && data.data && Array.isArray(data.data.options)) {
+                var opts = data.data.options;
+                var tokens = opts.map(o => String(o.token_id));
+                // 若已存映射 token 不在当前 Poly 选项里(或选项为空)，补一个兜底 option，避免下拉变空、保存丢失已存映射
+                var build = function (sel) {
+                    var h = opts.map(o => `<option value="${o.token_id}">${o.title}</option>`).join('');
+                    if (sel && tokens.indexOf(String(sel)) === -1) {
+                        h = `<option value="${sel}">${sel}</option>` + h;
+                    }
+                    return h;
+                };
+                var ey = ruleEl.querySelector('.tl-opt-yes');
+                var en = ruleEl.querySelector('.tl-opt-no');
+                if (ey) { ey.innerHTML = build(selYes); if (selYes) ey.value = selYes; }
+                if (en) { en.innerHTML = build(selNo); if (selNo) en.value = selNo; }
+            }
+        }).catch(function(){});
+}
+function addTimelineRule(r) {
+    if (document.querySelectorAll('#timelineRules .timeline-rule').length >= 20) {
+        layui.layer.msg('最多 20 条规则'); return;
+    }
+    document.getElementById('timelineRules').insertAdjacentHTML('beforeend', timelineRuleHtml(timelineIdx++, r));
+    // 外盘规则回显：自动同步把映射下拉标签从 token 换成真实 Yes/No 名并预选(同主映射逻辑)
+    r = r || {};
+    var om = r.option_mapping || {};
+    var dsType = r.data_source_type || ((r.external_market_id || om.yes || om.no) ? 'external' : '');
+    if (dsType === 'external' && r.external_market_id && (om.yes || om.no)) {
+        var rules = document.querySelectorAll('#timelineRules .timeline-rule');
+        loadTimelineRuleExternalOptions(rules[rules.length - 1], r.external_market_id, om.yes, om.no);
+    }
+}
+document.getElementById('btnAddTimelineRule').addEventListener('click', function(){ addTimelineRule(); });
+
+// 编辑回显：自动同步外盘 option，把下拉标签从 token 换成真实名(Yes/No)并预选已存映射；失败则保留 token 占位(仍可保存)
+function loadExternalOptionsForEdit(extId, selYes, selNo) {
+    fetch(`{:url('market_mapping_config/syncExternal')}?id=${encodeURIComponent(extId)}`)
+        .then(r => r.json()).then(data => {
+            if (data.code === 1 && data.data && Array.isArray(data.data.options)) {
+                var opts = data.data.options;
+                var tokens = opts.map(o => String(o.token_id));
+                // 若已存映射 token 不在当前 Poly 选项里(或选项为空)，补一个兜底 option，避免下拉变空、保存丢失已存映射
+                var build = function (sel) {
+                    var h = opts.map(o => `<option value="${o.token_id}">${o.title}</option>`).join('');
+                    if (sel && tokens.indexOf(String(sel)) === -1) {
+                        h = `<option value="${sel}">${sel}</option>` + h;
+                    }
+                    return h;
+                };
+                var ey = document.getElementById('externalOptionYes');
+                var en = document.getElementById('externalOptionNo');
+                if (ey) { ey.innerHTML = build(selYes); if (selYes) ey.value = selYes; }
+                if (en) { en.innerHTML = build(selNo); if (selNo) en.value = selNo; }
+            }
+        }).catch(function(){});
+}
+
+// 页面加载：回填外盘配置 / 时间线 / 数据源类型可见性
+(function initSelfMmReqFields(){
+    onDataSourceTypeChange();
+    try {
+        var extRaw = document.getElementById('externalSourceConfigRaw').value;
+        if (extRaw) {
+            var c = JSON.parse(extRaw); var om = c.option_mapping || {};
+            document.getElementById('externalMarketId').value = c.market_id || '';
+            // 先用已存 token 占位(防首屏空白)，再自动同步把下拉标签换成真实 Yes/No 名并预选，避免回显成长串 token
+            if (om.yes) document.getElementById('externalOptionYes').innerHTML = `<option value="${om.yes}" selected>${om.yes}</option>`;
+            if (om.no) document.getElementById('externalOptionNo').innerHTML = `<option value="${om.no}" selected>${om.no}</option>`;
+            if (om.yes || om.no) {
+                document.getElementById('externalMappingRow').style.display = 'flex';
+                if (c.market_id) loadExternalOptionsForEdit(c.market_id, om.yes, om.no);
+            }
+        }
+    } catch (e) {}
+    try {
+        var tlRaw = document.getElementById('midpriceTimelineRaw').value;
+        if (tlRaw) { (JSON.parse(tlRaw) || []).forEach(function(r){ addTimelineRule(r); }); }
+    } catch (e) {}
+})();
+</script>
+</body>
+</html>

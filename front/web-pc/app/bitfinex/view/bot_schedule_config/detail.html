@@ -1,0 +1,27 @@
+<div class="layui-card" style="box-shadow:none;">
+    <div class="layui-card-body">
+        <table class="layui-table" lay-skin="line">
+            <tbody>
+            <tr><td style="width:150px;color:#888;">ID</td><td>{$vo.id|default='-'}</td></tr>
+            <tr><td style="color:#888;">Module</td><td class="mono">{:htmlentities((string)($vo['module']??''), ENT_QUOTES, 'UTF-8')}</td></tr>
+            <tr><td style="color:#888;">Task name</td><td class="mono">{:htmlentities((string)($vo['task_name']??''), ENT_QUOTES, 'UTF-8')}</td></tr>
+            <tr><td style="color:#888;">执行间隔</td><td class="mono">{$vo.interval_seconds|default='-'} 秒</td></tr>
+            <tr><td style="color:#888;">执行排序</td><td>{if $vo.exe_sort === null || $vo.exe_sort === ''}—{else}{$vo.exe_sort}{/if}</td></tr>
+            <tr><td style="color:#888;">并发数</td><td>{if $vo.concurrency === null || $vo.concurrency === ''}不限制{else}{$vo.concurrency}{/if}</td></tr>
+            <tr><td style="color:#888;">描述</td><td>{:htmlentities((string)($vo['description']??''), ENT_QUOTES, 'UTF-8')}</td></tr>
+            <tr><td style="color:#888;">任务开关</td><td>{if $vo.is_enabled == 1}启用{else}禁用{/if}</td></tr>
+            <tr><td style="color:#888;">策略开关</td><td>{if $vo.is_strategy_enabled == 1}启用{else}禁用{/if}</td></tr>
+            <tr><td style="color:#888;">仅主实例运行</td><td>{if $vo.is_primary_machine_run == 1}是{else}否{/if}</td></tr>
+            <tr><td style="color:#888;">最近活跃</td><td class="mono">{:htmlentities((string)($vo['last_live_time']??'-'), ENT_QUOTES, 'UTF-8')}</td></tr>
+            <tr><td style="color:#888;">机器心跳</td><td><pre class="heartbeat-pre">{:htmlentities((string)($vo['machine_heartbeat']??''), ENT_QUOTES, 'UTF-8')}</pre></td></tr>
+            <tr><td style="color:#888;">创建时间</td><td>{$vo.created_at|default='-'}</td></tr>
+            <tr><td style="color:#888;">更新时间</td><td>{$vo.updated_at|default='-'}</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.heartbeat-pre { margin:0; max-height:160px; overflow:auto; font-size:11px; white-space:pre-wrap; word-break:break-all; }
+</style>

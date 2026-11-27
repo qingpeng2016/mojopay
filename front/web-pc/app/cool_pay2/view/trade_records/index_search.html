@@ -1,0 +1,95 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get"
+      autocomplete="off">
+<div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">时间</label>
+        <div class="layui-input-inline">
+            <input name="date_range" value="{$get.date_range|default=''}" placeholder="请选择更新时间范围"
+                   class="layui-input" id="date_range">
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">买卖方向</label>
+        <div class="layui-input-inline">
+            <select name="order_side" class="layui-select">
+                <option value="">所有方向</option>
+                {foreach $order_sides as $side}
+                <option value="{$side}" {if isset($get.order_side) && $get.order_side==$side}selected{/if}>{$side}
+                </option>
+                {/foreach}
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">交易状态</label>
+        <div class="layui-input-inline">
+            <select name="status" class="layui-select">
+                <option value="">所有状态</option>
+                {foreach $statuses as $status}
+                <option value="{$status}" {if isset($get.status) && $get.status==$status}selected{/if}>{$status}</option>
+                {/foreach}
+            </select>
+        </div>
+    </div>
+    
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">做市账户ID</label>
+        <div class="layui-input-inline">
+            <input name="target_account_id" value="{$get.target_account_id|default=''}" placeholder="请输入做市账户ID"
+                   class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">对冲账户ID</label>
+        <div class="layui-input-inline">
+            <input name="source_account_id" value="{$get.source_account_id|default=''}" placeholder="请输入对冲账户ID"
+                   class="layui-input">
+        </div>
+    </div>
+</div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">做市平台market id</label>
+        <div class="layui-input-inline">
+            <input name="target_group_id" value="{$get.target_group_id|default=''}" placeholder="请输入做市平台market id"
+                   class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <label class="layui-form-label">对冲订单ID</label>
+        <div class="layui-input-inline">
+            <input name="source_order_id" value="{$get.source_order_id|default=''}" placeholder="请输入对冲订单ID"
+                   class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <button type="submit" class="layui-btn layui-btn-primary" lay-submit lay-filter="search-submit">
+            <i class="layui-icon">&#xe615;</i> 搜 索
+        </button>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <button type="button" id="btn-reset" class="layui-btn layui-btn-primary">
+            <i class="layui-icon">&#xe669;</i> 重 置
+        </button>
+    </div>
+    <div class="layui-form-item layui-inline">
+        <button type="button" id="btn-export" class="layui-btn layui-btn-normal">
+            <i class="layui-icon">&#xe601;</i> 导出 CSV
+        </button>
+    </div>
+</form>
+
+<script>
+    layui.use(['form', 'laydate'], function () {
+        var form = layui.form;
+        var laydate = layui.laydate;
+
+        // 初始化日期范围选择器
+        laydate.render({
+            elem: '#date_range',
+            type: 'date',
+            range: ' - ',
+            format: 'yyyy-MM-dd'
+        });
+    });
+</script>

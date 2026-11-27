@@ -1,0 +1,163 @@
+{extend name="../../admin/view/main"}
+
+{block name="button"}
+<div class="layui-btn-group">
+    <button data-table-refresh class="layui-btn layui-btn-sm layui-btn-primary">
+        <i class="layui-icon">&#xe669;</i> 刷新
+    </button>
+</div>
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow table-block" style="padding:16px;">
+    <!-- ── 顶部持仓统计（逐仓真实市值，全表口径） ────────────────────────── -->
+    <div class="pos-stats">
+        <div class="pos-card">
+            <div class="pos-card-label">持仓笔数</div>
+            <div class="pos-card-value">{:number_format((int)($stats['position_count'] ?? 0))}</div>
+        </div>
+        <div class="pos-card">
+            <div class="pos-card-label">持仓总市值</div>
+            <div class="pos-card-value" style="color:#16b777;">${:number_format((float)($stats['market_value_total'] ?? 0), 2)}</div>
+        </div>
+        <div class="pos-card">
+            <div class="pos-card-label">未实现盈亏</div>
+            {php}$pt = (float)($stats['unrealized_pnl_total'] ?? 0);{/php}
+            <div class="pos-card-value" style="color:{if $pt > 0}#16b777{elseif $pt < 0}#ff5722{else}#333{/if};">${:number_format($pt, 2)}</div>
+        </div>
+        <div class="pos-dist">
+            <div class="pos-dist-title">平台持仓对比（动态识别平台）</div>
+            {if empty($stats['platform_dist'])}
+            <div style="color:#999;font-size:12px;padding:6px 0;">暂无持仓数据</div>
+            {else}
+            <table class="pos-matrix">
+                <tr>
+                    <th class="pos-matrix-head">平台</th>
+                    <th>仓数</th>
+                    <th>市值</th>
+                </tr>
+                {foreach $stats['platform_dist'] as $b}
+                <tr>
+                    <td class="pos-matrix-head" title="{$b.title}">{$b.label}</td>
+                    <td>{:number_format((int)$b['cnt'])} 笔</td>
+                    <td style="color:#16b777;">${:number_format((float)$b['value'], 2)}</td>
+                </tr>
+                {/foreach}
+            </table>
+            {/if}
+        </div>
+    </div>
+
+    {include file="account_position/index_search"}
+    <table class="layui-table margin-top-10" lay-skin="line">
+        <thead>
+        <tr>
+            <th style="width:70px;">ID</th>
+            <th style="width:80px;">账户ID</th>
+            <th style="width:100px;">平台</th>
+            <th style="width:300px;">市场名称</th>
+            <th style="width:80px;">结果</th>
+            <th style="width:110px;">持仓份数</th>
+            <th style="width:100px;">建仓均价</th>
+            <th style="width:100px;">当前价</th>
+            <th style="width:120px;">市值</th>
+            <th style="width:120px;">未实现盈亏</th>
+            <th style="width:80px;">可赎回</th>
+            <th style="width:130px;">市场ID</th>
+            <th style="width:150px;">同步时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        {foreach $list as $vo}
+        <tr>
+            <td>{$vo.id}</td>
+            <td>
+                <a href="/admin.html#/rmpd/account/index.html?id={$vo.account_id}" title="查看账户信息">{$vo.account_id}</a>
+            </td>
+            <td>
+                {if ($vo['platform'] ?? '') eq 'polymarket'}
+                <span class="layui-badge layui-bg-blue">Polymarket</span>
+                {elseif ($vo['platform'] ?? '') eq 'kalshi'}
+                <span class="layui-badge layui-bg-green">Kalshi</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">{$vo.platform|default='-'}</span>
+                {/if}
+            </td>
+            <td>
+                {if mb_strlen($vo.market_name ?? '') > 48}
+                <span title="{$vo.market_name}">{:mb_substr($vo.market_name ?? '', 0, 48)}…</span>
+                {else}
+                {$vo.market_name|default='-'}
+                {/if}
+            </td>
+            <td style="font-size:12px;">{$vo.outcome|default='-'}</td>
+            <td>{:number_format((float)($vo['size'] ?? 0), 4)}</td>
+            <td>{:number_format((float)($vo['avg_price'] ?? 0), 4)}</td>
+            <td>{:number_format((float)($vo['current_price'] ?? 0), 4)}</td>
+            <td>${:number_format((float)($vo['market_value'] ?? 0), 2)}</td>
+            <td>
+                {php}$pnl = (float)($vo['unrealized_pnl'] ?? 0);{/php}
+                <span style="color:{if $pnl > 0}#16b777{elseif $pnl < 0}#ff5722{else}#333{/if};">${:number_format($pnl, 2)}</span>
+            </td>
+            <td>
+                {if ($vo['redeemable'] ?? 0)}
+                <span class="layui-badge layui-bg-orange">可赎回</span>
+                {else}
+                <span class="layui-badge layui-bg-gray">否</span>
+                {/if}
+            </td>
+            <td style="font-size:11px;">
+                {if mb_strlen($vo.market_id ?? '') > 14}
+                <span title="{$vo.market_id}">{:mb_substr($vo.market_id ?? '', 0, 8)}…{:mb_substr($vo.market_id ?? '', -4)}</span>
+                {else}
+                {$vo.market_id|default='-'}
+                {/if}
+            </td>
+            <td>{$vo.synced_at}</td>
+        </tr>
+        {/foreach}
+        </tbody>
+    </table>
+    {empty name='list'}<span class="notdata">没有记录哦</span>{else}{$pagehtml|raw|default=''}{/empty}
+</div>
+{/block}
+
+{block name="script"}
+{include file="copy_cell"}
+<style>
+.notdata { display:block; text-align:center; padding:30px; color:#999; }
+.margin-top-10 { margin-top:10px; }
+.form-search input[id$="-date-range"] { border:1px solid #c2c6cc !important; background:#fff !important; }
+/* 顶部持仓统计：4 个均分宽度（3 卡片 + 平台对比面板） */
+.pos-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:14px; align-items:stretch; }
+.pos-card { padding:14px 18px; border:1px solid #e6e6e6; border-radius:6px; background:#fafafa; display:flex; flex-direction:column; justify-content:center; }
+.pos-card-label { font-size:13px; color:#666; margin-bottom:8px; }
+.pos-card-value { font-size:24px; font-weight:bold; color:#333; line-height:1.1; word-break:break-all; }
+.pos-dist { padding:12px 16px; border:1px solid #e6e6e6; border-radius:6px; background:#fff; min-width:0; }
+@media (max-width: 900px) { .pos-stats { grid-template-columns:repeat(2, 1fr); } }
+.pos-dist-title { font-size:13px; color:#666; margin-bottom:8px; }
+.pos-dist-row { display:flex; align-items:center; gap:8px; margin:4px 0; font-size:12px; }
+.pos-dist-label { flex:0 0 120px; color:#555; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pos-dist-bar-wrap { flex:1 1 auto; min-width:0; background:#f0f2f5; border-radius:3px; height:14px; overflow:hidden; }
+.pos-dist-bar { display:block; height:100%; background:#16b777; border-radius:3px; min-width:1px; }
+.pos-dist-count { flex:0 0 90px; text-align:right; color:#333; font-variant-numeric:tabular-nums; }
+.pos-matrix { border-collapse:collapse; font-size:13px; width:100%; }
+.pos-matrix th, .pos-matrix td { border:1px solid #eee; padding:6px 12px; text-align:center; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.pos-matrix th { background:#f7f9fb; color:#333; font-weight:600; }
+.pos-matrix .pos-matrix-head { background:#f7f9fb; color:#666; font-weight:600; }
+.table-block { overflow-x: auto; }
+.table-block .layui-table { min-width: 1550px; }
+.table-block .layui-table th,
+.table-block .layui-table td { white-space: nowrap; }
+.pagination { display:flex; justify-content:center; flex-wrap:wrap; margin:20px 0; padding:0; list-style:none; }
+.pagination li { display:inline-block; margin:0 2px; }
+.pagination li a, .pagination li span {
+    display:inline-block; padding:6px 10px; border:1px solid #ddd;
+    background:#fff; color:#666; text-decoration:none; border-radius:2px;
+    cursor:pointer; min-width:36px; text-align:center;
+}
+.pagination li.active span { background:#009688; color:#fff; border-color:#009688; }
+.pagination li a:hover { background:#f2f2f2; border-color:#009688; color:#009688; }
+.pagination li.disabled span { background:#f5f5f5; color:#999; cursor:not-allowed; }
+</style>
+{/block}

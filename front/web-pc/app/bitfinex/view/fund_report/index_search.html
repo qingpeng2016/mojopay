@@ -1,0 +1,191 @@
+<form class="layui-form layui-form-pane form-search" action="{:request()->url()}" onsubmit="return false" method="get" autocomplete="off">
+    <input type="hidden" name="report" value="{$report|default='wallet_flow'}">
+    <div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">{if $report eq 'ledger'}账本时间{elseif $report eq 'floating_yield' || $report eq 'guaranteed_yield'}报表日{elseif $report eq 'subscription'}申购日{elseif $report eq 'redemption'}提交时间{elseif $report eq 'rollover'}续购日{else}时间{/if}</label>
+            <div class="layui-input-inline" style="width:220px;">
+                <input name="date_range" value="{$get.date_range|default=''}" placeholder="默认近 30 天" class="layui-input" id="fr-date-range">
+            </div>
+        </div>
+
+        {if $report neq 'wallet_flow'}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">产品</label>
+            <div class="layui-input-inline" style="width:200px;">
+                <select name="product_id" lay-search>
+                    <option value="">全部</option>
+                    {foreach $products as $product}
+                    <option value="{$product.id}" {if isset($get.product_id) && $get.product_id==$product.id}selected{/if}>
+                        #{$product.id} {$product.product_name|default=''}
+                    </option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        {/if}
+
+        {if $report eq 'wallet_flow'}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">客户 ID</label>
+            <div class="layui-input-inline" style="width:90px;">
+                <input name="client_id" value="{$get.client_id|default=''}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">类型</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <select name="flow_type">
+                    <option value="">全部</option>
+                    {foreach $flow_types as $fk=>$fl}
+                    <option value="{$fk}" {if isset($get.flow_type) && $get.flow_type==$fk}selected{/if}>{$fl}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        {/if}
+
+        {if $report eq 'subscription'}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">客户 ID</label>
+            <div class="layui-input-inline" style="width:90px;">
+                <input name="client_id" value="{$get.client_id|default=''}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:100px;">
+                <select name="status">
+                    <option value="">全部</option>
+                    {foreach $sub_statuses as $ss}
+                    <option value="{$ss}" {if isset($get.status) && $get.status==$ss}selected{/if}>{$ss}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        {/if}
+
+        {if $report eq 'redemption'}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">客户 ID</label>
+            <div class="layui-input-inline" style="width:90px;">
+                <input name="client_id" value="{$get.client_id|default=''}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">赎回类型</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <select name="redemption_type">
+                    <option value="">全部</option>
+                    {foreach $red_types as $tk=>$tl}
+                    <option value="{$tk}" {if isset($get.redemption_type) && $get.redemption_type==$tk}selected{/if}>{$tl}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <select name="status">
+                    <option value="">全部</option>
+                    {foreach $red_statuses as $sk=>$sl}
+                    <option value="{$sk}" {if isset($get.status) && $get.status==$sk}selected{/if}>{$sl}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        {/if}
+
+        {if $report eq 'rollover'}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">客户 ID</label>
+            <div class="layui-input-inline" style="width:90px;">
+                <input name="client_id" value="{$get.client_id|default=''}" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:100px;">
+                <select name="status">
+                    <option value="">全部</option>
+                    {foreach $sub_statuses as $ss}
+                    <option value="{$ss}" {if isset($get.status) && $get.status==$ss}selected{/if}>{$ss}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        {/if}
+
+        {if $report eq 'funding_trade' || $report eq 'funding_order'}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">币种</label>
+            <div class="layui-input-inline" style="width:100px;">
+                <select name="symbol">
+                    <option value="">全部</option>
+                    {foreach $symbols as $sym}
+                    <option value="{$sym}" {if isset($get.symbol) && $get.symbol==$sym}selected{/if}>{$sym}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        {/if}
+
+        {if $report eq 'funding_order'}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <select name="status">
+                    <option value="">全部</option>
+                    {foreach $order_statuses as $os}
+                    <option value="{$os}" {if isset($get.status) && $get.status==$os}selected{/if}>{$os}</option>
+                    {/foreach}
+                </select>
+            </div>
+        </div>
+        {/if}
+
+        {if $report eq 'ledger'}
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">Wallet</label>
+            <div class="layui-input-inline" style="width:110px;">
+                <select name="wallet">
+                    <option value="">全部</option>
+                    <option value="funding" {if isset($get.wallet) && $get.wallet=='funding'}selected{/if}>funding</option>
+                    <option value="exchange" {if isset($get.wallet) && $get.wallet=='exchange'}selected{/if}>exchange</option>
+                    <option value="margin" {if isset($get.wallet) && $get.wallet=='margin'}selected{/if}>margin</option>
+                </select>
+            </div>
+        </div>
+        {/if}
+
+        <div class="layui-form-item layui-inline">
+            <button class="layui-btn layui-btn-primary"><i class="layui-icon">&#xe615;</i> 搜 索</button>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <a class="layui-btn layui-btn-normal" id="fr-export-btn" href="javascript:;"><i class="layui-icon">&#xe67c;</i> 导出 CSV</a>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form', 'laydate'], function () {
+    layui.form.render('select');
+    layui.laydate.render({ elem: '#fr-date-range', type: 'date', range: ' - ', format: 'yyyy-MM-dd' });
+
+    $('#fr-export-btn').on('click', function () {
+        var exportUrl = '{$export_url|raw}';
+        if (!exportUrl || exportUrl.indexOf('#') > -1) {
+            exportUrl = '/bitfinex/fund_report/export.html';
+        }
+        var $form = $('<form method="get" target="_blank"></form>');
+        $form.attr('action', exportUrl);
+        $(this).closest('form').serializeArray().forEach(function (item) {
+            if (item.name) {
+                $form.append($('<input type="hidden">').attr('name', item.name).val(item.value));
+            }
+        });
+        $('body').append($form);
+        $form.trigger('submit');
+        $form.remove();
+    });
+});
+</script>

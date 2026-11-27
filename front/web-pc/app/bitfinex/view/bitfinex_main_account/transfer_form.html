@@ -1,0 +1,116 @@
+<form class="layui-form layui-card" action="{:request()->url()}" data-auto="true" method="post" autocomplete="off" id="bwa-transfer-form">
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <label class="layui-form-label">账号</label>
+            <div class="layui-input-block">
+                <input type="text" value="#{$from_account_id} {$vo.account_name|default=''}" class="layui-input layui-disabled" disabled>
+                <div class="layui-form-mid layui-word-aux">本账号 funding ↔ exchange 划转</div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">可用余额</label>
+            <div class="layui-input-block" style="padding-top:8px;font-size:12px;line-height:1.7;" id="bwa-balance-hint">-</div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">币种</label>
+            <div class="layui-input-block">
+                <select name="currency" lay-filter="bwa-currency" required>
+                    <option value="USD">USD</option>
+                    <option value="USDT">USDT</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">转出钱包</label>
+            <div class="layui-input-block">
+                <select name="from_wallet" lay-filter="bwa-from-wallet" required>
+                    <option value="funding">funding</option>
+                    <option value="exchange">exchange</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">转入钱包</label>
+            <div class="layui-input-block">
+                <select name="to_wallet" lay-filter="bwa-to-wallet" required>
+                    <option value="exchange" selected>exchange</option>
+                    <option value="funding">funding</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label label-required-next">划转金额</label>
+            <div class="layui-input-block">
+                <input name="amount" required placeholder="须小于等于可用余额" class="layui-input mono" id="bwa-amount">
+                <div class="layui-form-mid layui-word-aux">当前可用：<span class="mono" id="bwa-available">0</span></div>
+            </div>
+        </div>
+        <div class="hr-line-dashed"></div>
+        <input type="hidden" name="from_account_id" value="{$from_account_id}">
+        <div class="layui-form-item text-center">
+            <button class="layui-btn" type="submit">提交划转</button>
+            <button class="layui-btn layui-btn-danger" type="button" data-close>取消</button>
+        </div>
+    </div>
+</form>
+
+<script>
+layui.use(['form'], function () {
+    var form = layui.form;
+    var balances = {$balances_json|raw} || {};
+
+    function fmt(n) {
+        return (Number(n) || 0).toFixed(8).replace(/\.?0+$/, '') || '0';
+    }
+
+    function available() {
+        var currency = ($('[name=currency]').val() || 'USD').toUpperCase();
+        var wallet = ($('[name=from_wallet]').val() || 'funding').toLowerCase();
+        var row = balances[currency] || {};
+        return Number(row[wallet] || 0);
+    }
+
+    function refreshHint() {
+        var usdF = (balances.USD && balances.USD.funding) || 0;
+        var usdE = (balances.USD && balances.USD.exchange) || 0;
+        var usdtF = (balances.USDT && balances.USDT.funding) || 0;
+        var usdtE = (balances.USDT && balances.USDT.exchange) || 0;
+        $('#bwa-balance-hint').html(
+            'USD funding=<b class="mono">' + fmt(usdF) + '</b> / exchange=<b class="mono">' + fmt(usdE) + '</b><br>' +
+            'USDT funding=<b class="mono">' + fmt(usdtF) + '</b> / exchange=<b class="mono">' + fmt(usdtE) + '</b>'
+        );
+        $('#bwa-available').text(fmt(available()));
+    }
+
+    form.render();
+    form.on('select(bwa-currency)', refreshHint);
+    form.on('select(bwa-from-wallet)', refreshHint);
+    refreshHint();
+
+    $('#bwa-transfer-form').on('submit', function (e) {
+        var amt = Number($('#bwa-amount').val() || 0);
+        var avail = available();
+        var fromWallet = ($('[name=from_wallet]').val() || '').toLowerCase();
+        var toWallet = ($('[name=to_wallet]').val() || '').toLowerCase();
+        if (!(amt > 0)) {
+            layer.msg('划转金额必须大于 0', {icon: 0});
+            e.preventDefault();
+            return false;
+        }
+        if (amt > avail + 1e-12) {
+            layer.msg('余额不足，当前可用 ' + fmt(avail), {icon: 0});
+            e.preventDefault();
+            return false;
+        }
+        if (fromWallet === toWallet) {
+            layer.msg('转出钱包与转入钱包须不同', {icon: 0});
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>
