@@ -1,5 +1,5 @@
 -- MojoPay 全量初始化 · MySQL 8.0.16+
--- 依据 docs/mojopay-technical-design.md。
+-- 产品范围见 docs/mojopay-product-features.md。
 -- 执行前选中目标数据库。例如 mysql --default-character-set=utf8mb4 -u USER -p DB < docs/all.sql
 -- 本文件用于初始化空库，可重复运行。已有表结构升级请使用独立迁移。
 -- 金额 DECIMAL(36,0) 按资产最小单位存储，DATETIME(6) 按 UTC 写入。
